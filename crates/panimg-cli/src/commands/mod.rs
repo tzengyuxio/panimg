@@ -14,6 +14,7 @@ pub mod info;
 pub mod invert;
 pub mod orient;
 pub mod overlay;
+pub mod pipeline;
 pub mod resize;
 pub mod rotate;
 pub mod sharpen;

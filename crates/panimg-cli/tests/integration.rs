@@ -1992,3 +1992,238 @@ fn diff_json_fields() {
 fn diff_missing_inputs() {
     panimg().args(["diff"]).assert().failure();
 }
+
+// ---- Pipeline ----
+
+#[test]
+fn pipeline_single_step() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("out.png");
+
+    panimg()
+        .args([
+            "pipeline",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--steps",
+            "grayscale",
+        ])
+        .assert()
+        .success();
+
+    assert!(out_path.exists());
+}
+
+#[test]
+fn pipeline_multi_steps() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("out.png");
+
+    panimg()
+        .args([
+            "pipeline",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--steps",
+            "grayscale | blur --sigma 1.0 | invert",
+        ])
+        .assert()
+        .success();
+
+    assert!(out_path.exists());
+}
+
+#[test]
+fn pipeline_resize_and_filter() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("out.png");
+
+    panimg()
+        .args([
+            "pipeline",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--steps",
+            "resize --width 2 | sharpen --sigma 0.5",
+        ])
+        .assert()
+        .success();
+
+    assert!(out_path.exists());
+    let result = image::open(&out_path).unwrap();
+    assert_eq!(result.width(), 2);
+}
+
+#[test]
+fn pipeline_json_output() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("out.png");
+
+    let output = panimg()
+        .args([
+            "pipeline",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--steps",
+            "grayscale | invert",
+            "--format",
+            "json",
+        ])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(json["steps"], 2);
+    assert!(json["output_size"].as_u64().unwrap() > 0);
+}
+
+#[test]
+fn pipeline_dry_run() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("out.png");
+
+    let output = panimg()
+        .args([
+            "pipeline",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--steps",
+            "grayscale | blur --sigma 2.0",
+            "--dry-run",
+            "--format",
+            "json",
+        ])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert!(!out_path.exists());
+
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(json["steps"].as_array().unwrap().len(), 2);
+}
+
+#[test]
+fn pipeline_recipe_file() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("out.png");
+    let recipe_path = dir.path().join("recipe.json");
+
+    std::fs::write(
+        &recipe_path,
+        r#"{"steps": [{"op": "grayscale"}, {"op": "blur", "sigma": 1.0}]}"#,
+    )
+    .unwrap();
+
+    panimg()
+        .args([
+            "pipeline",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--recipe",
+            recipe_path.to_str().unwrap(),
+        ])
+        .assert()
+        .success();
+
+    assert!(out_path.exists());
+}
+
+#[test]
+fn pipeline_recipe_with_resize() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("out.png");
+    let recipe_path = dir.path().join("recipe.json");
+
+    std::fs::write(
+        &recipe_path,
+        r#"{"steps": [{"op": "resize", "width": 2}, {"op": "emboss"}]}"#,
+    )
+    .unwrap();
+
+    panimg()
+        .args([
+            "pipeline",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--recipe",
+            recipe_path.to_str().unwrap(),
+        ])
+        .assert()
+        .success();
+
+    assert!(out_path.exists());
+    let result = image::open(&out_path).unwrap();
+    assert_eq!(result.width(), 2);
+}
+
+#[test]
+fn pipeline_missing_steps_and_recipe() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("out.png");
+
+    panimg()
+        .args([
+            "pipeline",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+        ])
+        .assert()
+        .failure();
+}
+
+#[test]
+fn pipeline_invalid_step() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("out.png");
+
+    panimg()
+        .args([
+            "pipeline",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--steps",
+            "nonexistent",
+        ])
+        .assert()
+        .failure();
+}
+
+#[test]
+fn pipeline_positional_output() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("out.png");
+
+    panimg()
+        .args([
+            "pipeline",
+            img_path.to_str().unwrap(),
+            out_path.to_str().unwrap(),
+            "--steps",
+            "grayscale",
+        ])
+        .assert()
+        .success();
+
+    assert!(out_path.exists());
+}

@@ -4,4 +4,5 @@ pub mod format;
 pub mod info;
 pub mod ops;
 pub mod pipeline;
+pub mod recipe;
 pub mod schema;
