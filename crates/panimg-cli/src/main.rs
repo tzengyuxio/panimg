@@ -99,6 +99,10 @@ fn capabilities() -> Capabilities {
                 description: "Apply emboss effect to an image".into(),
             },
             CommandCap {
+                name: "draw".into(),
+                description: "Draw shapes (rect, circle, line) on an image".into(),
+            },
+            CommandCap {
                 name: "overlay".into(),
                 description: "Overlay (composite) one image on top of another".into(),
             },
@@ -225,6 +229,9 @@ fn main() {
         }
         Some(Commands::Emboss(args)) => {
             commands::emboss::run(args, cli.format, cli.dry_run, cli.schema)
+        }
+        Some(Commands::Draw(args)) => {
+            commands::draw::run(args, cli.format, cli.dry_run, cli.schema)
         }
         Some(Commands::Overlay(args)) => {
             commands::overlay::run(args, cli.format, cli.dry_run, cli.schema)

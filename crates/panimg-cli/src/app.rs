@@ -85,6 +85,9 @@ pub enum Commands {
     /// Apply emboss effect
     Emboss(EmbossArgs),
 
+    /// Draw shapes (rect, circle, line) on an image
+    Draw(DrawArgs),
+
     /// Overlay (composite) one image on top of another
     Overlay(OverlayArgs),
 
@@ -492,6 +495,87 @@ pub struct EmbossArgs {
     /// Output file path
     #[arg(short, long)]
     pub output: Option<String>,
+
+    /// Output quality (1-100, for lossy formats)
+    #[arg(long)]
+    pub quality: Option<u8>,
+
+    /// Strip metadata from output
+    #[arg(long)]
+    pub strip: bool,
+}
+
+#[derive(Parser)]
+pub struct DrawArgs {
+    /// Input image file
+    pub input: Option<String>,
+
+    /// Output file path (positional alternative to -o)
+    pub output_pos: Option<String>,
+
+    /// Output file path
+    #[arg(short, long)]
+    pub output: Option<String>,
+
+    /// Shape type: rect, circle, line
+    #[arg(long)]
+    pub shape: Option<String>,
+
+    /// Color: hex (#FF0000), RGB (255,0,0), or named (red, blue, etc.)
+    #[arg(long)]
+    pub color: Option<String>,
+
+    /// Fill the shape (default: outlined)
+    #[arg(long)]
+    pub fill: bool,
+
+    /// Line/border thickness in pixels
+    #[arg(long)]
+    pub thickness: Option<u32>,
+
+    /// X position (rect/line start)
+    #[arg(long)]
+    pub x: Option<i32>,
+
+    /// Y position (rect/line start)
+    #[arg(long)]
+    pub y: Option<i32>,
+
+    /// Width (for rect)
+    #[arg(long)]
+    pub width: Option<u32>,
+
+    /// Height (for rect)
+    #[arg(long)]
+    pub height: Option<u32>,
+
+    /// Circle center X
+    #[arg(long)]
+    pub cx: Option<i32>,
+
+    /// Circle center Y
+    #[arg(long)]
+    pub cy: Option<i32>,
+
+    /// Circle radius
+    #[arg(long)]
+    pub radius: Option<u32>,
+
+    /// Line end X
+    #[arg(long)]
+    pub x1: Option<i32>,
+
+    /// Line end Y
+    #[arg(long)]
+    pub y1: Option<i32>,
+
+    /// Line end X
+    #[arg(long)]
+    pub x2: Option<i32>,
+
+    /// Line end Y
+    #[arg(long)]
+    pub y2: Option<i32>,
 
     /// Output quality (1-100, for lossy formats)
     #[arg(long)]
