@@ -26,6 +26,11 @@ impl Pipeline {
         self
     }
 
+    pub fn push_boxed(mut self, op: Box<dyn Operation>) -> Self {
+        self.operations.push(op);
+        self
+    }
+
     /// Execute all operations in order on the given image.
     pub fn execute(&self, mut img: DynamicImage) -> Result<DynamicImage> {
         for op in &self.operations {

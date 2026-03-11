@@ -94,6 +94,9 @@ pub enum Commands {
     /// Compare two images and visualize differences
     Diff(DiffArgs),
 
+    /// Run multiple operations in a single read/write pipeline
+    Pipeline(PipelineArgs),
+
     /// Process multiple files in batch with glob patterns
     Batch(BatchArgs),
 }
@@ -596,6 +599,35 @@ pub struct DiffArgs {
     /// Output quality (1-100, for lossy formats)
     #[arg(long)]
     pub quality: Option<u8>,
+}
+
+#[derive(Parser)]
+pub struct PipelineArgs {
+    /// Input image file
+    pub input: Option<String>,
+
+    /// Output file path (positional alternative to -o)
+    pub output_pos: Option<String>,
+
+    /// Output file path
+    #[arg(short, long)]
+    pub output: Option<String>,
+
+    /// Pipeline steps (pipe-separated), e.g. "resize --width 800 | blur --sigma 2 | grayscale"
+    #[arg(long)]
+    pub steps: Option<String>,
+
+    /// Path to a JSON recipe file
+    #[arg(long)]
+    pub recipe: Option<String>,
+
+    /// Output quality (1-100, for lossy formats)
+    #[arg(long)]
+    pub quality: Option<u8>,
+
+    /// Strip metadata from output
+    #[arg(long)]
+    pub strip: bool,
 }
 
 #[derive(Parser)]
