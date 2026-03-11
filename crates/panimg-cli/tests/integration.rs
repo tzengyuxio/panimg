@@ -2227,3 +2227,182 @@ fn pipeline_positional_output() {
 
     assert!(out_path.exists());
 }
+
+// ---- Draw ----
+
+#[test]
+fn draw_filled_rect() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("drawn.png");
+
+    panimg()
+        .args([
+            "draw",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--shape",
+            "rect",
+            "--x",
+            "0",
+            "--y",
+            "0",
+            "--width",
+            "2",
+            "--height",
+            "2",
+            "--color",
+            "red",
+            "--fill",
+        ])
+        .assert()
+        .success();
+
+    assert!(out_path.exists());
+}
+
+#[test]
+fn draw_circle() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("drawn.png");
+
+    panimg()
+        .args([
+            "draw",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--shape",
+            "circle",
+            "--cx",
+            "2",
+            "--cy",
+            "2",
+            "--radius",
+            "1",
+            "--color",
+            "green",
+            "--fill",
+        ])
+        .assert()
+        .success();
+
+    assert!(out_path.exists());
+}
+
+#[test]
+fn draw_line() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("drawn.png");
+
+    panimg()
+        .args([
+            "draw",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--shape",
+            "line",
+            "--x1",
+            "0",
+            "--y1",
+            "0",
+            "--x2",
+            "3",
+            "--y2",
+            "3",
+            "--color",
+            "255,0,0",
+            "--thickness",
+            "1",
+        ])
+        .assert()
+        .success();
+
+    assert!(out_path.exists());
+}
+
+#[test]
+fn draw_json_output() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("drawn.png");
+
+    let output = panimg()
+        .args([
+            "draw",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--shape",
+            "rect",
+            "--width",
+            "2",
+            "--height",
+            "2",
+            "--fill",
+            "--format",
+            "json",
+        ])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(json["shape"], "rect");
+    assert!(json["output_size"].as_u64().unwrap() > 0);
+}
+
+#[test]
+fn draw_dry_run() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("drawn.png");
+
+    panimg()
+        .args([
+            "draw",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--shape",
+            "rect",
+            "--width",
+            "2",
+            "--height",
+            "2",
+            "--dry-run",
+        ])
+        .assert()
+        .success();
+
+    assert!(!out_path.exists());
+}
+
+#[test]
+fn draw_schema() {
+    let output = panimg().args(["draw", "--schema"]).output().unwrap();
+    assert!(output.status.success());
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(json["command"], "draw");
+}
+
+#[test]
+fn draw_missing_shape() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("drawn.png");
+
+    panimg()
+        .args([
+            "draw",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+        ])
+        .assert()
+        .failure();
+}
