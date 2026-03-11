@@ -6,6 +6,7 @@ use panimg_core::error::PanimgError;
 use panimg_core::format::ImageFormat;
 use panimg_core::ops::blur::BlurOp;
 use panimg_core::ops::brightness::BrightnessOp;
+use panimg_core::ops::color::{PosterizeOp, SaturateOp, SepiaOp};
 use panimg_core::ops::contrast::ContrastOp;
 use panimg_core::ops::crop::CropOp;
 use panimg_core::ops::edge_detect::EdgeDetectOp;
@@ -230,10 +231,22 @@ fn build_pipeline(args: &BatchArgs, input_path: &Path) -> Result<Pipeline, Panim
             let tolerance = args.tolerance.map(|t| t as u8).unwrap_or(10);
             pipeline = pipeline.push(TrimOp::new(tolerance)?);
         }
+        "saturate" => {
+            let factor = args.factor.unwrap_or(1.5);
+            pipeline = pipeline.push(SaturateOp::new(factor)?);
+        }
+        "sepia" => {
+            let intensity = args.intensity.unwrap_or(1.0);
+            pipeline = pipeline.push(SepiaOp::new(intensity)?);
+        }
+        "posterize" => {
+            let levels = args.levels.unwrap_or(4);
+            pipeline = pipeline.push(PosterizeOp::new(levels)?);
+        }
         _ => {
             return Err(PanimgError::InvalidArgument {
                 message: format!("unknown batch operation: '{op}'"),
-                suggestion: "supported: convert, resize, crop, rotate, flip, auto-orient, grayscale, invert, brightness, contrast, hue-rotate, blur, sharpen, edge-detect, emboss, trim".into(),
+                suggestion: "supported: convert, resize, crop, rotate, flip, auto-orient, grayscale, invert, brightness, contrast, hue-rotate, blur, sharpen, edge-detect, emboss, trim, saturate, sepia, posterize".into(),
             });
         }
     }

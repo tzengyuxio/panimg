@@ -2713,3 +2713,449 @@ fn gif_speed_positional_output() {
 
     assert!(out_path.exists());
 }
+
+// ---- Saturate ----
+
+#[test]
+fn saturate_basic() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("saturated.png");
+
+    panimg()
+        .args([
+            "saturate",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--factor",
+            "1.5",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("1.5x"));
+
+    assert!(out_path.exists());
+}
+
+#[test]
+fn saturate_json_output() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("saturated.png");
+
+    panimg()
+        .args([
+            "saturate",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--factor",
+            "0.5",
+            "--format",
+            "json",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("\"factor\""));
+}
+
+#[test]
+fn saturate_dry_run() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+
+    panimg()
+        .args([
+            "saturate",
+            img_path.to_str().unwrap(),
+            "-o",
+            "out.png",
+            "--factor",
+            "2.0",
+            "--dry-run",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Would adjust saturation"));
+}
+
+#[test]
+fn saturate_schema() {
+    panimg()
+        .args(["saturate", "--schema"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("factor"));
+}
+
+#[test]
+fn saturate_missing_factor() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+
+    panimg()
+        .args(["saturate", img_path.to_str().unwrap(), "-o", "out.png"])
+        .assert()
+        .failure();
+}
+
+// ---- Sepia ----
+
+#[test]
+fn sepia_basic() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("sepia.png");
+
+    panimg()
+        .args([
+            "sepia",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Sepia applied"));
+
+    assert!(out_path.exists());
+}
+
+#[test]
+fn sepia_with_intensity() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("sepia.png");
+
+    panimg()
+        .args([
+            "sepia",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--intensity",
+            "0.5",
+        ])
+        .assert()
+        .success();
+
+    assert!(out_path.exists());
+}
+
+#[test]
+fn sepia_json_output() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("sepia.png");
+
+    panimg()
+        .args([
+            "sepia",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--format",
+            "json",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("\"intensity\""));
+}
+
+#[test]
+fn sepia_dry_run() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+
+    panimg()
+        .args([
+            "sepia",
+            img_path.to_str().unwrap(),
+            "-o",
+            "out.png",
+            "--dry-run",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Would apply sepia"));
+}
+
+#[test]
+fn sepia_schema() {
+    panimg()
+        .args(["sepia", "--schema"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("intensity"));
+}
+
+// ---- Tint ----
+
+#[test]
+fn tint_basic() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("tinted.png");
+
+    panimg()
+        .args([
+            "tint",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--color",
+            "red",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Tinted"));
+
+    assert!(out_path.exists());
+}
+
+#[test]
+fn tint_with_strength() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("tinted.png");
+
+    panimg()
+        .args([
+            "tint",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--color",
+            "#00FF00",
+            "--strength",
+            "0.8",
+        ])
+        .assert()
+        .success();
+
+    assert!(out_path.exists());
+}
+
+#[test]
+fn tint_json_output() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("tinted.png");
+
+    panimg()
+        .args([
+            "tint",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--color",
+            "blue",
+            "--format",
+            "json",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("\"color\""))
+        .stdout(predicate::str::contains("\"strength\""));
+}
+
+#[test]
+fn tint_dry_run() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+
+    panimg()
+        .args([
+            "tint",
+            img_path.to_str().unwrap(),
+            "-o",
+            "out.png",
+            "--color",
+            "red",
+            "--dry-run",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Would tint"));
+}
+
+#[test]
+fn tint_schema() {
+    panimg()
+        .args(["tint", "--schema"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("color"))
+        .stdout(predicate::str::contains("strength"));
+}
+
+#[test]
+fn tint_missing_color() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+
+    panimg()
+        .args(["tint", img_path.to_str().unwrap(), "-o", "out.png"])
+        .assert()
+        .failure();
+}
+
+// ---- Posterize ----
+
+#[test]
+fn posterize_basic() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("posterized.png");
+
+    panimg()
+        .args([
+            "posterize",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--levels",
+            "4",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("4 levels"));
+
+    assert!(out_path.exists());
+}
+
+#[test]
+fn posterize_default_levels() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("posterized.png");
+
+    panimg()
+        .args([
+            "posterize",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+        ])
+        .assert()
+        .success();
+
+    assert!(out_path.exists());
+}
+
+#[test]
+fn posterize_json_output() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("posterized.png");
+
+    panimg()
+        .args([
+            "posterize",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--format",
+            "json",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("\"levels\""));
+}
+
+#[test]
+fn posterize_dry_run() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+
+    panimg()
+        .args([
+            "posterize",
+            img_path.to_str().unwrap(),
+            "-o",
+            "out.png",
+            "--dry-run",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Would posterize"));
+}
+
+#[test]
+fn posterize_schema() {
+    panimg()
+        .args(["posterize", "--schema"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("levels"));
+}
+
+// ---- Batch with color ops ----
+
+#[test]
+fn batch_saturate() {
+    let dir = TempDir::new().unwrap();
+    create_test_png(dir.path(), "a.png");
+    let out_dir = dir.path().join("out");
+    let pattern = dir.path().join("*.png");
+
+    panimg()
+        .args([
+            "batch",
+            "saturate",
+            pattern.to_str().unwrap(),
+            "--output-dir",
+            out_dir.to_str().unwrap(),
+            "--factor",
+            "1.5",
+        ])
+        .assert()
+        .success();
+
+    assert!(out_dir.join("a.png").exists());
+}
+
+#[test]
+fn batch_sepia() {
+    let dir = TempDir::new().unwrap();
+    create_test_png(dir.path(), "a.png");
+    let out_dir = dir.path().join("out");
+    let pattern = dir.path().join("*.png");
+
+    panimg()
+        .args([
+            "batch",
+            "sepia",
+            pattern.to_str().unwrap(),
+            "--output-dir",
+            out_dir.to_str().unwrap(),
+        ])
+        .assert()
+        .success();
+
+    assert!(out_dir.join("a.png").exists());
+}
+
+#[test]
+fn batch_posterize() {
+    let dir = TempDir::new().unwrap();
+    create_test_png(dir.path(), "a.png");
+    let out_dir = dir.path().join("out");
+    let pattern = dir.path().join("*.png");
+
+    panimg()
+        .args([
+            "batch",
+            "posterize",
+            pattern.to_str().unwrap(),
+            "--output-dir",
+            out_dir.to_str().unwrap(),
+            "--levels",
+            "4",
+        ])
+        .assert()
+        .success();
+
+    assert!(out_dir.join("a.png").exists());
+}

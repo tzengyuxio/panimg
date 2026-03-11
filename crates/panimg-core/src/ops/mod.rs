@@ -1,6 +1,7 @@
 pub mod animation;
 pub mod blur;
 pub mod brightness;
+pub mod color;
 pub mod contrast;
 pub mod crop;
 pub mod diff;
