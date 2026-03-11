@@ -79,6 +79,12 @@ pub enum Commands {
     /// Sharpen an image (unsharp mask)
     Sharpen(SharpenArgs),
 
+    /// Detect edges in an image
+    EdgeDetect(EdgeDetectArgs),
+
+    /// Apply emboss effect
+    Emboss(EmbossArgs),
+
     /// Process multiple files in batch with glob patterns
     Batch(BatchArgs),
 }
@@ -443,8 +449,50 @@ pub struct SharpenArgs {
 }
 
 #[derive(Parser)]
+pub struct EdgeDetectArgs {
+    /// Input image file
+    pub input: Option<String>,
+
+    /// Output file path (positional alternative to -o)
+    pub output_pos: Option<String>,
+
+    /// Output file path
+    #[arg(short, long)]
+    pub output: Option<String>,
+
+    /// Output quality (1-100, for lossy formats)
+    #[arg(long)]
+    pub quality: Option<u8>,
+
+    /// Strip metadata from output
+    #[arg(long)]
+    pub strip: bool,
+}
+
+#[derive(Parser)]
+pub struct EmbossArgs {
+    /// Input image file
+    pub input: Option<String>,
+
+    /// Output file path (positional alternative to -o)
+    pub output_pos: Option<String>,
+
+    /// Output file path
+    #[arg(short, long)]
+    pub output: Option<String>,
+
+    /// Output quality (1-100, for lossy formats)
+    #[arg(long)]
+    pub quality: Option<u8>,
+
+    /// Strip metadata from output
+    #[arg(long)]
+    pub strip: bool,
+}
+
+#[derive(Parser)]
 pub struct BatchArgs {
-    /// Operation to apply (convert, resize, crop, rotate, flip, auto-orient, grayscale, invert, brightness, contrast, hue-rotate, blur, sharpen)
+    /// Operation to apply (convert, resize, crop, rotate, flip, auto-orient, grayscale, invert, brightness, contrast, hue-rotate, blur, sharpen, edge-detect, emboss)
     pub operation: String,
 
     /// Glob pattern for input files (e.g. "photos/*.png")

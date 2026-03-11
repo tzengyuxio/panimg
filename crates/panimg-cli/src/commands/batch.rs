@@ -8,6 +8,8 @@ use panimg_core::ops::blur::BlurOp;
 use panimg_core::ops::brightness::BrightnessOp;
 use panimg_core::ops::contrast::ContrastOp;
 use panimg_core::ops::crop::CropOp;
+use panimg_core::ops::edge_detect::EdgeDetectOp;
+use panimg_core::ops::emboss::EmbossOp;
 use panimg_core::ops::flip::{FlipDirection, FlipOp};
 use panimg_core::ops::grayscale::GrayscaleOp;
 use panimg_core::ops::hue_rotate::HueRotateOp;
@@ -217,10 +219,16 @@ fn build_pipeline(args: &BatchArgs, input_path: &Path) -> Result<Pipeline, Panim
             let threshold = args.threshold.unwrap_or(0);
             pipeline = pipeline.push(SharpenOp::new(sigma, threshold)?);
         }
+        "edge-detect" => {
+            pipeline = pipeline.push(EdgeDetectOp::new());
+        }
+        "emboss" => {
+            pipeline = pipeline.push(EmbossOp::new());
+        }
         _ => {
             return Err(PanimgError::InvalidArgument {
                 message: format!("unknown batch operation: '{op}'"),
-                suggestion: "supported: convert, resize, crop, rotate, flip, auto-orient, grayscale, invert, brightness, contrast, hue-rotate".into(),
+                suggestion: "supported: convert, resize, crop, rotate, flip, auto-orient, grayscale, invert, brightness, contrast, hue-rotate, blur, sharpen, edge-detect, emboss".into(),
             });
         }
     }

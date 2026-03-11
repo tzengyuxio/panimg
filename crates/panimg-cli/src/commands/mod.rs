@@ -4,6 +4,8 @@ pub mod brightness;
 pub mod contrast;
 pub mod convert;
 pub mod crop;
+pub mod edge_detect;
+pub mod emboss;
 pub mod flip;
 pub mod grayscale;
 pub mod hue_rotate;

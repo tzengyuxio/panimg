@@ -1231,3 +1231,247 @@ fn sharpen_schema() {
     let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
     assert_eq!(json["command"], "sharpen");
 }
+
+// ---- Edge Detect ----
+
+#[test]
+fn edge_detect_produces_output() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("edges.png");
+
+    panimg()
+        .args([
+            "edge-detect",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+        ])
+        .assert()
+        .success();
+
+    assert!(out_path.exists());
+}
+
+#[test]
+fn edge_detect_json_output() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("edges.png");
+
+    let output = panimg()
+        .args([
+            "edge-detect",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--format",
+            "json",
+        ])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(json["input"], img_path.to_str().unwrap());
+    assert!(json["output_size"].as_u64().unwrap() > 0);
+}
+
+#[test]
+fn edge_detect_dry_run() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("edges.png");
+
+    panimg()
+        .args([
+            "edge-detect",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--dry-run",
+            "--format",
+            "json",
+        ])
+        .assert()
+        .success();
+
+    assert!(!out_path.exists());
+}
+
+#[test]
+fn edge_detect_schema() {
+    let output = panimg().args(["edge-detect", "--schema"]).output().unwrap();
+    assert!(output.status.success());
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(json["command"], "edge-detect");
+}
+
+#[test]
+fn edge_detect_missing_input() {
+    panimg().args(["edge-detect"]).assert().failure();
+}
+
+#[test]
+fn edge_detect_positional_output() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("edges.png");
+
+    panimg()
+        .args([
+            "edge-detect",
+            img_path.to_str().unwrap(),
+            out_path.to_str().unwrap(),
+        ])
+        .assert()
+        .success();
+
+    assert!(out_path.exists());
+}
+
+// ---- Emboss ----
+
+#[test]
+fn emboss_produces_output() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("embossed.png");
+
+    panimg()
+        .args([
+            "emboss",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+        ])
+        .assert()
+        .success();
+
+    assert!(out_path.exists());
+}
+
+#[test]
+fn emboss_json_output() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("embossed.png");
+
+    let output = panimg()
+        .args([
+            "emboss",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--format",
+            "json",
+        ])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(json["input"], img_path.to_str().unwrap());
+    assert!(json["output_size"].as_u64().unwrap() > 0);
+}
+
+#[test]
+fn emboss_dry_run() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("embossed.png");
+
+    panimg()
+        .args([
+            "emboss",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--dry-run",
+            "--format",
+            "json",
+        ])
+        .assert()
+        .success();
+
+    assert!(!out_path.exists());
+}
+
+#[test]
+fn emboss_schema() {
+    let output = panimg().args(["emboss", "--schema"]).output().unwrap();
+    assert!(output.status.success());
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(json["command"], "emboss");
+}
+
+#[test]
+fn emboss_missing_input() {
+    panimg().args(["emboss"]).assert().failure();
+}
+
+#[test]
+fn emboss_positional_output() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("embossed.png");
+
+    panimg()
+        .args([
+            "emboss",
+            img_path.to_str().unwrap(),
+            out_path.to_str().unwrap(),
+        ])
+        .assert()
+        .success();
+
+    assert!(out_path.exists());
+}
+
+// ---- Batch edge-detect & emboss ----
+
+#[test]
+fn batch_edge_detect() {
+    let dir = TempDir::new().unwrap();
+    create_test_png(dir.path(), "a.png");
+    create_test_png(dir.path(), "b.png");
+    let out_dir = dir.path().join("out");
+
+    let pattern = dir.path().join("*.png");
+    panimg()
+        .args([
+            "batch",
+            "edge-detect",
+            pattern.to_str().unwrap(),
+            "--output-dir",
+            out_dir.to_str().unwrap(),
+        ])
+        .assert()
+        .success();
+
+    assert!(out_dir.join("a.png").exists());
+    assert!(out_dir.join("b.png").exists());
+}
+
+#[test]
+fn batch_emboss() {
+    let dir = TempDir::new().unwrap();
+    create_test_png(dir.path(), "a.png");
+    create_test_png(dir.path(), "b.png");
+    let out_dir = dir.path().join("out");
+
+    let pattern = dir.path().join("*.png");
+    panimg()
+        .args([
+            "batch",
+            "emboss",
+            pattern.to_str().unwrap(),
+            "--output-dir",
+            out_dir.to_str().unwrap(),
+        ])
+        .assert()
+        .success();
+
+    assert!(out_dir.join("a.png").exists());
+    assert!(out_dir.join("b.png").exists());
+}
