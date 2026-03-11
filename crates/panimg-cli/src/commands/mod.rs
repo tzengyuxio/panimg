@@ -1,3 +1,4 @@
+pub mod batch;
 pub mod brightness;
 pub mod contrast;
 pub mod convert;

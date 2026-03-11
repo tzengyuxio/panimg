@@ -82,6 +82,11 @@ fn capabilities() -> Capabilities {
                 name: "hue-rotate".into(),
                 description: "Rotate image hue".into(),
             },
+            CommandCap {
+                name: "batch".into(),
+                description: "Process multiple files with glob patterns and parallel execution"
+                    .into(),
+            },
         ],
         formats: ImageFormat::all()
             .iter()
@@ -177,6 +182,7 @@ fn main() {
         Some(Commands::HueRotate(args)) => {
             commands::hue_rotate::run(args, cli.format, cli.dry_run, cli.schema)
         }
+        Some(Commands::Batch(args)) => commands::batch::run(args, cli.format, cli.dry_run),
         None => {
             // No subcommand: show help
             use clap::CommandFactory;

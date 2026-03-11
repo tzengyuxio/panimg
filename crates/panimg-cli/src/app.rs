@@ -72,6 +72,9 @@ pub enum Commands {
 
     /// Rotate image hue
     HueRotate(HueRotateArgs),
+
+    /// Process multiple files in batch with glob patterns
+    Batch(BatchArgs),
 }
 
 #[derive(Parser)]
@@ -377,4 +380,94 @@ pub struct HueRotateArgs {
     /// Strip metadata from output
     #[arg(long)]
     pub strip: bool,
+}
+
+#[derive(Parser)]
+pub struct BatchArgs {
+    /// Operation to apply (convert, resize, crop, rotate, flip, auto-orient, grayscale, invert, brightness, contrast, hue-rotate)
+    pub operation: String,
+
+    /// Glob pattern for input files (e.g. "photos/*.png")
+    pub pattern: String,
+
+    /// Output directory
+    #[arg(long)]
+    pub output_dir: Option<String>,
+
+    /// Output path template with placeholders: {stem}, {name}, {ext}, {dir}
+    #[arg(long)]
+    pub output_template: Option<String>,
+
+    /// Target format for convert (e.g. webp, jpg)
+    #[arg(long)]
+    pub to: Option<String>,
+
+    /// Output quality (1-100, for lossy formats)
+    #[arg(long)]
+    pub quality: Option<u8>,
+
+    /// Strip metadata from output
+    #[arg(long)]
+    pub strip: bool,
+
+    /// Overwrite output if it exists
+    #[arg(long)]
+    pub overwrite: bool,
+
+    /// Skip if output already exists
+    #[arg(long)]
+    pub skip_existing: bool,
+
+    // --- Operation-specific args ---
+    /// Target width (for resize)
+    #[arg(long)]
+    pub width: Option<u32>,
+
+    /// Target height (for resize)
+    #[arg(long)]
+    pub height: Option<u32>,
+
+    /// Fit mode (for resize): contain, cover, fill, inside, outside
+    #[arg(long)]
+    pub fit: Option<String>,
+
+    /// Resize filter: lanczos3, catmull-rom, nearest, linear
+    #[arg(long)]
+    pub filter: Option<String>,
+
+    /// Left offset (for crop)
+    #[arg(long)]
+    pub x: Option<u32>,
+
+    /// Top offset (for crop)
+    #[arg(long)]
+    pub y: Option<u32>,
+
+    /// Crop width
+    #[arg(long)]
+    pub crop_width: Option<u32>,
+
+    /// Crop height
+    #[arg(long)]
+    pub crop_height: Option<u32>,
+
+    /// Rotation angle (for rotate): 90, 180, 270, left, right
+    #[arg(long)]
+    pub angle: Option<String>,
+
+    /// Flip direction: horizontal, vertical
+    #[arg(long)]
+    pub direction: Option<String>,
+
+    /// Brightness adjustment value (for brightness): -100 to 100
+    #[arg(long = "value")]
+    pub brightness_value: Option<i32>,
+
+    /// Contrast adjustment value (for contrast): -100 to 100
+    #[arg(long)]
+    pub contrast_value: Option<f32>,
+
+    /// Hue rotation degrees (for hue-rotate): -360 to 360
+    #[arg(long)]
+    pub degrees: Option<i32>,
 }

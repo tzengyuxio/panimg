@@ -24,6 +24,7 @@ serde_json = { workspace = true }
 miette = { workspace = true }
 indicatif = { workspace = true }
 rayon = { workspace = true }
+glob = { workspace = true }
 
 [dev-dependencies]
 assert_cmd = "2"
