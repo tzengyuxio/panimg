@@ -26,6 +26,18 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
+      - name: Install NASM (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get install -y nasm
+
+      - name: Install NASM (macOS)
+        if: runner.os == 'macOS'
+        run: brew install nasm
+
+      - name: Install NASM (Windows)
+        if: runner.os == 'Windows'
+        run: choco install nasm
+
       - name: Check formatting
         run: cargo fmt --all --check
 
