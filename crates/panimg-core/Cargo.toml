@@ -1,0 +1,28 @@
+[package]
+name = "panimg-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Core library for panimg image processing"
+
+[features]
+default = []
+avif = ["dep:ravif"]
+jxl = ["dep:jxl-oxide"]
+svg = ["dep:resvg"]
+
+[dependencies]
+image = { workspace = true }
+fast_image_resize = { workspace = true }
+kamadak-exif = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+
+# Optional codec dependencies
+ravif = { workspace = true, optional = true }
+jxl-oxide = { workspace = true, optional = true }
+resvg = { workspace = true, optional = true }
+
+[dev-dependencies]
+tempfile = "3"
