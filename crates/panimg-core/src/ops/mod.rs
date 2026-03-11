@@ -9,6 +9,7 @@ pub mod grayscale;
 pub mod hue_rotate;
 pub mod invert;
 pub mod orient;
+pub mod overlay;
 pub mod resize;
 pub mod rotate;
 pub mod sharpen;

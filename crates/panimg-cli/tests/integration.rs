@@ -1475,3 +1475,211 @@ fn batch_emboss() {
     assert!(out_dir.join("a.png").exists());
     assert!(out_dir.join("b.png").exists());
 }
+
+// ---- Overlay ----
+
+/// Create a small overlay image (red square with alpha).
+fn create_overlay_png(dir: &Path, name: &str) -> std::path::PathBuf {
+    let path = dir.join(name);
+    let img = image::RgbaImage::from_fn(2, 2, |_, _| image::Rgba([255, 0, 0, 200]));
+    img.save(&path).unwrap();
+    path
+}
+
+#[test]
+fn overlay_basic() {
+    let dir = TempDir::new().unwrap();
+    let base = create_test_png(dir.path(), "base.png");
+    let layer = create_overlay_png(dir.path(), "layer.png");
+    let out_path = dir.path().join("result.png");
+
+    panimg()
+        .args([
+            "overlay",
+            base.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--layer",
+            layer.to_str().unwrap(),
+        ])
+        .assert()
+        .success();
+
+    assert!(out_path.exists());
+}
+
+#[test]
+fn overlay_with_position() {
+    let dir = TempDir::new().unwrap();
+    let base = create_test_png(dir.path(), "base.png");
+    let layer = create_overlay_png(dir.path(), "layer.png");
+    let out_path = dir.path().join("result.png");
+
+    panimg()
+        .args([
+            "overlay",
+            base.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--layer",
+            layer.to_str().unwrap(),
+            "--position",
+            "center",
+        ])
+        .assert()
+        .success();
+
+    assert!(out_path.exists());
+}
+
+#[test]
+fn overlay_with_opacity() {
+    let dir = TempDir::new().unwrap();
+    let base = create_test_png(dir.path(), "base.png");
+    let layer = create_overlay_png(dir.path(), "layer.png");
+    let out_path = dir.path().join("result.png");
+
+    panimg()
+        .args([
+            "overlay",
+            base.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--layer",
+            layer.to_str().unwrap(),
+            "--opacity",
+            "0.5",
+        ])
+        .assert()
+        .success();
+
+    assert!(out_path.exists());
+}
+
+#[test]
+fn overlay_with_xy_offset() {
+    let dir = TempDir::new().unwrap();
+    let base = create_test_png(dir.path(), "base.png");
+    let layer = create_overlay_png(dir.path(), "layer.png");
+    let out_path = dir.path().join("result.png");
+
+    panimg()
+        .args([
+            "overlay",
+            base.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--layer",
+            layer.to_str().unwrap(),
+            "--x",
+            "1",
+            "--y",
+            "1",
+        ])
+        .assert()
+        .success();
+
+    assert!(out_path.exists());
+}
+
+#[test]
+fn overlay_tiled() {
+    let dir = TempDir::new().unwrap();
+    let base = create_test_png(dir.path(), "base.png");
+    let layer = create_overlay_png(dir.path(), "layer.png");
+    let out_path = dir.path().join("result.png");
+
+    panimg()
+        .args([
+            "overlay",
+            base.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--layer",
+            layer.to_str().unwrap(),
+            "--tile",
+            "--opacity",
+            "0.3",
+        ])
+        .assert()
+        .success();
+
+    assert!(out_path.exists());
+}
+
+#[test]
+fn overlay_json_output() {
+    let dir = TempDir::new().unwrap();
+    let base = create_test_png(dir.path(), "base.png");
+    let layer = create_overlay_png(dir.path(), "layer.png");
+    let out_path = dir.path().join("result.png");
+
+    let output = panimg()
+        .args([
+            "overlay",
+            base.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--layer",
+            layer.to_str().unwrap(),
+            "--format",
+            "json",
+        ])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(json["opacity"], 1.0);
+    assert!(json["output_size"].as_u64().unwrap() > 0);
+}
+
+#[test]
+fn overlay_dry_run() {
+    let dir = TempDir::new().unwrap();
+    let base = create_test_png(dir.path(), "base.png");
+    let layer = create_overlay_png(dir.path(), "layer.png");
+    let out_path = dir.path().join("result.png");
+
+    panimg()
+        .args([
+            "overlay",
+            base.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--layer",
+            layer.to_str().unwrap(),
+            "--dry-run",
+            "--format",
+            "json",
+        ])
+        .assert()
+        .success();
+
+    assert!(!out_path.exists());
+}
+
+#[test]
+fn overlay_schema() {
+    let output = panimg().args(["overlay", "--schema"]).output().unwrap();
+    assert!(output.status.success());
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(json["command"], "overlay");
+}
+
+#[test]
+fn overlay_missing_layer() {
+    let dir = TempDir::new().unwrap();
+    let base = create_test_png(dir.path(), "base.png");
+    let out_path = dir.path().join("result.png");
+
+    panimg()
+        .args([
+            "overlay",
+            base.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+        ])
+        .assert()
+        .failure();
+}
