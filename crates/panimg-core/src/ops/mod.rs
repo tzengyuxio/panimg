@@ -13,6 +13,7 @@ pub mod overlay;
 pub mod resize;
 pub mod rotate;
 pub mod sharpen;
+pub mod trim;
 
 use crate::error::Result;
 use crate::schema::CommandSchema;
