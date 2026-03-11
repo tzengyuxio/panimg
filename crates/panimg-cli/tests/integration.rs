@@ -80,6 +80,7 @@ fn capabilities_includes_all_commands() {
     assert!(commands.contains(&"brightness"));
     assert!(commands.contains(&"contrast"));
     assert!(commands.contains(&"hue-rotate"));
+    assert!(commands.contains(&"batch"));
 }
 
 // ---- Info Command ----
@@ -819,12 +820,7 @@ fn brightness_missing_value_error() {
     let img_path = create_test_png(dir.path(), "test.png");
 
     panimg()
-        .args([
-            "brightness",
-            img_path.to_str().unwrap(),
-            "-o",
-            "out.png",
-        ])
+        .args(["brightness", img_path.to_str().unwrap(), "-o", "out.png"])
         .assert()
         .code(5);
 }
@@ -885,10 +881,7 @@ fn hue_rotate_basic() {
 
 #[test]
 fn hue_rotate_schema() {
-    let output = panimg()
-        .args(["hue-rotate", "--schema"])
-        .output()
-        .unwrap();
+    let output = panimg().args(["hue-rotate", "--schema"]).output().unwrap();
     assert!(output.status.success());
     let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
     assert_eq!(json["command"], "hue-rotate");
@@ -916,4 +909,203 @@ fn hue_rotate_json_output() {
     assert!(output.status.success());
     let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
     assert_eq!(json["degrees"], 120);
+}
+
+// ---- Batch Command ----
+
+#[test]
+fn batch_convert_to_bmp() {
+    let dir = TempDir::new().unwrap();
+    create_test_png(dir.path(), "a.png");
+    create_test_png(dir.path(), "b.png");
+    let out_dir = dir.path().join("out");
+
+    let pattern = dir.path().join("*.png");
+
+    panimg()
+        .args([
+            "batch",
+            "convert",
+            pattern.to_str().unwrap(),
+            "--output-dir",
+            out_dir.to_str().unwrap(),
+            "--to",
+            "bmp",
+        ])
+        .assert()
+        .success();
+
+    assert!(out_dir.join("a.bmp").exists());
+    assert!(out_dir.join("b.bmp").exists());
+}
+
+#[test]
+fn batch_grayscale() {
+    let dir = TempDir::new().unwrap();
+    create_test_png(dir.path(), "img1.png");
+    create_test_png(dir.path(), "img2.png");
+    let out_dir = dir.path().join("gray");
+
+    let pattern = dir.path().join("*.png");
+
+    panimg()
+        .args([
+            "batch",
+            "grayscale",
+            pattern.to_str().unwrap(),
+            "--output-dir",
+            out_dir.to_str().unwrap(),
+        ])
+        .assert()
+        .success();
+
+    assert!(out_dir.join("img1.png").exists());
+    assert!(out_dir.join("img2.png").exists());
+}
+
+#[test]
+fn batch_resize() {
+    let dir = TempDir::new().unwrap();
+    let img = image::RgbaImage::from_fn(100, 200, |_, _| image::Rgba([128, 128, 128, 255]));
+    img.save(dir.path().join("big.png")).unwrap();
+    let out_dir = dir.path().join("thumbs");
+
+    let pattern = dir.path().join("*.png");
+
+    panimg()
+        .args([
+            "batch",
+            "resize",
+            pattern.to_str().unwrap(),
+            "--output-dir",
+            out_dir.to_str().unwrap(),
+            "--width",
+            "50",
+        ])
+        .assert()
+        .success();
+
+    let result = image::open(out_dir.join("big.png")).unwrap();
+    assert_eq!(result.width(), 50);
+    assert_eq!(result.height(), 100);
+}
+
+#[test]
+fn batch_dry_run() {
+    let dir = TempDir::new().unwrap();
+    create_test_png(dir.path(), "test.png");
+    let out_dir = dir.path().join("out");
+
+    let pattern = dir.path().join("*.png");
+
+    panimg()
+        .args([
+            "batch",
+            "grayscale",
+            pattern.to_str().unwrap(),
+            "--output-dir",
+            out_dir.to_str().unwrap(),
+            "--dry-run",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Would"));
+
+    assert!(!out_dir.exists());
+}
+
+#[test]
+fn batch_dry_run_json() {
+    let dir = TempDir::new().unwrap();
+    create_test_png(dir.path(), "a.png");
+    create_test_png(dir.path(), "b.png");
+    let out_dir = dir.path().join("out");
+
+    let pattern = dir.path().join("*.png");
+
+    let output = panimg()
+        .args([
+            "batch",
+            "invert",
+            pattern.to_str().unwrap(),
+            "--output-dir",
+            out_dir.to_str().unwrap(),
+            "--dry-run",
+            "--format",
+            "json",
+        ])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(json["total_files"], 2);
+    assert!(json["files"].is_array());
+}
+
+#[test]
+fn batch_json_output() {
+    let dir = TempDir::new().unwrap();
+    create_test_png(dir.path(), "x.png");
+    let out_dir = dir.path().join("out");
+
+    let pattern = dir.path().join("*.png");
+
+    let output = panimg()
+        .args([
+            "batch",
+            "grayscale",
+            pattern.to_str().unwrap(),
+            "--output-dir",
+            out_dir.to_str().unwrap(),
+            "--format",
+            "json",
+        ])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(json["total"], 1);
+    assert_eq!(json["succeeded"], 1);
+    assert_eq!(json["failed"], 0);
+}
+
+#[test]
+fn batch_no_match_error() {
+    let dir = TempDir::new().unwrap();
+    let pattern = dir.path().join("*.doesnotexist");
+
+    panimg()
+        .args([
+            "batch",
+            "grayscale",
+            pattern.to_str().unwrap(),
+            "--output-dir",
+            "/tmp/out",
+        ])
+        .assert()
+        .code(5);
+}
+
+#[test]
+fn batch_output_template() {
+    let dir = TempDir::new().unwrap();
+    create_test_png(dir.path(), "photo.png");
+    let out_dir = dir.path().join("out");
+    std::fs::create_dir(&out_dir).unwrap();
+
+    let pattern = dir.path().join("*.png");
+    let template = format!("{}/{{stem}}_gray.{{ext}}", out_dir.to_str().unwrap());
+
+    panimg()
+        .args([
+            "batch",
+            "grayscale",
+            pattern.to_str().unwrap(),
+            "--output-template",
+            &template,
+        ])
+        .assert()
+        .success();
+
+    assert!(out_dir.join("photo_gray.png").exists());
 }
