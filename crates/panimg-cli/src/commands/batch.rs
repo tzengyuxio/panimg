@@ -18,6 +18,7 @@ use panimg_core::ops::orient::AutoOrientOp;
 use panimg_core::ops::resize::{FitMode, ResizeFilter, ResizeOp};
 use panimg_core::ops::rotate::{RotateAngle, RotateOp};
 use panimg_core::ops::sharpen::SharpenOp;
+use panimg_core::ops::trim::TrimOp;
 use panimg_core::pipeline::Pipeline;
 use rayon::prelude::*;
 use serde::Serialize;
@@ -225,10 +226,14 @@ fn build_pipeline(args: &BatchArgs, input_path: &Path) -> Result<Pipeline, Panim
         "emboss" => {
             pipeline = pipeline.push(EmbossOp::new());
         }
+        "trim" => {
+            let tolerance = args.tolerance.map(|t| t as u8).unwrap_or(10);
+            pipeline = pipeline.push(TrimOp::new(tolerance)?);
+        }
         _ => {
             return Err(PanimgError::InvalidArgument {
                 message: format!("unknown batch operation: '{op}'"),
-                suggestion: "supported: convert, resize, crop, rotate, flip, auto-orient, grayscale, invert, brightness, contrast, hue-rotate, blur, sharpen, edge-detect, emboss".into(),
+                suggestion: "supported: convert, resize, crop, rotate, flip, auto-orient, grayscale, invert, brightness, contrast, hue-rotate, blur, sharpen, edge-detect, emboss, trim".into(),
             });
         }
     }

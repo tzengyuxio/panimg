@@ -88,6 +88,9 @@ pub enum Commands {
     /// Overlay (composite) one image on top of another
     Overlay(OverlayArgs),
 
+    /// Trim (auto-crop) whitespace or similar-colored borders
+    Trim(TrimArgs),
+
     /// Process multiple files in batch with glob patterns
     Batch(BatchArgs),
 }
@@ -547,6 +550,31 @@ pub struct OverlayArgs {
 }
 
 #[derive(Parser)]
+pub struct TrimArgs {
+    /// Input image file
+    pub input: Option<String>,
+
+    /// Output file path (positional alternative to -o)
+    pub output_pos: Option<String>,
+
+    /// Output file path
+    #[arg(short, long)]
+    pub output: Option<String>,
+
+    /// Color distance threshold for background detection (0-255, default: 10)
+    #[arg(long)]
+    pub tolerance: Option<u8>,
+
+    /// Output quality (1-100, for lossy formats)
+    #[arg(long)]
+    pub quality: Option<u8>,
+
+    /// Strip metadata from output
+    #[arg(long)]
+    pub strip: bool,
+}
+
+#[derive(Parser)]
 pub struct BatchArgs {
     /// Operation to apply (convert, resize, crop, rotate, flip, auto-orient, grayscale, invert, brightness, contrast, hue-rotate, blur, sharpen, edge-detect, emboss)
     pub operation: String,
@@ -642,4 +670,8 @@ pub struct BatchArgs {
     /// Sharpen threshold (for sharpen)
     #[arg(long)]
     pub threshold: Option<i32>,
+
+    /// Trim tolerance (for trim): 0-255
+    #[arg(long)]
+    pub tolerance: Option<i32>,
 }

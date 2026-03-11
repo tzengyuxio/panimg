@@ -1683,3 +1683,155 @@ fn overlay_missing_layer() {
         .assert()
         .failure();
 }
+
+// ---- Trim ----
+
+/// Create a test image with white border and colored center for trim testing.
+fn create_bordered_png(dir: &Path, name: &str) -> std::path::PathBuf {
+    let path = dir.join(name);
+    let img = image::RgbaImage::from_fn(8, 8, |x, y| {
+        if x >= 2 && x < 6 && y >= 2 && y < 6 {
+            image::Rgba([255, 0, 0, 255])
+        } else {
+            image::Rgba([255, 255, 255, 255])
+        }
+    });
+    img.save(&path).unwrap();
+    path
+}
+
+#[test]
+fn trim_basic() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_bordered_png(dir.path(), "bordered.png");
+    let out_path = dir.path().join("trimmed.png");
+
+    panimg()
+        .args([
+            "trim",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+        ])
+        .assert()
+        .success();
+
+    assert!(out_path.exists());
+    let result = image::open(&out_path).unwrap();
+    assert_eq!(result.width(), 4);
+    assert_eq!(result.height(), 4);
+}
+
+#[test]
+fn trim_with_tolerance() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_bordered_png(dir.path(), "bordered.png");
+    let out_path = dir.path().join("trimmed.png");
+
+    panimg()
+        .args([
+            "trim",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--tolerance",
+            "0",
+        ])
+        .assert()
+        .success();
+
+    assert!(out_path.exists());
+    let result = image::open(&out_path).unwrap();
+    assert_eq!(result.width(), 4);
+    assert_eq!(result.height(), 4);
+}
+
+#[test]
+fn trim_json_output() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_bordered_png(dir.path(), "bordered.png");
+    let out_path = dir.path().join("trimmed.png");
+
+    let output = panimg()
+        .args([
+            "trim",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--format",
+            "json",
+        ])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(json["original_width"], 8);
+    assert_eq!(json["original_height"], 8);
+    assert_eq!(json["trimmed_width"], 4);
+    assert_eq!(json["trimmed_height"], 4);
+}
+
+#[test]
+fn trim_dry_run() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_bordered_png(dir.path(), "bordered.png");
+    let out_path = dir.path().join("trimmed.png");
+
+    panimg()
+        .args([
+            "trim",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--dry-run",
+            "--format",
+            "json",
+        ])
+        .assert()
+        .success();
+
+    assert!(!out_path.exists());
+}
+
+#[test]
+fn trim_schema() {
+    let output = panimg().args(["trim", "--schema"]).output().unwrap();
+    assert!(output.status.success());
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(json["command"], "trim");
+}
+
+#[test]
+fn trim_missing_input() {
+    panimg().args(["trim"]).assert().failure();
+}
+
+#[test]
+fn batch_trim() {
+    let dir = TempDir::new().unwrap();
+    create_bordered_png(dir.path(), "a.png");
+    create_bordered_png(dir.path(), "b.png");
+    let out_dir = dir.path().join("out");
+
+    let pattern = dir.path().join("*.png");
+    panimg()
+        .args([
+            "batch",
+            "trim",
+            pattern.to_str().unwrap(),
+            "--output-dir",
+            out_dir.to_str().unwrap(),
+            "--tolerance",
+            "0",
+        ])
+        .assert()
+        .success();
+
+    assert!(out_dir.join("a.png").exists());
+    assert!(out_dir.join("b.png").exists());
+
+    let result = image::open(out_dir.join("a.png")).unwrap();
+    assert_eq!(result.width(), 4);
+    assert_eq!(result.height(), 4);
+}

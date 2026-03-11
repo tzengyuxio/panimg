@@ -103,6 +103,10 @@ fn capabilities() -> Capabilities {
                 description: "Overlay (composite) one image on top of another".into(),
             },
             CommandCap {
+                name: "trim".into(),
+                description: "Trim (auto-crop) whitespace or similar-colored borders".into(),
+            },
+            CommandCap {
                 name: "batch".into(),
                 description: "Process multiple files with glob patterns and parallel execution"
                     .into(),
@@ -216,6 +220,9 @@ fn main() {
         }
         Some(Commands::Overlay(args)) => {
             commands::overlay::run(args, cli.format, cli.dry_run, cli.schema)
+        }
+        Some(Commands::Trim(args)) => {
+            commands::trim::run(args, cli.format, cli.dry_run, cli.schema)
         }
         Some(Commands::Batch(args)) => commands::batch::run(args, cli.format, cli.dry_run),
         None => {
