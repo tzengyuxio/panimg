@@ -183,3 +183,61 @@ jobs:
             artifacts/panimg-*.zip
             artifacts/panimg-*.sha256
             SHA256SUMS.txt
+
+  update-homebrew:
+    name: Update Homebrew Formula
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout homebrew-tap
+        uses: actions/checkout@v4
+        with:
+          repository: tzengyuxio/homebrew-tap
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+
+      - name: Download SHA256 checksums
+        run: |
+          for target in aarch64-apple-darwin x86_64-apple-darwin aarch64-unknown-linux-gnu x86_64-unknown-linux-gnu; do
+            curl -sL "https://github.com/tzengyuxio/panimg/releases/download/${GITHUB_REF_NAME}/panimg-${GITHUB_REF_NAME}-${target}.tar.gz.sha256" \
+              | awk '{print $1}' > "${target}.sha256"
+          done
+
+      - name: Update Formula
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          SHA_AARCH64_MACOS=$(cat aarch64-apple-darwin.sha256)
+          SHA_X86_64_MACOS=$(cat x86_64-apple-darwin.sha256)
+          SHA_AARCH64_LINUX=$(cat aarch64-unknown-linux-gnu.sha256)
+          SHA_X86_64_LINUX=$(cat x86_64-unknown-linux-gnu.sha256)
+
+          sed -i \
+            -e "s/^  version \".*\"/  version \"${VERSION}\"/" \
+            Formula/panimg.rb
+
+          # Replace sha256 values in order of appearance:
+          # 1st = aarch64-apple-darwin, 2nd = x86_64-apple-darwin
+          # 3rd = aarch64-unknown-linux-gnu, 4th = x86_64-unknown-linux-gnu
+          python3 - "$SHA_AARCH64_MACOS" "$SHA_X86_64_MACOS" "$SHA_AARCH64_LINUX" "$SHA_X86_64_LINUX" <<'PYEOF'
+          import re, sys
+          shas = sys.argv[1:5]
+          with open("Formula/panimg.rb") as f:
+              content = f.read()
+          idx = 0
+          def replacer(m):
+              global idx
+              result = f'sha256 "{shas[idx]}"'
+              idx += 1
+              return result
+          content = re.sub(r'sha256 "[0-9a-f]{64}"', replacer, content)
+          with open("Formula/panimg.rb", "w") as f:
+              f.write(content)
+          PYEOF
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/panimg.rb
+          git diff --cached --quiet && echo "No changes to commit" && exit 0
+          git commit -m "Update panimg to ${GITHUB_REF_NAME}"
+          git push
