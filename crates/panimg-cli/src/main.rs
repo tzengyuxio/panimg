@@ -99,6 +99,10 @@ fn capabilities() -> Capabilities {
                 description: "Apply emboss effect to an image".into(),
             },
             CommandCap {
+                name: "overlay".into(),
+                description: "Overlay (composite) one image on top of another".into(),
+            },
+            CommandCap {
                 name: "batch".into(),
                 description: "Process multiple files with glob patterns and parallel execution"
                     .into(),
@@ -209,6 +213,9 @@ fn main() {
         }
         Some(Commands::Emboss(args)) => {
             commands::emboss::run(args, cli.format, cli.dry_run, cli.schema)
+        }
+        Some(Commands::Overlay(args)) => {
+            commands::overlay::run(args, cli.format, cli.dry_run, cli.schema)
         }
         Some(Commands::Batch(args)) => commands::batch::run(args, cli.format, cli.dry_run),
         None => {

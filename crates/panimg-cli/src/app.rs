@@ -85,6 +85,9 @@ pub enum Commands {
     /// Apply emboss effect
     Emboss(EmbossArgs),
 
+    /// Overlay (composite) one image on top of another
+    Overlay(OverlayArgs),
+
     /// Process multiple files in batch with glob patterns
     Batch(BatchArgs),
 }
@@ -480,6 +483,59 @@ pub struct EmbossArgs {
     /// Output file path
     #[arg(short, long)]
     pub output: Option<String>,
+
+    /// Output quality (1-100, for lossy formats)
+    #[arg(long)]
+    pub quality: Option<u8>,
+
+    /// Strip metadata from output
+    #[arg(long)]
+    pub strip: bool,
+}
+
+#[derive(Parser)]
+pub struct OverlayArgs {
+    /// Base image file
+    pub input: Option<String>,
+
+    /// Output file path (positional alternative to -o)
+    pub output_pos: Option<String>,
+
+    /// Output file path
+    #[arg(short, long)]
+    pub output: Option<String>,
+
+    /// Overlay image path
+    #[arg(long)]
+    pub layer: Option<String>,
+
+    /// X offset from left edge (can be negative)
+    #[arg(long)]
+    pub x: Option<i64>,
+
+    /// Y offset from top edge (can be negative)
+    #[arg(long)]
+    pub y: Option<i64>,
+
+    /// Opacity of the overlay (0.0 = transparent, 1.0 = opaque)
+    #[arg(long)]
+    pub opacity: Option<f32>,
+
+    /// Named position: center, top-left, top-right, bottom-left, bottom-right
+    #[arg(long)]
+    pub position: Option<String>,
+
+    /// Margin in pixels for named positions (default: 10)
+    #[arg(long)]
+    pub margin: Option<i64>,
+
+    /// Tile the overlay across the entire image
+    #[arg(long)]
+    pub tile: bool,
+
+    /// Spacing between tiles in pixels
+    #[arg(long)]
+    pub spacing: Option<u32>,
 
     /// Output quality (1-100, for lossy formats)
     #[arg(long)]
