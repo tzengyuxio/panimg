@@ -7,6 +7,26 @@ fn panimg() -> Command {
     Command::cargo_bin("panimg").unwrap()
 }
 
+/// Create a minimal 4x4 animated GIF with the given number of frames.
+fn create_test_gif(dir: &Path, name: &str, frame_count: usize) -> std::path::PathBuf {
+    use image::codecs::gif::{GifEncoder, Repeat};
+    use image::{Frame, RgbaImage};
+    use std::fs::File;
+
+    let path = dir.join(name);
+    let file = File::create(&path).unwrap();
+    let mut encoder = GifEncoder::new(file);
+    encoder.set_repeat(Repeat::Infinite).unwrap();
+
+    for i in 0..frame_count {
+        let val = ((i as f32 / frame_count as f32) * 255.0) as u8;
+        let rgba = RgbaImage::from_pixel(4, 4, image::Rgba([val, 0, 0, 255]));
+        let frame = Frame::from_parts(rgba, 0, 0, image::Delay::from_numer_denom_ms(100, 1));
+        encoder.encode_frame(frame).unwrap();
+    }
+    path
+}
+
 /// Create a minimal 4x4 PNG test image in the given directory.
 fn create_test_png(dir: &Path, name: &str) -> std::path::PathBuf {
     let path = dir.join(name);
@@ -2405,4 +2425,291 @@ fn draw_missing_shape() {
         ])
         .assert()
         .failure();
+}
+
+// ---- Frames (extract) ----
+
+#[test]
+fn frames_extract_basic() {
+    let dir = TempDir::new().unwrap();
+    let gif_path = create_test_gif(dir.path(), "anim.gif", 3);
+    let out_dir = dir.path().join("frames_out");
+
+    panimg()
+        .args([
+            "frames",
+            gif_path.to_str().unwrap(),
+            "--output-dir",
+            out_dir.to_str().unwrap(),
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("3 frames"));
+
+    assert!(out_dir.join("frame_0000.png").exists());
+    assert!(out_dir.join("frame_0001.png").exists());
+    assert!(out_dir.join("frame_0002.png").exists());
+}
+
+#[test]
+fn frames_extract_custom_prefix() {
+    let dir = TempDir::new().unwrap();
+    let gif_path = create_test_gif(dir.path(), "anim.gif", 2);
+    let out_dir = dir.path().join("frames_out");
+
+    panimg()
+        .args([
+            "frames",
+            gif_path.to_str().unwrap(),
+            "--output-dir",
+            out_dir.to_str().unwrap(),
+            "--prefix",
+            "img",
+        ])
+        .assert()
+        .success();
+
+    assert!(out_dir.join("img_0000.png").exists());
+    assert!(out_dir.join("img_0001.png").exists());
+}
+
+#[test]
+fn frames_extract_json_output() {
+    let dir = TempDir::new().unwrap();
+    let gif_path = create_test_gif(dir.path(), "anim.gif", 2);
+    let out_dir = dir.path().join("frames_out");
+
+    panimg()
+        .args([
+            "frames",
+            gif_path.to_str().unwrap(),
+            "--output-dir",
+            out_dir.to_str().unwrap(),
+            "--format",
+            "json",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("\"total_frames\""))
+        .stdout(predicate::str::contains("\"frames\""));
+}
+
+#[test]
+fn frames_extract_dry_run() {
+    let dir = TempDir::new().unwrap();
+    let gif_path = create_test_gif(dir.path(), "anim.gif", 2);
+
+    panimg()
+        .args(["frames", gif_path.to_str().unwrap(), "--dry-run"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Would extract"));
+}
+
+#[test]
+fn frames_missing_input() {
+    panimg().args(["frames"]).assert().failure();
+}
+
+// ---- Animate (assemble) ----
+
+#[test]
+fn animate_basic() {
+    let dir = TempDir::new().unwrap();
+    create_test_png(dir.path(), "f01.png");
+    create_test_png(dir.path(), "f02.png");
+    let out_gif = dir.path().join("output.gif");
+
+    let pattern = dir.path().join("f*.png");
+
+    panimg()
+        .args([
+            "animate",
+            pattern.to_str().unwrap(),
+            "-o",
+            out_gif.to_str().unwrap(),
+            "--delay",
+            "50",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("2 frames"));
+
+    assert!(out_gif.exists());
+}
+
+#[test]
+fn animate_json_output() {
+    let dir = TempDir::new().unwrap();
+    create_test_png(dir.path(), "f01.png");
+    create_test_png(dir.path(), "f02.png");
+    let out_gif = dir.path().join("output.gif");
+
+    let pattern = dir.path().join("f*.png");
+
+    panimg()
+        .args([
+            "animate",
+            pattern.to_str().unwrap(),
+            "-o",
+            out_gif.to_str().unwrap(),
+            "--format",
+            "json",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("\"total_frames\""))
+        .stdout(predicate::str::contains("\"delay_ms\""));
+}
+
+#[test]
+fn animate_dry_run() {
+    let dir = TempDir::new().unwrap();
+    create_test_png(dir.path(), "f01.png");
+
+    let pattern = dir.path().join("f*.png");
+
+    panimg()
+        .args([
+            "animate",
+            pattern.to_str().unwrap(),
+            "-o",
+            "out.gif",
+            "--dry-run",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Would assemble"));
+}
+
+#[test]
+fn animate_no_match_error() {
+    let dir = TempDir::new().unwrap();
+    let pattern = dir.path().join("nonexistent*.png");
+
+    panimg()
+        .args(["animate", pattern.to_str().unwrap(), "-o", "out.gif"])
+        .assert()
+        .failure();
+}
+
+#[test]
+fn animate_missing_output() {
+    let dir = TempDir::new().unwrap();
+    create_test_png(dir.path(), "f01.png");
+    let pattern = dir.path().join("f*.png");
+
+    panimg()
+        .args(["animate", pattern.to_str().unwrap()])
+        .assert()
+        .failure();
+}
+
+// ---- GIF Speed ----
+
+#[test]
+fn gif_speed_basic() {
+    let dir = TempDir::new().unwrap();
+    let gif_path = create_test_gif(dir.path(), "anim.gif", 3);
+    let out_path = dir.path().join("fast.gif");
+
+    panimg()
+        .args([
+            "gif-speed",
+            gif_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--speed",
+            "2.0",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("2x"));
+
+    assert!(out_path.exists());
+}
+
+#[test]
+fn gif_speed_json_output() {
+    let dir = TempDir::new().unwrap();
+    let gif_path = create_test_gif(dir.path(), "anim.gif", 3);
+    let out_path = dir.path().join("fast.gif");
+
+    panimg()
+        .args([
+            "gif-speed",
+            gif_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--speed",
+            "0.5",
+            "--format",
+            "json",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("\"speed_factor\""))
+        .stdout(predicate::str::contains("\"total_frames\""));
+}
+
+#[test]
+fn gif_speed_dry_run() {
+    let dir = TempDir::new().unwrap();
+    let gif_path = create_test_gif(dir.path(), "anim.gif", 2);
+
+    panimg()
+        .args([
+            "gif-speed",
+            gif_path.to_str().unwrap(),
+            "-o",
+            "out.gif",
+            "--speed",
+            "2.0",
+            "--dry-run",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Would change speed"));
+}
+
+#[test]
+fn gif_speed_missing_speed() {
+    let dir = TempDir::new().unwrap();
+    let gif_path = create_test_gif(dir.path(), "anim.gif", 2);
+
+    panimg()
+        .args(["gif-speed", gif_path.to_str().unwrap(), "-o", "out.gif"])
+        .assert()
+        .failure();
+}
+
+#[test]
+fn gif_speed_missing_output() {
+    let dir = TempDir::new().unwrap();
+    let gif_path = create_test_gif(dir.path(), "anim.gif", 2);
+
+    panimg()
+        .args(["gif-speed", gif_path.to_str().unwrap(), "--speed", "2.0"])
+        .assert()
+        .failure();
+}
+
+#[test]
+fn gif_speed_positional_output() {
+    let dir = TempDir::new().unwrap();
+    let gif_path = create_test_gif(dir.path(), "anim.gif", 3);
+    let out_path = dir.path().join("fast.gif");
+
+    panimg()
+        .args([
+            "gif-speed",
+            gif_path.to_str().unwrap(),
+            out_path.to_str().unwrap(),
+            "--speed",
+            "2.0",
+        ])
+        .assert()
+        .success();
+
+    assert!(out_path.exists());
 }

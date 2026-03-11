@@ -100,6 +100,15 @@ pub enum Commands {
     /// Run multiple operations in a single read/write pipeline
     Pipeline(PipelineArgs),
 
+    /// Extract individual frames from an animated GIF
+    Frames(FramesArgs),
+
+    /// Assemble images into an animated GIF
+    Animate(AnimateArgs),
+
+    /// Change the speed of an animated GIF
+    GifSpeed(GifSpeedArgs),
+
     /// Process multiple files in batch with glob patterns
     Batch(BatchArgs),
 }
@@ -712,6 +721,62 @@ pub struct PipelineArgs {
     /// Strip metadata from output
     #[arg(long)]
     pub strip: bool,
+}
+
+#[derive(Parser)]
+pub struct FramesArgs {
+    /// Input animated GIF file
+    pub input: Option<String>,
+
+    /// Output directory for extracted frames
+    #[arg(long)]
+    pub output_dir: Option<String>,
+
+    /// Output format for frames (e.g. png, jpg)
+    #[arg(long)]
+    pub frame_format: Option<String>,
+
+    /// Filename prefix for frames (default: "frame")
+    #[arg(long)]
+    pub prefix: Option<String>,
+}
+
+#[derive(Parser)]
+pub struct AnimateArgs {
+    /// Glob pattern for input images (e.g. "frames/*.png")
+    pub pattern: Option<String>,
+
+    /// Output file path (positional alternative to -o)
+    pub output_pos: Option<String>,
+
+    /// Output GIF file path
+    #[arg(short, long)]
+    pub output: Option<String>,
+
+    /// Delay between frames in milliseconds (default: 100)
+    #[arg(long)]
+    pub delay: Option<u32>,
+
+    /// Do not loop the animation
+    #[arg(long)]
+    pub no_repeat: bool,
+}
+
+#[derive(Parser)]
+pub struct GifSpeedArgs {
+    /// Input animated GIF file
+    pub input: Option<String>,
+
+    /// Output file path (positional alternative to -o)
+    pub output_pos: Option<String>,
+
+    /// Output GIF file path
+    #[arg(short, long)]
+    pub output: Option<String>,
+
+    /// Speed multiplier (2.0 = 2x faster, 0.5 = half speed)
+    #[arg(long)]
+    pub speed: Option<f32>,
 }
 
 #[derive(Parser)]

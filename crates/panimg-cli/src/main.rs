@@ -119,6 +119,18 @@ fn capabilities() -> Capabilities {
                 description: "Run multiple operations in a single read/write pipeline".into(),
             },
             CommandCap {
+                name: "frames".into(),
+                description: "Extract individual frames from an animated GIF".into(),
+            },
+            CommandCap {
+                name: "animate".into(),
+                description: "Assemble images into an animated GIF".into(),
+            },
+            CommandCap {
+                name: "gif-speed".into(),
+                description: "Change the speed of an animated GIF".into(),
+            },
+            CommandCap {
                 name: "batch".into(),
                 description: "Process multiple files with glob patterns and parallel execution"
                     .into(),
@@ -241,6 +253,9 @@ fn main() {
         }
         Some(Commands::Diff(args)) => commands::diff::run(args, cli.format, cli.dry_run),
         Some(Commands::Pipeline(args)) => commands::pipeline::run(args, cli.format, cli.dry_run),
+        Some(Commands::Frames(args)) => commands::frames::run(args, cli.format, cli.dry_run),
+        Some(Commands::Animate(args)) => commands::animate::run(args, cli.format, cli.dry_run),
+        Some(Commands::GifSpeed(args)) => commands::gif_speed::run(args, cli.format, cli.dry_run),
         Some(Commands::Batch(args)) => commands::batch::run(args, cli.format, cli.dry_run),
         None => {
             // No subcommand: show help
