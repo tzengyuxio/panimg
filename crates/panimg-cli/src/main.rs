@@ -131,6 +131,22 @@ fn capabilities() -> Capabilities {
                 description: "Change the speed of an animated GIF".into(),
             },
             CommandCap {
+                name: "saturate".into(),
+                description: "Adjust color saturation".into(),
+            },
+            CommandCap {
+                name: "sepia".into(),
+                description: "Apply sepia tone effect".into(),
+            },
+            CommandCap {
+                name: "tint".into(),
+                description: "Tint image with a color".into(),
+            },
+            CommandCap {
+                name: "posterize".into(),
+                description: "Reduce color levels (posterize)".into(),
+            },
+            CommandCap {
                 name: "batch".into(),
                 description: "Process multiple files with glob patterns and parallel execution"
                     .into(),
@@ -256,6 +272,18 @@ fn main() {
         Some(Commands::Frames(args)) => commands::frames::run(args, cli.format, cli.dry_run),
         Some(Commands::Animate(args)) => commands::animate::run(args, cli.format, cli.dry_run),
         Some(Commands::GifSpeed(args)) => commands::gif_speed::run(args, cli.format, cli.dry_run),
+        Some(Commands::Saturate(args)) => {
+            commands::saturate::run(args, cli.format, cli.dry_run, cli.schema)
+        }
+        Some(Commands::Sepia(args)) => {
+            commands::sepia::run(args, cli.format, cli.dry_run, cli.schema)
+        }
+        Some(Commands::Tint(args)) => {
+            commands::tint::run(args, cli.format, cli.dry_run, cli.schema)
+        }
+        Some(Commands::Posterize(args)) => {
+            commands::posterize::run(args, cli.format, cli.dry_run, cli.schema)
+        }
         Some(Commands::Batch(args)) => commands::batch::run(args, cli.format, cli.dry_run),
         None => {
             // No subcommand: show help

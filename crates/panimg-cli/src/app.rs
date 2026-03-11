@@ -109,6 +109,18 @@ pub enum Commands {
     /// Change the speed of an animated GIF
     GifSpeed(GifSpeedArgs),
 
+    /// Adjust color saturation
+    Saturate(SaturateArgs),
+
+    /// Apply sepia tone effect
+    Sepia(SepiaArgs),
+
+    /// Tint image with a color
+    Tint(TintArgs),
+
+    /// Reduce color levels (posterize)
+    Posterize(PosterizeArgs),
+
     /// Process multiple files in batch with glob patterns
     Batch(BatchArgs),
 }
@@ -780,6 +792,110 @@ pub struct GifSpeedArgs {
 }
 
 #[derive(Parser)]
+pub struct SaturateArgs {
+    /// Input image file
+    pub input: Option<String>,
+
+    /// Output file path (positional alternative to -o)
+    pub output_pos: Option<String>,
+
+    /// Output file path
+    #[arg(short, long)]
+    pub output: Option<String>,
+
+    /// Saturation factor (0.0=grayscale, 1.0=unchanged, 2.0=double)
+    #[arg(long)]
+    pub factor: Option<f32>,
+
+    /// Output quality (1-100, for lossy formats)
+    #[arg(long)]
+    pub quality: Option<u8>,
+
+    /// Strip metadata from output
+    #[arg(long)]
+    pub strip: bool,
+}
+
+#[derive(Parser)]
+pub struct SepiaArgs {
+    /// Input image file
+    pub input: Option<String>,
+
+    /// Output file path (positional alternative to -o)
+    pub output_pos: Option<String>,
+
+    /// Output file path
+    #[arg(short, long)]
+    pub output: Option<String>,
+
+    /// Sepia intensity (0.0-1.0, default: 1.0)
+    #[arg(long)]
+    pub intensity: Option<f32>,
+
+    /// Output quality (1-100, for lossy formats)
+    #[arg(long)]
+    pub quality: Option<u8>,
+
+    /// Strip metadata from output
+    #[arg(long)]
+    pub strip: bool,
+}
+
+#[derive(Parser)]
+pub struct TintArgs {
+    /// Input image file
+    pub input: Option<String>,
+
+    /// Output file path (positional alternative to -o)
+    pub output_pos: Option<String>,
+
+    /// Output file path
+    #[arg(short, long)]
+    pub output: Option<String>,
+
+    /// Tint color: hex (#FF0000), RGB (255,0,0), or named (red, blue, etc.)
+    #[arg(long)]
+    pub color: Option<String>,
+
+    /// Tint strength (0.0-1.0, default: 0.5)
+    #[arg(long)]
+    pub strength: Option<f32>,
+
+    /// Output quality (1-100, for lossy formats)
+    #[arg(long)]
+    pub quality: Option<u8>,
+
+    /// Strip metadata from output
+    #[arg(long)]
+    pub strip: bool,
+}
+
+#[derive(Parser)]
+pub struct PosterizeArgs {
+    /// Input image file
+    pub input: Option<String>,
+
+    /// Output file path (positional alternative to -o)
+    pub output_pos: Option<String>,
+
+    /// Output file path
+    #[arg(short, long)]
+    pub output: Option<String>,
+
+    /// Number of color levels per channel (2-256, default: 4)
+    #[arg(long)]
+    pub levels: Option<u8>,
+
+    /// Output quality (1-100, for lossy formats)
+    #[arg(long)]
+    pub quality: Option<u8>,
+
+    /// Strip metadata from output
+    #[arg(long)]
+    pub strip: bool,
+}
+
+#[derive(Parser)]
 pub struct BatchArgs {
     /// Operation to apply (convert, resize, crop, rotate, flip, auto-orient, grayscale, invert, brightness, contrast, hue-rotate, blur, sharpen, edge-detect, emboss)
     pub operation: String,
@@ -879,4 +995,16 @@ pub struct BatchArgs {
     /// Trim tolerance (for trim): 0-255
     #[arg(long)]
     pub tolerance: Option<i32>,
+
+    /// Saturation factor (for saturate): 0.0=grayscale, 1.0=unchanged, 2.0=double
+    #[arg(long)]
+    pub factor: Option<f32>,
+
+    /// Sepia intensity (for sepia): 0.0-1.0
+    #[arg(long)]
+    pub intensity: Option<f32>,
+
+    /// Color levels per channel (for posterize): 2-256
+    #[arg(long)]
+    pub levels: Option<u8>,
 }

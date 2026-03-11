@@ -1,6 +1,7 @@
 use crate::error::{PanimgError, Result};
 use crate::ops::blur::BlurOp;
 use crate::ops::brightness::BrightnessOp;
+use crate::ops::color::{PosterizeOp, SaturateOp, SepiaOp};
 use crate::ops::contrast::ContrastOp;
 use crate::ops::crop::CropOp;
 use crate::ops::edge_detect::EdgeDetectOp;
@@ -49,6 +50,12 @@ pub struct RecipeStep {
     pub threshold: Option<i32>,
     #[serde(default)]
     pub tolerance: Option<u8>,
+    #[serde(default)]
+    pub factor: Option<f32>,
+    #[serde(default)]
+    pub intensity: Option<f32>,
+    #[serde(default)]
+    pub levels: Option<u8>,
 }
 
 /// A recipe: a list of steps to apply in order.
@@ -216,9 +223,27 @@ fn parse_single_step(step: &str) -> Result<Box<dyn Operation>> {
                 .unwrap_or(10);
             Ok(Box::new(TrimOp::new(tolerance)?))
         }
+        "saturate" => {
+            let factor = parse_f32_arg(args, "--factor")?
+                .ok_or_else(|| PanimgError::InvalidArgument {
+                    message: "saturate requires --factor".into(),
+                    suggestion: "e.g. saturate --factor 1.5".into(),
+                })?;
+            Ok(Box::new(SaturateOp::new(factor)?))
+        }
+        "sepia" => {
+            let intensity = parse_f32_arg(args, "--intensity")?.unwrap_or(1.0);
+            Ok(Box::new(SepiaOp::new(intensity)?))
+        }
+        "posterize" => {
+            let levels = parse_u32_arg(args, "--levels")?
+                .map(|v| v as u8)
+                .unwrap_or(4);
+            Ok(Box::new(PosterizeOp::new(levels)?))
+        }
         _ => Err(PanimgError::InvalidArgument {
             message: format!("unknown pipeline operation: '{op_name}'"),
-            suggestion: "supported: grayscale, invert, blur, sharpen, brightness, contrast, hue-rotate, resize, crop, rotate, flip, edge-detect, emboss, trim".into(),
+            suggestion: "supported: grayscale, invert, blur, sharpen, brightness, contrast, hue-rotate, resize, crop, rotate, flip, edge-detect, emboss, trim, saturate, sepia, posterize".into(),
         }),
     }
 }
@@ -312,9 +337,24 @@ fn build_op_from_recipe_step(step: &RecipeStep) -> Result<Box<dyn Operation>> {
             let tolerance = step.tolerance.unwrap_or(10);
             Ok(Box::new(TrimOp::new(tolerance)?))
         }
+        "saturate" => {
+            let factor = step.factor.ok_or_else(|| PanimgError::InvalidArgument {
+                message: "saturate step requires \"factor\"".into(),
+                suggestion: "{\"op\": \"saturate\", \"factor\": 1.5}".into(),
+            })?;
+            Ok(Box::new(SaturateOp::new(factor)?))
+        }
+        "sepia" => {
+            let intensity = step.intensity.unwrap_or(1.0);
+            Ok(Box::new(SepiaOp::new(intensity)?))
+        }
+        "posterize" => {
+            let levels = step.levels.unwrap_or(4);
+            Ok(Box::new(PosterizeOp::new(levels)?))
+        }
         _ => Err(PanimgError::InvalidArgument {
             message: format!("unknown recipe operation: '{}'", step.op),
-            suggestion: "supported: grayscale, invert, blur, sharpen, brightness, contrast, hue-rotate, resize, crop, rotate, flip, edge-detect, emboss, trim".into(),
+            suggestion: "supported: grayscale, invert, blur, sharpen, brightness, contrast, hue-rotate, resize, crop, rotate, flip, edge-detect, emboss, trim, saturate, sepia, posterize".into(),
         }),
     }
 }
