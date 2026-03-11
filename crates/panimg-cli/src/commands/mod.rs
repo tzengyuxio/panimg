@@ -1,3 +1,4 @@
+pub mod animate;
 pub mod batch;
 pub mod blur;
 pub mod brightness;
@@ -9,6 +10,8 @@ pub mod draw;
 pub mod edge_detect;
 pub mod emboss;
 pub mod flip;
+pub mod frames;
+pub mod gif_speed;
 pub mod grayscale;
 pub mod hue_rotate;
 pub mod info;
