@@ -91,6 +91,9 @@ pub enum Commands {
     /// Trim (auto-crop) whitespace or similar-colored borders
     Trim(TrimArgs),
 
+    /// Compare two images and visualize differences
+    Diff(DiffArgs),
+
     /// Process multiple files in batch with glob patterns
     Batch(BatchArgs),
 }
@@ -572,6 +575,27 @@ pub struct TrimArgs {
     /// Strip metadata from output
     #[arg(long)]
     pub strip: bool,
+}
+
+#[derive(Parser)]
+pub struct DiffArgs {
+    /// First input image
+    pub input_a: Option<String>,
+
+    /// Second input image
+    pub input_b: Option<String>,
+
+    /// Output diff visualization image
+    #[arg(short, long)]
+    pub output: Option<String>,
+
+    /// Color channel difference threshold (0-255, default: 0)
+    #[arg(long)]
+    pub threshold: Option<u8>,
+
+    /// Output quality (1-100, for lossy formats)
+    #[arg(long)]
+    pub quality: Option<u8>,
 }
 
 #[derive(Parser)]
