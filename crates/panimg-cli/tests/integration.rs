@@ -1835,3 +1835,160 @@ fn batch_trim() {
     assert_eq!(result.width(), 4);
     assert_eq!(result.height(), 4);
 }
+
+// ---- Diff ----
+
+#[test]
+fn diff_identical_images() {
+    let dir = TempDir::new().unwrap();
+    let img_a = create_test_png(dir.path(), "a.png");
+
+    let output = panimg()
+        .args([
+            "diff",
+            img_a.to_str().unwrap(),
+            img_a.to_str().unwrap(),
+            "--format",
+            "json",
+        ])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(json["identical"], true);
+    assert_eq!(json["diff_pixels"], 0);
+}
+
+#[test]
+fn diff_different_images_exits_1() {
+    let dir = TempDir::new().unwrap();
+    let img_a = create_test_png(dir.path(), "a.png");
+
+    // Create a different image
+    let img_b_path = dir.path().join("b.png");
+    let img_b = image::RgbaImage::from_fn(4, 4, |_, _| image::Rgba([0, 0, 255, 255]));
+    img_b.save(&img_b_path).unwrap();
+
+    panimg()
+        .args([
+            "diff",
+            img_a.to_str().unwrap(),
+            img_b_path.to_str().unwrap(),
+            "--format",
+            "json",
+        ])
+        .assert()
+        .code(1);
+}
+
+#[test]
+fn diff_with_output_image() {
+    let dir = TempDir::new().unwrap();
+    let img_a = create_test_png(dir.path(), "a.png");
+    let img_b_path = dir.path().join("b.png");
+    let img_b = image::RgbaImage::from_fn(4, 4, |_, _| image::Rgba([0, 0, 255, 255]));
+    img_b.save(&img_b_path).unwrap();
+    let diff_path = dir.path().join("diff.png");
+
+    panimg()
+        .args([
+            "diff",
+            img_a.to_str().unwrap(),
+            img_b_path.to_str().unwrap(),
+            "-o",
+            diff_path.to_str().unwrap(),
+            "--format",
+            "json",
+        ])
+        .assert()
+        .code(1);
+
+    assert!(diff_path.exists());
+    let diff_img = image::open(&diff_path).unwrap();
+    assert_eq!(diff_img.width(), 4);
+    assert_eq!(diff_img.height(), 4);
+}
+
+#[test]
+fn diff_with_threshold() {
+    let dir = TempDir::new().unwrap();
+
+    // Create two images with small differences
+    let a_path = dir.path().join("a.png");
+    let b_path = dir.path().join("b.png");
+    let img_a = image::RgbaImage::from_pixel(4, 4, image::Rgba([100, 100, 100, 255]));
+    let img_b = image::RgbaImage::from_pixel(4, 4, image::Rgba([105, 105, 105, 255]));
+    img_a.save(&a_path).unwrap();
+    img_b.save(&b_path).unwrap();
+
+    // With threshold 10, should be identical
+    let output = panimg()
+        .args([
+            "diff",
+            a_path.to_str().unwrap(),
+            b_path.to_str().unwrap(),
+            "--threshold",
+            "10",
+            "--format",
+            "json",
+        ])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(json["identical"], true);
+}
+
+#[test]
+fn diff_dry_run() {
+    let dir = TempDir::new().unwrap();
+    let img_a = create_test_png(dir.path(), "a.png");
+
+    panimg()
+        .args([
+            "diff",
+            img_a.to_str().unwrap(),
+            img_a.to_str().unwrap(),
+            "--dry-run",
+            "--format",
+            "json",
+        ])
+        .assert()
+        .success();
+}
+
+#[test]
+fn diff_json_fields() {
+    let dir = TempDir::new().unwrap();
+    let img_a = create_test_png(dir.path(), "a.png");
+    let img_b_path = dir.path().join("b.png");
+    let img_b = image::RgbaImage::from_fn(4, 4, |_, _| image::Rgba([0, 0, 255, 255]));
+    img_b.save(&img_b_path).unwrap();
+
+    let output = panimg()
+        .args([
+            "diff",
+            img_a.to_str().unwrap(),
+            img_b_path.to_str().unwrap(),
+            "--format",
+            "json",
+        ])
+        .output()
+        .unwrap();
+
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert!(json.get("identical").is_some());
+    assert!(json.get("diff_pixels").is_some());
+    assert!(json.get("total_pixels").is_some());
+    assert!(json.get("diff_percent").is_some());
+    assert!(json.get("mae").is_some());
+    assert!(json.get("dimensions_match").is_some());
+    assert!(json.get("width_a").is_some());
+}
+
+#[test]
+fn diff_missing_inputs() {
+    panimg().args(["diff"]).assert().failure();
+}

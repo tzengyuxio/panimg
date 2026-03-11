@@ -107,6 +107,10 @@ fn capabilities() -> Capabilities {
                 description: "Trim (auto-crop) whitespace or similar-colored borders".into(),
             },
             CommandCap {
+                name: "diff".into(),
+                description: "Compare two images and visualize differences".into(),
+            },
+            CommandCap {
                 name: "batch".into(),
                 description: "Process multiple files with glob patterns and parallel execution"
                     .into(),
@@ -224,6 +228,7 @@ fn main() {
         Some(Commands::Trim(args)) => {
             commands::trim::run(args, cli.format, cli.dry_run, cli.schema)
         }
+        Some(Commands::Diff(args)) => commands::diff::run(args, cli.format, cli.dry_run),
         Some(Commands::Batch(args)) => commands::batch::run(args, cli.format, cli.dry_run),
         None => {
             // No subcommand: show help
