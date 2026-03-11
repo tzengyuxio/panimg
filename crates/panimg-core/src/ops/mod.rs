@@ -1,3 +1,4 @@
+pub mod blur;
 pub mod brightness;
 pub mod contrast;
 pub mod crop;
@@ -8,6 +9,7 @@ pub mod invert;
 pub mod orient;
 pub mod resize;
 pub mod rotate;
+pub mod sharpen;
 
 use crate::error::Result;
 use crate::schema::CommandSchema;

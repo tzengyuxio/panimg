@@ -4,6 +4,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 use panimg_core::codec::{CodecRegistry, EncodeOptions};
 use panimg_core::error::PanimgError;
 use panimg_core::format::ImageFormat;
+use panimg_core::ops::blur::BlurOp;
 use panimg_core::ops::brightness::BrightnessOp;
 use panimg_core::ops::contrast::ContrastOp;
 use panimg_core::ops::crop::CropOp;
@@ -14,6 +15,7 @@ use panimg_core::ops::invert::InvertOp;
 use panimg_core::ops::orient::AutoOrientOp;
 use panimg_core::ops::resize::{FitMode, ResizeFilter, ResizeOp};
 use panimg_core::ops::rotate::{RotateAngle, RotateOp};
+use panimg_core::ops::sharpen::SharpenOp;
 use panimg_core::pipeline::Pipeline;
 use rayon::prelude::*;
 use serde::Serialize;
@@ -198,6 +200,22 @@ fn build_pipeline(args: &BatchArgs, input_path: &Path) -> Result<Pipeline, Panim
                     .into(),
             })?;
             pipeline = pipeline.push(HueRotateOp::new(degrees)?);
+        }
+        "blur" => {
+            let sigma = args.sigma.ok_or_else(|| PanimgError::InvalidArgument {
+                message: "batch blur requires --sigma".into(),
+                suggestion: "usage: panimg batch blur '*.png' --output-dir out --sigma 2.0".into(),
+            })?;
+            pipeline = pipeline.push(BlurOp::new(sigma)?);
+        }
+        "sharpen" => {
+            let sigma = args.sigma.ok_or_else(|| PanimgError::InvalidArgument {
+                message: "batch sharpen requires --sigma".into(),
+                suggestion: "usage: panimg batch sharpen '*.png' --output-dir out --sigma 1.0"
+                    .into(),
+            })?;
+            let threshold = args.threshold.unwrap_or(0);
+            pipeline = pipeline.push(SharpenOp::new(sigma, threshold)?);
         }
         _ => {
             return Err(PanimgError::InvalidArgument {

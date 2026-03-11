@@ -73,6 +73,12 @@ pub enum Commands {
     /// Rotate image hue
     HueRotate(HueRotateArgs),
 
+    /// Apply Gaussian blur
+    Blur(BlurArgs),
+
+    /// Sharpen an image (unsharp mask)
+    Sharpen(SharpenArgs),
+
     /// Process multiple files in batch with glob patterns
     Batch(BatchArgs),
 }
@@ -383,8 +389,62 @@ pub struct HueRotateArgs {
 }
 
 #[derive(Parser)]
+pub struct BlurArgs {
+    /// Input image file
+    pub input: Option<String>,
+
+    /// Output file path (positional alternative to -o)
+    pub output_pos: Option<String>,
+
+    /// Output file path
+    #[arg(short, long)]
+    pub output: Option<String>,
+
+    /// Blur sigma (radius). Higher values = more blur
+    #[arg(long)]
+    pub sigma: Option<f32>,
+
+    /// Output quality (1-100, for lossy formats)
+    #[arg(long)]
+    pub quality: Option<u8>,
+
+    /// Strip metadata from output
+    #[arg(long)]
+    pub strip: bool,
+}
+
+#[derive(Parser)]
+pub struct SharpenArgs {
+    /// Input image file
+    pub input: Option<String>,
+
+    /// Output file path (positional alternative to -o)
+    pub output_pos: Option<String>,
+
+    /// Output file path
+    #[arg(short, long)]
+    pub output: Option<String>,
+
+    /// Unsharp mask sigma. Controls effect radius
+    #[arg(long)]
+    pub sigma: Option<f32>,
+
+    /// Only sharpen differences above this threshold (default: 0)
+    #[arg(long)]
+    pub threshold: Option<i32>,
+
+    /// Output quality (1-100, for lossy formats)
+    #[arg(long)]
+    pub quality: Option<u8>,
+
+    /// Strip metadata from output
+    #[arg(long)]
+    pub strip: bool,
+}
+
+#[derive(Parser)]
 pub struct BatchArgs {
-    /// Operation to apply (convert, resize, crop, rotate, flip, auto-orient, grayscale, invert, brightness, contrast, hue-rotate)
+    /// Operation to apply (convert, resize, crop, rotate, flip, auto-orient, grayscale, invert, brightness, contrast, hue-rotate, blur, sharpen)
     pub operation: String,
 
     /// Glob pattern for input files (e.g. "photos/*.png")
@@ -470,4 +530,12 @@ pub struct BatchArgs {
     /// Hue rotation degrees (for hue-rotate): -360 to 360
     #[arg(long)]
     pub degrees: Option<i32>,
+
+    /// Blur/sharpen sigma (for blur, sharpen)
+    #[arg(long)]
+    pub sigma: Option<f32>,
+
+    /// Sharpen threshold (for sharpen)
+    #[arg(long)]
+    pub threshold: Option<i32>,
 }

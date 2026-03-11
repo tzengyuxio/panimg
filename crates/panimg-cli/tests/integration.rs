@@ -80,6 +80,8 @@ fn capabilities_includes_all_commands() {
     assert!(commands.contains(&"brightness"));
     assert!(commands.contains(&"contrast"));
     assert!(commands.contains(&"hue-rotate"));
+    assert!(commands.contains(&"blur"));
+    assert!(commands.contains(&"sharpen"));
     assert!(commands.contains(&"batch"));
 }
 
@@ -1108,4 +1110,124 @@ fn batch_output_template() {
         .success();
 
     assert!(out_dir.join("photo_gray.png").exists());
+}
+
+// ---- Blur Command ----
+
+#[test]
+fn blur_basic() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("blurred.png");
+
+    panimg()
+        .args([
+            "blur",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--sigma",
+            "2.0",
+        ])
+        .assert()
+        .success();
+
+    assert!(out_path.exists());
+}
+
+#[test]
+fn blur_schema() {
+    let output = panimg().args(["blur", "--schema"]).output().unwrap();
+    assert!(output.status.success());
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(json["command"], "blur");
+}
+
+#[test]
+fn blur_missing_sigma_error() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+
+    panimg()
+        .args(["blur", img_path.to_str().unwrap(), "-o", "out.png"])
+        .assert()
+        .code(5);
+}
+
+#[test]
+fn blur_json_output() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("blurred.png");
+
+    let output = panimg()
+        .args([
+            "blur",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--sigma",
+            "1.5",
+            "--format",
+            "json",
+        ])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(json["sigma"], 1.5);
+}
+
+// ---- Sharpen Command ----
+
+#[test]
+fn sharpen_basic() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("sharp.png");
+
+    panimg()
+        .args([
+            "sharpen",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--sigma",
+            "1.0",
+        ])
+        .assert()
+        .success();
+
+    assert!(out_path.exists());
+}
+
+#[test]
+fn sharpen_with_threshold() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("sharp.png");
+
+    panimg()
+        .args([
+            "sharpen",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--sigma",
+            "2.0",
+            "--threshold",
+            "10",
+        ])
+        .assert()
+        .success();
+
+    assert!(out_path.exists());
+}
+
+#[test]
+fn sharpen_schema() {
+    let output = panimg().args(["sharpen", "--schema"]).output().unwrap();
+    assert!(output.status.success());
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(json["command"], "sharpen");
 }
