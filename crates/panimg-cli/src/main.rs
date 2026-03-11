@@ -91,6 +91,14 @@ fn capabilities() -> Capabilities {
                 description: "Sharpen an image using unsharp mask".into(),
             },
             CommandCap {
+                name: "edge-detect".into(),
+                description: "Detect edges in an image using Laplacian kernel".into(),
+            },
+            CommandCap {
+                name: "emboss".into(),
+                description: "Apply emboss effect to an image".into(),
+            },
+            CommandCap {
                 name: "batch".into(),
                 description: "Process multiple files with glob patterns and parallel execution"
                     .into(),
@@ -195,6 +203,12 @@ fn main() {
         }
         Some(Commands::Sharpen(args)) => {
             commands::sharpen::run(args, cli.format, cli.dry_run, cli.schema)
+        }
+        Some(Commands::EdgeDetect(args)) => {
+            commands::edge_detect::run(args, cli.format, cli.dry_run, cli.schema)
+        }
+        Some(Commands::Emboss(args)) => {
+            commands::emboss::run(args, cli.format, cli.dry_run, cli.schema)
         }
         Some(Commands::Batch(args)) => commands::batch::run(args, cli.format, cli.dry_run),
         None => {
