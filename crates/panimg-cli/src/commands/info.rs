@@ -74,7 +74,7 @@ pub fn run(args: &InfoArgs, format: OutputFormat, show_schema: bool) -> i32 {
 
     match format {
         OutputFormat::Human => {
-            println!("{}", info.to_human_string());
+            println!("{}", info.to_human_string(&fields));
         }
         OutputFormat::Json => {
             let json = info.to_filtered_json(&fields);

@@ -62,6 +62,9 @@ pub struct ConvertArgs {
     /// Input image file
     pub input: Option<String>,
 
+    /// Output file path (positional alternative to -o)
+    pub output_pos: Option<String>,
+
     /// Output file path
     #[arg(short, long)]
     pub output: Option<String>,
@@ -91,6 +94,9 @@ pub struct ConvertArgs {
 pub struct ResizeArgs {
     /// Input image file
     pub input: Option<String>,
+
+    /// Output file path (positional alternative to -o)
+    pub output_pos: Option<String>,
 
     /// Output file path
     #[arg(short, long)]

@@ -126,7 +126,7 @@ pub fn run(args: &ConvertArgs, format: OutputFormat, dry_run: bool, show_schema:
         }
     };
 
-    let output_path_str = match &args.output {
+    let output_path_str = match args.output.as_ref().or(args.output_pos.as_ref()) {
         Some(o) => o.clone(),
         None => {
             let err = PanimgError::InvalidArgument {

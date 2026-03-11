@@ -93,18 +93,46 @@ impl ImageInfo {
         serde_json::Value::Object(filtered)
     }
 
-    /// Format as human-readable text.
-    pub fn to_human_string(&self) -> String {
-        let mut lines = vec![
-            format!("File:       {}", self.path),
-            format!("Format:     {}", self.format),
-            format!("Dimensions: {}x{}", self.width, self.height),
-            format!("Color:      {}", self.color_type),
-            format!("Bit Depth:  {}", self.bit_depth),
-            format!("Alpha:      {}", if self.has_alpha { "yes" } else { "no" }),
-            format!("File Size:  {}", format_file_size(self.file_size)),
+    /// Format as human-readable text, optionally filtered to specific fields.
+    pub fn to_human_string(&self, fields: &[String]) -> String {
+        let all_fields: Vec<(&str, String)> = vec![
+            ("path", format!("File:       {}", self.path)),
+            ("format", format!("Format:     {}", self.format)),
+            (
+                "width",
+                format!("Dimensions: {}x{}", self.width, self.height),
+            ),
+            (
+                "height",
+                format!("Dimensions: {}x{}", self.width, self.height),
+            ),
+            ("color_type", format!("Color:      {}", self.color_type)),
+            ("bit_depth", format!("Bit Depth:  {}", self.bit_depth)),
+            (
+                "has_alpha",
+                format!("Alpha:      {}", if self.has_alpha { "yes" } else { "no" }),
+            ),
+            (
+                "file_size",
+                format!("File Size:  {}", format_file_size(self.file_size)),
+            ),
         ];
-        if !self.exif.is_empty() {
+
+        let mut lines: Vec<String> = if fields.is_empty() {
+            all_fields.into_iter().map(|(_, v)| v).collect()
+        } else {
+            let mut seen = std::collections::HashSet::new();
+            all_fields
+                .into_iter()
+                .filter(|(k, _)| fields.iter().any(|f| f == k))
+                .filter(|(_, v)| seen.insert(v.clone()))
+                .map(|(_, v)| v)
+                .collect()
+        };
+
+        let show_exif =
+            !self.exif.is_empty() && (fields.is_empty() || fields.iter().any(|f| f == "exif"));
+        if show_exif {
             lines.push("EXIF:".to_string());
             for (key, value) in &self.exif {
                 lines.push(format!("  {}: {}", key, value));

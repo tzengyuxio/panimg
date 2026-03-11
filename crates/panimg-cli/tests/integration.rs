@@ -138,7 +138,43 @@ fn info_schema() {
     assert!(json["params"].is_array());
 }
 
+#[test]
+fn info_human_fields_filter() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+
+    panimg()
+        .args([
+            "info",
+            img_path.to_str().unwrap(),
+            "--fields",
+            "width,height",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Dimensions:"))
+        .stdout(predicate::str::contains("File:").not());
+}
+
 // ---- Convert Command ----
+
+#[test]
+fn convert_positional_output() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("test.bmp");
+
+    panimg()
+        .args([
+            "convert",
+            img_path.to_str().unwrap(),
+            out_path.to_str().unwrap(),
+        ])
+        .assert()
+        .success();
+
+    assert!(out_path.exists());
+}
 
 #[test]
 fn convert_png_to_bmp() {
