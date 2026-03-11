@@ -62,6 +62,26 @@ fn capabilities() -> Capabilities {
                 name: "auto-orient".into(),
                 description: "Auto-rotate image based on EXIF orientation tag".into(),
             },
+            CommandCap {
+                name: "grayscale".into(),
+                description: "Convert image to grayscale".into(),
+            },
+            CommandCap {
+                name: "invert".into(),
+                description: "Invert (negate) image colors".into(),
+            },
+            CommandCap {
+                name: "brightness".into(),
+                description: "Adjust image brightness".into(),
+            },
+            CommandCap {
+                name: "contrast".into(),
+                description: "Adjust image contrast".into(),
+            },
+            CommandCap {
+                name: "hue-rotate".into(),
+                description: "Rotate image hue".into(),
+            },
         ],
         formats: ImageFormat::all()
             .iter()
@@ -141,6 +161,21 @@ fn main() {
         }
         Some(Commands::AutoOrient(args)) => {
             commands::orient::run(args, cli.format, cli.dry_run, cli.schema)
+        }
+        Some(Commands::Grayscale(args)) => {
+            commands::grayscale::run(args, cli.format, cli.dry_run, cli.schema)
+        }
+        Some(Commands::Invert(args)) => {
+            commands::invert::run(args, cli.format, cli.dry_run, cli.schema)
+        }
+        Some(Commands::Brightness(args)) => {
+            commands::brightness::run(args, cli.format, cli.dry_run, cli.schema)
+        }
+        Some(Commands::Contrast(args)) => {
+            commands::contrast::run(args, cli.format, cli.dry_run, cli.schema)
+        }
+        Some(Commands::HueRotate(args)) => {
+            commands::hue_rotate::run(args, cli.format, cli.dry_run, cli.schema)
         }
         None => {
             // No subcommand: show help

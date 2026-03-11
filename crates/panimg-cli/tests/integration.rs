@@ -75,6 +75,11 @@ fn capabilities_includes_all_commands() {
     assert!(commands.contains(&"rotate"));
     assert!(commands.contains(&"flip"));
     assert!(commands.contains(&"auto-orient"));
+    assert!(commands.contains(&"grayscale"));
+    assert!(commands.contains(&"invert"));
+    assert!(commands.contains(&"brightness"));
+    assert!(commands.contains(&"contrast"));
+    assert!(commands.contains(&"hue-rotate"));
 }
 
 // ---- Info Command ----
@@ -694,4 +699,221 @@ fn auto_orient_schema() {
     assert!(output.status.success());
     let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
     assert_eq!(json["command"], "auto-orient");
+}
+
+// ---- Grayscale Command ----
+
+#[test]
+fn grayscale_basic() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("gray.png");
+
+    panimg()
+        .args([
+            "grayscale",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+        ])
+        .assert()
+        .success();
+
+    assert!(out_path.exists());
+    let result = image::open(&out_path).unwrap();
+    assert_eq!(result.width(), 4);
+}
+
+#[test]
+fn grayscale_schema() {
+    let output = panimg().args(["grayscale", "--schema"]).output().unwrap();
+    assert!(output.status.success());
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(json["command"], "grayscale");
+}
+
+#[test]
+fn grayscale_dry_run() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("gray.png");
+
+    panimg()
+        .args([
+            "grayscale",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--dry-run",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Would"));
+
+    assert!(!out_path.exists());
+}
+
+// ---- Invert Command ----
+
+#[test]
+fn invert_basic() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("inverted.png");
+
+    panimg()
+        .args([
+            "invert",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+        ])
+        .assert()
+        .success();
+
+    assert!(out_path.exists());
+}
+
+#[test]
+fn invert_schema() {
+    let output = panimg().args(["invert", "--schema"]).output().unwrap();
+    assert!(output.status.success());
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(json["command"], "invert");
+}
+
+// ---- Brightness Command ----
+
+#[test]
+fn brightness_increase() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("bright.png");
+
+    panimg()
+        .args([
+            "brightness",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--value",
+            "30",
+        ])
+        .assert()
+        .success();
+
+    assert!(out_path.exists());
+}
+
+#[test]
+fn brightness_schema() {
+    let output = panimg().args(["brightness", "--schema"]).output().unwrap();
+    assert!(output.status.success());
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(json["command"], "brightness");
+}
+
+#[test]
+fn brightness_missing_value_error() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+
+    panimg()
+        .args([
+            "brightness",
+            img_path.to_str().unwrap(),
+            "-o",
+            "out.png",
+        ])
+        .assert()
+        .code(5);
+}
+
+// ---- Contrast Command ----
+
+#[test]
+fn contrast_increase() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("contrast.png");
+
+    panimg()
+        .args([
+            "contrast",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--value",
+            "20",
+        ])
+        .assert()
+        .success();
+
+    assert!(out_path.exists());
+}
+
+#[test]
+fn contrast_schema() {
+    let output = panimg().args(["contrast", "--schema"]).output().unwrap();
+    assert!(output.status.success());
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(json["command"], "contrast");
+}
+
+// ---- Hue-Rotate Command ----
+
+#[test]
+fn hue_rotate_basic() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("hue.png");
+
+    panimg()
+        .args([
+            "hue-rotate",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--degrees",
+            "90",
+        ])
+        .assert()
+        .success();
+
+    assert!(out_path.exists());
+}
+
+#[test]
+fn hue_rotate_schema() {
+    let output = panimg()
+        .args(["hue-rotate", "--schema"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(json["command"], "hue-rotate");
+}
+
+#[test]
+fn hue_rotate_json_output() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("hue.png");
+
+    let output = panimg()
+        .args([
+            "hue-rotate",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--degrees",
+            "120",
+            "--format",
+            "json",
+        ])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(json["degrees"], 120);
 }

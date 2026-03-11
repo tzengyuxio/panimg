@@ -57,6 +57,21 @@ pub enum Commands {
 
     /// Auto-rotate image based on EXIF orientation tag
     AutoOrient(AutoOrientArgs),
+
+    /// Convert image to grayscale
+    Grayscale(GrayscaleArgs),
+
+    /// Invert (negate) image colors
+    Invert(InvertArgs),
+
+    /// Adjust image brightness
+    Brightness(BrightnessArgs),
+
+    /// Adjust image contrast
+    Contrast(ContrastArgs),
+
+    /// Rotate image hue
+    HueRotate(HueRotateArgs),
 }
 
 #[derive(Parser)]
@@ -237,6 +252,123 @@ pub struct AutoOrientArgs {
     /// Output file path
     #[arg(short, long)]
     pub output: Option<String>,
+
+    /// Output quality (1-100, for lossy formats)
+    #[arg(long)]
+    pub quality: Option<u8>,
+
+    /// Strip metadata from output
+    #[arg(long)]
+    pub strip: bool,
+}
+
+#[derive(Parser)]
+pub struct GrayscaleArgs {
+    /// Input image file
+    pub input: Option<String>,
+
+    /// Output file path (positional alternative to -o)
+    pub output_pos: Option<String>,
+
+    /// Output file path
+    #[arg(short, long)]
+    pub output: Option<String>,
+
+    /// Output quality (1-100, for lossy formats)
+    #[arg(long)]
+    pub quality: Option<u8>,
+
+    /// Strip metadata from output
+    #[arg(long)]
+    pub strip: bool,
+}
+
+#[derive(Parser)]
+pub struct InvertArgs {
+    /// Input image file
+    pub input: Option<String>,
+
+    /// Output file path (positional alternative to -o)
+    pub output_pos: Option<String>,
+
+    /// Output file path
+    #[arg(short, long)]
+    pub output: Option<String>,
+
+    /// Output quality (1-100, for lossy formats)
+    #[arg(long)]
+    pub quality: Option<u8>,
+
+    /// Strip metadata from output
+    #[arg(long)]
+    pub strip: bool,
+}
+
+#[derive(Parser)]
+pub struct BrightnessArgs {
+    /// Input image file
+    pub input: Option<String>,
+
+    /// Output file path (positional alternative to -o)
+    pub output_pos: Option<String>,
+
+    /// Output file path
+    #[arg(short, long)]
+    pub output: Option<String>,
+
+    /// Brightness adjustment value (-100 to 100)
+    #[arg(long)]
+    pub value: Option<i32>,
+
+    /// Output quality (1-100, for lossy formats)
+    #[arg(long)]
+    pub quality: Option<u8>,
+
+    /// Strip metadata from output
+    #[arg(long)]
+    pub strip: bool,
+}
+
+#[derive(Parser)]
+pub struct ContrastArgs {
+    /// Input image file
+    pub input: Option<String>,
+
+    /// Output file path (positional alternative to -o)
+    pub output_pos: Option<String>,
+
+    /// Output file path
+    #[arg(short, long)]
+    pub output: Option<String>,
+
+    /// Contrast adjustment value (-100 to 100)
+    #[arg(long)]
+    pub value: Option<f32>,
+
+    /// Output quality (1-100, for lossy formats)
+    #[arg(long)]
+    pub quality: Option<u8>,
+
+    /// Strip metadata from output
+    #[arg(long)]
+    pub strip: bool,
+}
+
+#[derive(Parser)]
+pub struct HueRotateArgs {
+    /// Input image file
+    pub input: Option<String>,
+
+    /// Output file path (positional alternative to -o)
+    pub output_pos: Option<String>,
+
+    /// Output file path
+    #[arg(short, long)]
+    pub output: Option<String>,
+
+    /// Hue rotation in degrees (-360 to 360)
+    #[arg(long)]
+    pub degrees: Option<i32>,
 
     /// Output quality (1-100, for lossy formats)
     #[arg(long)]

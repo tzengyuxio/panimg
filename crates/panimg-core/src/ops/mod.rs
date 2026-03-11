@@ -1,5 +1,10 @@
+pub mod brightness;
+pub mod contrast;
 pub mod crop;
 pub mod flip;
+pub mod grayscale;
+pub mod hue_rotate;
+pub mod invert;
 pub mod orient;
 pub mod resize;
 pub mod rotate;

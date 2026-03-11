@@ -74,6 +74,7 @@ impl CodecRegistry {
             ImageFormat::Svg => decode_svg(data, path),
             #[cfg(feature = "jxl")]
             ImageFormat::Jxl => decode_jxl(data, path),
+            #[allow(unreachable_patterns)]
             _ => Err(PanimgError::UnsupportedFormat {
                 format: format.to_string(),
                 suggestion: format!(
