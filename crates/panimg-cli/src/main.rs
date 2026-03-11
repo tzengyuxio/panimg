@@ -83,6 +83,14 @@ fn capabilities() -> Capabilities {
                 description: "Rotate image hue".into(),
             },
             CommandCap {
+                name: "blur".into(),
+                description: "Apply Gaussian blur to an image".into(),
+            },
+            CommandCap {
+                name: "sharpen".into(),
+                description: "Sharpen an image using unsharp mask".into(),
+            },
+            CommandCap {
                 name: "batch".into(),
                 description: "Process multiple files with glob patterns and parallel execution"
                     .into(),
@@ -181,6 +189,12 @@ fn main() {
         }
         Some(Commands::HueRotate(args)) => {
             commands::hue_rotate::run(args, cli.format, cli.dry_run, cli.schema)
+        }
+        Some(Commands::Blur(args)) => {
+            commands::blur::run(args, cli.format, cli.dry_run, cli.schema)
+        }
+        Some(Commands::Sharpen(args)) => {
+            commands::sharpen::run(args, cli.format, cli.dry_run, cli.schema)
         }
         Some(Commands::Batch(args)) => commands::batch::run(args, cli.format, cli.dry_run),
         None => {

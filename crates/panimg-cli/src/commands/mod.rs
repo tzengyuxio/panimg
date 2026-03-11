@@ -1,4 +1,5 @@
 pub mod batch;
+pub mod blur;
 pub mod brightness;
 pub mod contrast;
 pub mod convert;
@@ -11,3 +12,4 @@ pub mod invert;
 pub mod orient;
 pub mod resize;
 pub mod rotate;
+pub mod sharpen;
