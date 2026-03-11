@@ -1,4 +1,8 @@
+pub mod crop;
+pub mod flip;
+pub mod orient;
 pub mod resize;
+pub mod rotate;
 
 use crate::error::Result;
 use crate::schema::CommandSchema;

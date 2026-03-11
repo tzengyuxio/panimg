@@ -54,6 +54,29 @@ fn capabilities_json() {
     assert!(json["version"].is_string());
 }
 
+#[test]
+fn capabilities_includes_all_commands() {
+    let output = panimg()
+        .args(["--capabilities", "--format", "json"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    let commands: Vec<&str> = json["commands"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|c| c["name"].as_str().unwrap())
+        .collect();
+    assert!(commands.contains(&"info"));
+    assert!(commands.contains(&"convert"));
+    assert!(commands.contains(&"resize"));
+    assert!(commands.contains(&"crop"));
+    assert!(commands.contains(&"rotate"));
+    assert!(commands.contains(&"flip"));
+    assert!(commands.contains(&"auto-orient"));
+}
+
 // ---- Info Command ----
 
 #[test]
@@ -300,7 +323,6 @@ fn convert_schema() {
 #[test]
 fn resize_width_only() {
     let dir = TempDir::new().unwrap();
-    // Create a larger image for meaningful resize
     let img_path = dir.path().join("test.png");
     let img = image::RgbaImage::from_fn(100, 200, |_, _| image::Rgba([128, 128, 128, 255]));
     img.save(&img_path).unwrap();
@@ -320,7 +342,7 @@ fn resize_width_only() {
 
     let result = image::open(&out_path).unwrap();
     assert_eq!(result.width(), 50);
-    assert_eq!(result.height(), 100); // Maintains aspect ratio
+    assert_eq!(result.height(), 100);
 }
 
 #[test]
@@ -440,4 +462,236 @@ fn resize_to_jpeg_with_quality() {
         .success();
 
     assert!(out_path.exists());
+}
+
+// ---- Crop Command ----
+
+#[test]
+fn crop_basic() {
+    let dir = TempDir::new().unwrap();
+    let img_path = dir.path().join("test.png");
+    let img = image::RgbaImage::from_fn(100, 100, |_, _| image::Rgba([128, 128, 128, 255]));
+    img.save(&img_path).unwrap();
+    let out_path = dir.path().join("cropped.png");
+
+    panimg()
+        .args([
+            "crop",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--x",
+            "10",
+            "--y",
+            "10",
+            "--width",
+            "50",
+            "--height",
+            "50",
+        ])
+        .assert()
+        .success();
+
+    let result = image::open(&out_path).unwrap();
+    assert_eq!(result.width(), 50);
+    assert_eq!(result.height(), 50);
+}
+
+#[test]
+fn crop_out_of_bounds_error() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+
+    panimg()
+        .args([
+            "crop",
+            img_path.to_str().unwrap(),
+            "-o",
+            "out.png",
+            "--width",
+            "100",
+            "--height",
+            "100",
+        ])
+        .assert()
+        .code(5);
+}
+
+#[test]
+fn crop_dry_run_json() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("cropped.png");
+
+    let output = panimg()
+        .args([
+            "crop",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--width",
+            "2",
+            "--height",
+            "2",
+            "--dry-run",
+            "--format",
+            "json",
+        ])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert!(json["steps"].is_array());
+    assert!(!out_path.exists());
+}
+
+#[test]
+fn crop_schema() {
+    let output = panimg().args(["crop", "--schema"]).output().unwrap();
+    assert!(output.status.success());
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(json["command"], "crop");
+}
+
+// ---- Rotate Command ----
+
+#[test]
+fn rotate_90() {
+    let dir = TempDir::new().unwrap();
+    let img_path = dir.path().join("test.png");
+    let img = image::RgbaImage::from_fn(100, 50, |_, _| image::Rgba([128, 128, 128, 255]));
+    img.save(&img_path).unwrap();
+    let out_path = dir.path().join("rotated.png");
+
+    panimg()
+        .args([
+            "rotate",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--angle",
+            "90",
+        ])
+        .assert()
+        .success();
+
+    let result = image::open(&out_path).unwrap();
+    assert_eq!(result.width(), 50);
+    assert_eq!(result.height(), 100);
+}
+
+#[test]
+fn rotate_left_alias() {
+    let dir = TempDir::new().unwrap();
+    let img_path = dir.path().join("test.png");
+    let img = image::RgbaImage::from_fn(100, 50, |_, _| image::Rgba([128, 128, 128, 255]));
+    img.save(&img_path).unwrap();
+    let out_path = dir.path().join("rotated.png");
+
+    panimg()
+        .args([
+            "rotate",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--angle",
+            "left",
+        ])
+        .assert()
+        .success();
+
+    let result = image::open(&out_path).unwrap();
+    assert_eq!(result.width(), 50);
+    assert_eq!(result.height(), 100);
+}
+
+#[test]
+fn rotate_schema() {
+    let output = panimg().args(["rotate", "--schema"]).output().unwrap();
+    assert!(output.status.success());
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(json["command"], "rotate");
+}
+
+// ---- Flip Command ----
+
+#[test]
+fn flip_horizontal() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("flipped.png");
+
+    panimg()
+        .args([
+            "flip",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--direction",
+            "horizontal",
+        ])
+        .assert()
+        .success();
+
+    assert!(out_path.exists());
+}
+
+#[test]
+fn flip_vertical() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("flipped.png");
+
+    panimg()
+        .args([
+            "flip",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--direction",
+            "v",
+        ])
+        .assert()
+        .success();
+
+    assert!(out_path.exists());
+}
+
+#[test]
+fn flip_schema() {
+    let output = panimg().args(["flip", "--schema"]).output().unwrap();
+    assert!(output.status.success());
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(json["command"], "flip");
+}
+
+// ---- Auto-Orient Command ----
+
+#[test]
+fn auto_orient_no_exif() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("oriented.png");
+
+    panimg()
+        .args([
+            "auto-orient",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+        ])
+        .assert()
+        .success();
+
+    let result = image::open(&out_path).unwrap();
+    assert_eq!(result.width(), 4);
+    assert_eq!(result.height(), 4);
+}
+
+#[test]
+fn auto_orient_schema() {
+    let output = panimg().args(["auto-orient", "--schema"]).output().unwrap();
+    assert!(output.status.success());
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(json["command"], "auto-orient");
 }

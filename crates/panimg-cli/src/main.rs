@@ -46,6 +46,22 @@ fn capabilities() -> Capabilities {
                 name: "resize".into(),
                 description: "Resize an image".into(),
             },
+            CommandCap {
+                name: "crop".into(),
+                description: "Crop a rectangular region from an image".into(),
+            },
+            CommandCap {
+                name: "rotate".into(),
+                description: "Rotate an image by 90, 180, or 270 degrees".into(),
+            },
+            CommandCap {
+                name: "flip".into(),
+                description: "Flip (mirror) an image horizontally or vertically".into(),
+            },
+            CommandCap {
+                name: "auto-orient".into(),
+                description: "Auto-rotate image based on EXIF orientation tag".into(),
+            },
         ],
         formats: ImageFormat::all()
             .iter()
@@ -113,6 +129,18 @@ fn main() {
         }
         Some(Commands::Resize(args)) => {
             commands::resize::run(args, cli.format, cli.dry_run, cli.schema)
+        }
+        Some(Commands::Crop(args)) => {
+            commands::crop::run(args, cli.format, cli.dry_run, cli.schema)
+        }
+        Some(Commands::Rotate(args)) => {
+            commands::rotate::run(args, cli.format, cli.dry_run, cli.schema)
+        }
+        Some(Commands::Flip(args)) => {
+            commands::flip::run(args, cli.format, cli.dry_run, cli.schema)
+        }
+        Some(Commands::AutoOrient(args)) => {
+            commands::orient::run(args, cli.format, cli.dry_run, cli.schema)
         }
         None => {
             // No subcommand: show help

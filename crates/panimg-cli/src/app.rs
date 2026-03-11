@@ -45,6 +45,18 @@ pub enum Commands {
 
     /// Resize an image
     Resize(ResizeArgs),
+
+    /// Crop a rectangular region from an image
+    Crop(CropArgs),
+
+    /// Rotate an image by 90, 180, or 270 degrees
+    Rotate(RotateArgs),
+
+    /// Flip (mirror) an image horizontally or vertically
+    Flip(FlipArgs),
+
+    /// Auto-rotate image based on EXIF orientation tag
+    AutoOrient(AutoOrientArgs),
 }
 
 #[derive(Parser)]
@@ -117,6 +129,114 @@ pub struct ResizeArgs {
     /// Resize filter: lanczos3, catmull-rom, nearest, linear
     #[arg(long, default_value = "lanczos3")]
     pub filter: String,
+
+    /// Output quality (1-100, for lossy formats)
+    #[arg(long)]
+    pub quality: Option<u8>,
+
+    /// Strip metadata from output
+    #[arg(long)]
+    pub strip: bool,
+}
+
+#[derive(Parser)]
+pub struct CropArgs {
+    /// Input image file
+    pub input: Option<String>,
+
+    /// Output file path (positional alternative to -o)
+    pub output_pos: Option<String>,
+
+    /// Output file path
+    #[arg(short, long)]
+    pub output: Option<String>,
+
+    /// Left offset in pixels
+    #[arg(long, default_value = "0")]
+    pub x: u32,
+
+    /// Top offset in pixels
+    #[arg(long, default_value = "0")]
+    pub y: u32,
+
+    /// Crop width in pixels
+    #[arg(long)]
+    pub width: Option<u32>,
+
+    /// Crop height in pixels
+    #[arg(long)]
+    pub height: Option<u32>,
+
+    /// Output quality (1-100, for lossy formats)
+    #[arg(long)]
+    pub quality: Option<u8>,
+
+    /// Strip metadata from output
+    #[arg(long)]
+    pub strip: bool,
+}
+
+#[derive(Parser)]
+pub struct RotateArgs {
+    /// Input image file
+    pub input: Option<String>,
+
+    /// Output file path (positional alternative to -o)
+    pub output_pos: Option<String>,
+
+    /// Output file path
+    #[arg(short, long)]
+    pub output: Option<String>,
+
+    /// Rotation angle: 90, 180, 270, left, right
+    #[arg(long)]
+    pub angle: Option<String>,
+
+    /// Output quality (1-100, for lossy formats)
+    #[arg(long)]
+    pub quality: Option<u8>,
+
+    /// Strip metadata from output
+    #[arg(long)]
+    pub strip: bool,
+}
+
+#[derive(Parser)]
+pub struct FlipArgs {
+    /// Input image file
+    pub input: Option<String>,
+
+    /// Output file path (positional alternative to -o)
+    pub output_pos: Option<String>,
+
+    /// Output file path
+    #[arg(short, long)]
+    pub output: Option<String>,
+
+    /// Flip direction: horizontal (h), vertical (v)
+    #[arg(long)]
+    pub direction: Option<String>,
+
+    /// Output quality (1-100, for lossy formats)
+    #[arg(long)]
+    pub quality: Option<u8>,
+
+    /// Strip metadata from output
+    #[arg(long)]
+    pub strip: bool,
+}
+
+#[derive(Parser)]
+pub struct AutoOrientArgs {
+    /// Input image file
+    pub input: Option<String>,
+
+    /// Output file path (positional alternative to -o)
+    pub output_pos: Option<String>,
+
+    /// Output file path
+    #[arg(short, long)]
+    pub output: Option<String>,
 
     /// Output quality (1-100, for lossy formats)
     #[arg(long)]
