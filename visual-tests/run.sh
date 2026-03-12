@@ -54,13 +54,14 @@ if [[ ! -x "$PANIMG" ]]; then
 fi
 
 if ! command -v magick &>/dev/null; then
-    echo -e "${RED}ERROR: ImageMagick (magick) not found. Please install it.${NC}"
+    echo -e "${RED}ERROR: ImageMagick (magick) not found. See https://imagemagick.org/script/download.php${NC}"
     exit 1
 fi
 
 if [[ ! -f "$SOURCE" ]]; then
-    echo -e "${YELLOW}Source image not found. Running setup script...${NC}"
-    bash "$PROJECT_ROOT/benches/scripts/setup.sh"
+    echo -e "${YELLOW}Source image not found. Downloading...${NC}"
+    mkdir -p "$(dirname "$SOURCE")"
+    curl -sL "http://r0k.us/graphics/kodak/kodak/kodim01.png" -o "$SOURCE"
 fi
 
 if [[ ! -f "$SOURCE" ]]; then
