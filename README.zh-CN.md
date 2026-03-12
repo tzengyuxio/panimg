@@ -19,7 +19,7 @@
 - **批量处理**：以 glob 模式匹配多文件，并行处理
 - **一致语法**：所有参数统一使用 `--key value` 格式
 - **内存安全**：以 Rust 构建，核心管线零 unsafe 代码
-- **高性能**：通过 `fast_image_resize` 实现 SIMD 加速缩放
+- **高性能**：通过 `fast_image_resize` 实现 SIMD 加速缩放（[性能测试报告](benches/results/REPORT.md)）
 
 ## 安装
 

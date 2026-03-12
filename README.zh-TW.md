@@ -19,7 +19,7 @@
 - **批次處理**：以 glob 模式匹配多檔案，平行處理
 - **一致語法**：所有參數統一使用 `--key value` 格式
 - **記憶體安全**：以 Rust 建構，核心管線零 unsafe 程式碼
-- **高效能**：透過 `fast_image_resize` 實現 SIMD 加速縮放
+- **高效能**：透過 `fast_image_resize` 實現 SIMD 加速縮放（[效能測試報告](benches/results/REPORT.md)）
 
 ## 安裝
 
