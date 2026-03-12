@@ -1,3 +1,5 @@
+#[cfg(feature = "text")]
+use crate::color::parse_color;
 use crate::error::{PanimgError, Result};
 use crate::ops::blur::BlurOp;
 use crate::ops::brightness::BrightnessOp;
@@ -10,13 +12,15 @@ use crate::ops::flip::{FlipDirection, FlipOp};
 use crate::ops::grayscale::GrayscaleOp;
 use crate::ops::hue_rotate::HueRotateOp;
 use crate::ops::invert::InvertOp;
+#[cfg(feature = "text")]
+use crate::ops::position::Position;
 use crate::ops::resize::{FitMode, ResizeFilter, ResizeOp};
 use crate::ops::rotate::{RotateAngle, RotateOp};
 use crate::ops::sharpen::SharpenOp;
+#[cfg(feature = "text")]
+use crate::ops::text::DrawTextOp;
 use crate::ops::trim::TrimOp;
 use crate::ops::Operation;
-#[cfg(feature = "text")]
-use crate::ops::{draw::parse_color, text::DrawTextOp};
 use crate::pipeline::Pipeline;
 use serde::Deserialize;
 
@@ -269,7 +273,9 @@ fn parse_single_step(step: &str) -> Result<Box<dyn Operation>> {
             let color = parse_color(&color_str)?;
             let x = parse_i32_arg(args, "--x")?;
             let y = parse_i32_arg(args, "--y")?;
-            let position = parse_str_arg(args, "--position");
+            let position = parse_str_arg(args, "--position")
+                .map(|s| s.parse::<Position>())
+                .transpose()?;
             let margin = parse_u32_arg(args, "--margin")?.unwrap_or(10);
             Ok(Box::new(DrawTextOp::new(
                 content,
@@ -404,7 +410,11 @@ fn build_op_from_recipe_step(step: &RecipeStep) -> Result<Box<dyn Operation>> {
             let color = parse_color(color_str)?;
             let x = step.x.map(|v| v as i32);
             let y = step.y.map(|v| v as i32);
-            let position = step.position.clone();
+            let position = step
+                .position
+                .as_deref()
+                .map(|s| s.parse::<Position>())
+                .transpose()?;
             let margin = step.margin.unwrap_or(10);
             Ok(Box::new(DrawTextOp::new(
                 content,

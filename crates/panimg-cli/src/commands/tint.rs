@@ -1,10 +1,10 @@
 use crate::app::{OutputFormat, TintArgs};
 use crate::output;
 use panimg_core::codec::{CodecRegistry, EncodeOptions};
+use panimg_core::color::parse_color;
 use panimg_core::error::PanimgError;
 use panimg_core::format::ImageFormat;
 use panimg_core::ops::color::TintOp;
-use panimg_core::ops::draw::parse_color;
 use panimg_core::ops::Operation;
 use panimg_core::pipeline::Pipeline;
 use serde::Serialize;

@@ -14,6 +14,7 @@ pub mod hue_rotate;
 pub mod invert;
 pub mod orient;
 pub mod overlay;
+pub mod position;
 pub mod resize;
 pub mod rotate;
 pub mod sharpen;

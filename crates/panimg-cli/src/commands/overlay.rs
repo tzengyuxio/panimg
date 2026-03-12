@@ -3,7 +3,8 @@ use crate::output;
 use panimg_core::codec::{CodecRegistry, EncodeOptions};
 use panimg_core::error::PanimgError;
 use panimg_core::format::ImageFormat;
-use panimg_core::ops::overlay::{create_tiled_overlay, resolve_position, OverlayOp};
+use panimg_core::ops::overlay::{create_tiled_overlay, OverlayOp};
+use panimg_core::ops::position::{resolve_position, Position};
 use panimg_core::ops::Operation;
 use panimg_core::pipeline::Pipeline;
 use serde::Serialize;
@@ -85,11 +86,12 @@ pub fn run(args: &OverlayArgs, format: OutputFormat, dry_run: bool, show_schema:
     let layer_h = layer_img.height();
 
     // Resolve position
-    let (x, y) = if let Some(pos) = &args.position {
-        match resolve_position(pos, base_w, base_h, layer_w, layer_h, margin) {
+    let (x, y) = if let Some(pos_str) = &args.position {
+        let pos: Position = match pos_str.parse() {
             Ok(p) => p,
             Err(e) => return output::print_error(format, &e),
-        }
+        };
+        resolve_position(pos, base_w, base_h, layer_w, layer_h, margin)
     } else {
         (args.x.unwrap_or(0), args.y.unwrap_or(0))
     };
