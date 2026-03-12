@@ -1,9 +1,10 @@
 use crate::app::{OutputFormat, TextArgs};
 use crate::output;
 use panimg_core::codec::{CodecRegistry, EncodeOptions};
+use panimg_core::color::parse_color;
 use panimg_core::error::PanimgError;
 use panimg_core::format::ImageFormat;
-use panimg_core::ops::draw::parse_color;
+use panimg_core::ops::position::Position;
 use panimg_core::ops::text::DrawTextOp;
 use panimg_core::ops::Operation;
 use panimg_core::pipeline::Pipeline;
@@ -67,6 +68,16 @@ pub fn run(args: &TextArgs, format: OutputFormat, dry_run: bool, show_schema: bo
     };
     let margin = args.margin.unwrap_or(10);
 
+    let position = match args
+        .position
+        .as_deref()
+        .map(|s| s.parse::<Position>())
+        .transpose()
+    {
+        Ok(p) => p,
+        Err(e) => return output::print_error(format, &e),
+    };
+
     let text_op = match DrawTextOp::new(
         content.clone(),
         args.font.as_deref(),
@@ -74,7 +85,7 @@ pub fn run(args: &TextArgs, format: OutputFormat, dry_run: bool, show_schema: bo
         color,
         args.x,
         args.y,
-        args.position.clone(),
+        position,
         margin,
     ) {
         Ok(op) => op,

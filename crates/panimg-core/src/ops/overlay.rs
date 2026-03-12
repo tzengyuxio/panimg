@@ -1,4 +1,5 @@
 use crate::error::{PanimgError, Result};
+use crate::ops::position::Position;
 use crate::ops::{Operation, OperationDescription};
 use crate::schema::{CommandSchema, ParamRange, ParamSchema, ParamType};
 use image::{DynamicImage, RgbaImage};
@@ -173,45 +174,11 @@ impl Operation for OverlayOp {
                     required: false,
                     description: "Named position (overrides x/y): center, top-left, top-right, bottom-left, bottom-right".into(),
                     default: None,
-                    choices: Some(vec![
-                        "center".into(),
-                        "top-left".into(),
-                        "top-right".into(),
-                        "bottom-left".into(),
-                        "bottom-right".into(),
-                    ]),
+                    choices: Some(Position::choices().iter().map(|s| (*s).into()).collect()),
                     range: None,
                 },
             ],
         }
-    }
-}
-
-/// Calculate x/y offset for named positions.
-pub fn resolve_position(
-    position: &str,
-    base_w: u32,
-    base_h: u32,
-    overlay_w: u32,
-    overlay_h: u32,
-    margin: i64,
-) -> Result<(i64, i64)> {
-    match position {
-        "center" => Ok((
-            (base_w as i64 - overlay_w as i64) / 2,
-            (base_h as i64 - overlay_h as i64) / 2,
-        )),
-        "top-left" => Ok((margin, margin)),
-        "top-right" => Ok((base_w as i64 - overlay_w as i64 - margin, margin)),
-        "bottom-left" => Ok((margin, base_h as i64 - overlay_h as i64 - margin)),
-        "bottom-right" => Ok((
-            base_w as i64 - overlay_w as i64 - margin,
-            base_h as i64 - overlay_h as i64 - margin,
-        )),
-        _ => Err(PanimgError::InvalidArgument {
-            message: format!("unknown position: '{position}'"),
-            suggestion: "use: center, top-left, top-right, bottom-left, bottom-right".into(),
-        }),
     }
 }
 
@@ -373,29 +340,5 @@ mod tests {
         let layer = blue_image(4, 4);
         assert!(OverlayOp::new(layer.clone(), 0, 0, -0.1).is_err());
         assert!(OverlayOp::new(layer, 0, 0, 1.1).is_err());
-    }
-
-    #[test]
-    fn resolve_position_center() {
-        let (x, y) = resolve_position("center", 100, 100, 20, 20, 0).unwrap();
-        assert_eq!(x, 40);
-        assert_eq!(y, 40);
-    }
-
-    #[test]
-    fn resolve_position_corners() {
-        let margin = 10;
-        let (x, y) = resolve_position("top-left", 100, 100, 20, 20, margin).unwrap();
-        assert_eq!(x, 10);
-        assert_eq!(y, 10);
-
-        let (x, y) = resolve_position("bottom-right", 100, 100, 20, 20, margin).unwrap();
-        assert_eq!(x, 70);
-        assert_eq!(y, 70);
-    }
-
-    #[test]
-    fn resolve_position_unknown() {
-        assert!(resolve_position("middle", 100, 100, 20, 20, 0).is_err());
     }
 }

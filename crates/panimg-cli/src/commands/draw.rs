@@ -1,9 +1,10 @@
 use crate::app::{DrawArgs, OutputFormat};
 use crate::output;
 use panimg_core::codec::{CodecRegistry, EncodeOptions};
+use panimg_core::color::parse_color;
 use panimg_core::error::PanimgError;
 use panimg_core::format::ImageFormat;
-use panimg_core::ops::draw::{parse_color, DrawCircleOp, DrawLineOp, DrawRectOp};
+use panimg_core::ops::draw::{DrawCircleOp, DrawLineOp, DrawRectOp};
 use panimg_core::ops::Operation;
 use panimg_core::pipeline::Pipeline;
 use serde::Serialize;

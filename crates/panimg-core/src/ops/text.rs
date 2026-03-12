@@ -1,5 +1,5 @@
 use crate::error::{PanimgError, Result};
-use crate::ops::overlay::resolve_position;
+use crate::ops::position::{resolve_position, Position};
 use crate::ops::{Operation, OperationDescription};
 use crate::schema::{CommandSchema, ParamRange, ParamSchema, ParamType};
 use ab_glyph::{Font, FontRef, PxScale, ScaleFont};
@@ -17,7 +17,7 @@ pub struct DrawTextOp {
     color: Rgba<u8>,
     x: Option<i32>,
     y: Option<i32>,
-    position: Option<String>,
+    position: Option<Position>,
     margin: u32,
 }
 
@@ -30,7 +30,7 @@ impl DrawTextOp {
         color: Rgba<u8>,
         x: Option<i32>,
         y: Option<i32>,
-        position: Option<String>,
+        position: Option<Position>,
         margin: u32,
     ) -> Result<Self> {
         if content.is_empty() {
@@ -115,8 +115,8 @@ impl Operation for DrawTextOp {
         // Determine position
         let (draw_x, draw_y) = if let (Some(x), Some(y)) = (self.x, self.y) {
             (x as i64, y as i64)
-        } else if let Some(ref pos) = self.position {
-            resolve_position(pos, img_w, img_h, text_w, text_h, self.margin as i64)?
+        } else if let Some(pos) = self.position {
+            resolve_position(pos, img_w, img_h, text_w, text_h, self.margin as i64)
         } else if let Some(x) = self.x {
             (x as i64, self.margin as i64)
         } else if let Some(y) = self.y {
@@ -144,7 +144,7 @@ impl Operation for DrawTextOp {
             "content": self.content,
             "size": self.size,
         });
-        if let Some(ref pos) = self.position {
+        if let Some(pos) = self.position {
             params["position"] = serde_json::json!(pos);
             params["margin"] = serde_json::json!(self.margin);
         }
@@ -161,7 +161,7 @@ impl Operation for DrawTextOp {
             description: format!(
                 "Draw text \"{}\" at {} size={}",
                 self.content,
-                if let Some(ref pos) = self.position {
+                if let Some(pos) = self.position {
                     format!("position={pos}")
                 } else {
                     format!(
@@ -266,13 +266,7 @@ impl Operation for DrawTextOp {
                         "Named position: center, top-left, top-right, bottom-left, bottom-right"
                             .into(),
                     default: Some(serde_json::json!("top-left")),
-                    choices: Some(vec![
-                        "center".into(),
-                        "top-left".into(),
-                        "top-right".into(),
-                        "bottom-left".into(),
-                        "bottom-right".into(),
-                    ]),
+                    choices: Some(Position::choices().iter().map(|s| (*s).into()).collect()),
                     range: None,
                 },
                 ParamSchema {
@@ -391,7 +385,7 @@ mod tests {
             Rgba([255, 0, 0, 255]),
             None,
             None,
-            Some("center".into()),
+            Some(Position::Center),
             10,
         )
         .unwrap();
@@ -521,7 +515,7 @@ mod tests {
             Rgba([255, 255, 255, 255]),
             None,
             None,
-            Some("bottom-right".into()),
+            Some(Position::BottomRight),
             20,
         )
         .unwrap();
