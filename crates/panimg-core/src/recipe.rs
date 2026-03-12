@@ -15,6 +15,8 @@ use crate::ops::rotate::{RotateAngle, RotateOp};
 use crate::ops::sharpen::SharpenOp;
 use crate::ops::trim::TrimOp;
 use crate::ops::Operation;
+#[cfg(feature = "text")]
+use crate::ops::{draw::parse_color, text::DrawTextOp};
 use crate::pipeline::Pipeline;
 use serde::Deserialize;
 
@@ -56,6 +58,19 @@ pub struct RecipeStep {
     pub intensity: Option<f32>,
     #[serde(default)]
     pub levels: Option<u8>,
+    // Text rendering fields
+    #[serde(default)]
+    pub content: Option<String>,
+    #[serde(default)]
+    pub font: Option<String>,
+    #[serde(default)]
+    pub size: Option<f32>,
+    #[serde(default)]
+    pub color: Option<String>,
+    #[serde(default)]
+    pub position: Option<String>,
+    #[serde(default)]
+    pub margin: Option<u32>,
 }
 
 /// A recipe: a list of steps to apply in order.
@@ -241,9 +256,35 @@ fn parse_single_step(step: &str) -> Result<Box<dyn Operation>> {
                 .unwrap_or(4);
             Ok(Box::new(PosterizeOp::new(levels)?))
         }
+        #[cfg(feature = "text")]
+        "text" => {
+            let content = parse_str_arg(args, "--content")
+                .ok_or_else(|| PanimgError::InvalidArgument {
+                    message: "text requires --content".into(),
+                    suggestion: "e.g. text --content \"Hello World\"".into(),
+                })?;
+            let font = parse_str_arg(args, "--font");
+            let size = parse_f32_arg(args, "--size")?.unwrap_or(24.0);
+            let color_str = parse_str_arg(args, "--color").unwrap_or_else(|| "white".into());
+            let color = parse_color(&color_str)?;
+            let x = parse_i32_arg(args, "--x")?;
+            let y = parse_i32_arg(args, "--y")?;
+            let position = parse_str_arg(args, "--position");
+            let margin = parse_u32_arg(args, "--margin")?.unwrap_or(10);
+            Ok(Box::new(DrawTextOp::new(
+                content,
+                font.as_deref(),
+                size,
+                color,
+                x,
+                y,
+                position,
+                margin,
+            )?))
+        }
         _ => Err(PanimgError::InvalidArgument {
             message: format!("unknown pipeline operation: '{op_name}'"),
-            suggestion: "supported: grayscale, invert, blur, sharpen, brightness, contrast, hue-rotate, resize, crop, rotate, flip, edge-detect, emboss, trim, saturate, sepia, posterize".into(),
+            suggestion: "supported: grayscale, invert, blur, sharpen, brightness, contrast, hue-rotate, resize, crop, rotate, flip, edge-detect, emboss, trim, saturate, sepia, posterize, text".into(),
         }),
     }
 }
@@ -352,9 +393,33 @@ fn build_op_from_recipe_step(step: &RecipeStep) -> Result<Box<dyn Operation>> {
             let levels = step.levels.unwrap_or(4);
             Ok(Box::new(PosterizeOp::new(levels)?))
         }
+        #[cfg(feature = "text")]
+        "text" => {
+            let content = step.content.clone().ok_or_else(|| PanimgError::InvalidArgument {
+                message: "text step requires \"content\"".into(),
+                suggestion: "{\"op\": \"text\", \"content\": \"Hello World\"}".into(),
+            })?;
+            let size = step.size.unwrap_or(24.0);
+            let color_str = step.color.as_deref().unwrap_or("white");
+            let color = parse_color(color_str)?;
+            let x = step.x.map(|v| v as i32);
+            let y = step.y.map(|v| v as i32);
+            let position = step.position.clone();
+            let margin = step.margin.unwrap_or(10);
+            Ok(Box::new(DrawTextOp::new(
+                content,
+                step.font.as_deref(),
+                size,
+                color,
+                x,
+                y,
+                position,
+                margin,
+            )?))
+        }
         _ => Err(PanimgError::InvalidArgument {
             message: format!("unknown recipe operation: '{}'", step.op),
-            suggestion: "supported: grayscale, invert, blur, sharpen, brightness, contrast, hue-rotate, resize, crop, rotate, flip, edge-detect, emboss, trim, saturate, sepia, posterize".into(),
+            suggestion: "supported: grayscale, invert, blur, sharpen, brightness, contrast, hue-rotate, resize, crop, rotate, flip, edge-detect, emboss, trim, saturate, sepia, posterize, text".into(),
         }),
     }
 }

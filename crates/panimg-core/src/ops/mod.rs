@@ -19,6 +19,9 @@ pub mod rotate;
 pub mod sharpen;
 pub mod trim;
 
+#[cfg(feature = "text")]
+pub mod text;
+
 use crate::error::Result;
 use crate::schema::CommandSchema;
 use image::DynamicImage;

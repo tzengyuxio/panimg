@@ -14,6 +14,7 @@ default = []
 avif = ["dep:ravif"]
 jxl = ["dep:jxl-oxide"]
 svg = ["dep:resvg"]
+text = ["dep:ab_glyph"]
 
 [dependencies]
 image = { workspace = true }
@@ -27,6 +28,9 @@ thiserror = { workspace = true }
 ravif = { workspace = true, optional = true }
 jxl-oxide = { workspace = true, optional = true }
 resvg = { workspace = true, optional = true }
+
+# Optional text rendering
+ab_glyph = { workspace = true, optional = true }
 
 [dev-dependencies]
 tempfile = "3"

@@ -147,6 +147,10 @@ fn capabilities() -> Capabilities {
                 description: "Reduce color levels (posterize)".into(),
             },
             CommandCap {
+                name: "text".into(),
+                description: "Draw text on an image (watermark, annotation)".into(),
+            },
+            CommandCap {
                 name: "batch".into(),
                 description: "Process multiple files with glob patterns and parallel execution"
                     .into(),
@@ -283,6 +287,10 @@ fn main() {
         }
         Some(Commands::Posterize(args)) => {
             commands::posterize::run(args, cli.format, cli.dry_run, cli.schema)
+        }
+        #[cfg(feature = "text")]
+        Some(Commands::Text(args)) => {
+            commands::text::run(args, cli.format, cli.dry_run, cli.schema)
         }
         Some(Commands::Batch(args)) => commands::batch::run(args, cli.format, cli.dry_run),
         None => {

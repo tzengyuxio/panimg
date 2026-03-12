@@ -121,6 +121,10 @@ pub enum Commands {
     /// Reduce color levels (posterize)
     Posterize(PosterizeArgs),
 
+    /// Draw text on an image (watermark, annotation)
+    #[cfg(feature = "text")]
+    Text(TextArgs),
+
     /// Process multiple files in batch with glob patterns
     Batch(BatchArgs),
 }
@@ -885,6 +889,60 @@ pub struct PosterizeArgs {
     /// Number of color levels per channel (2-256, default: 4)
     #[arg(long)]
     pub levels: Option<u8>,
+
+    /// Output quality (1-100, for lossy formats)
+    #[arg(long)]
+    pub quality: Option<u8>,
+
+    /// Strip metadata from output
+    #[arg(long)]
+    pub strip: bool,
+}
+
+#[cfg(feature = "text")]
+#[derive(Parser)]
+pub struct TextArgs {
+    /// Input image file
+    pub input: Option<String>,
+
+    /// Output file path (positional alternative to -o)
+    pub output_pos: Option<String>,
+
+    /// Output file path
+    #[arg(short, long)]
+    pub output: Option<String>,
+
+    /// Text content to draw
+    #[arg(long)]
+    pub content: Option<String>,
+
+    /// TTF/OTF font file path (uses embedded DejaVu Sans if omitted)
+    #[arg(long)]
+    pub font: Option<String>,
+
+    /// Font size in pixels (default: 24)
+    #[arg(long)]
+    pub size: Option<f32>,
+
+    /// Text color: hex (#FFFFFF), RGB (255,255,255), or named (white, red, etc.)
+    #[arg(long)]
+    pub color: Option<String>,
+
+    /// Absolute X position (overrides --position)
+    #[arg(long)]
+    pub x: Option<i32>,
+
+    /// Absolute Y position (overrides --position)
+    #[arg(long)]
+    pub y: Option<i32>,
+
+    /// Named position: center, top-left, top-right, bottom-left, bottom-right
+    #[arg(long)]
+    pub position: Option<String>,
+
+    /// Margin in pixels for named positions (default: 10)
+    #[arg(long)]
+    pub margin: Option<u32>,
 
     /// Output quality (1-100, for lossy formats)
     #[arg(long)]
