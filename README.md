@@ -10,7 +10,7 @@ A next-generation image processing CLI built in Rust. Modern alternative to Imag
 
 ## Features
 
-- **30 commands** covering format conversion, transforms, filters, color manipulation, animation, compositing, and more
+- **31 commands** covering format conversion, transforms, filters, color manipulation, animation, compositing, text rendering, and more
 - **Structured output**: Human-readable by default, `--format json` for machine consumption
 - **Dry-run support**: Preview operations with `--dry-run` before executing
 - **Schema introspection**: `--schema` returns parameter definitions as JSON
@@ -85,6 +85,10 @@ panimg grayscale photo.jpg -o bw.jpg
 panimg draw photo.jpg --shape rect --x 10 --y 10 --width 100 --height 50 --color red -o annotated.jpg
 panimg draw photo.jpg --shape circle --cx 200 --cy 200 --radius 50 --color blue --fill -o marked.jpg
 
+# Text rendering
+panimg text photo.jpg --content "Hello World" --size 48 --color white --position center -o titled.jpg
+panimg text photo.jpg --content "© 2026" --size 16 --color '#FFFFFF80' --position bottom-right -o stamped.jpg
+
 # Compositing
 panimg overlay base.jpg --layer watermark.png --position bottom-right --opacity 0.5 -o watermarked.jpg
 
@@ -151,6 +155,7 @@ panimg --capabilities --format json
 | Command | Description |
 |---------|-------------|
 | `draw` | Draw shapes (rect, circle, line) |
+| `text` | Draw text with embedded or custom fonts |
 | `overlay` | Composite one image on another |
 | `trim` | Auto-crop whitespace or similar-colored borders |
 | `diff` | Compare two images and visualize differences |

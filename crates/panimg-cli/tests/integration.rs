@@ -3159,3 +3159,224 @@ fn batch_posterize() {
 
     assert!(out_dir.join("a.png").exists());
 }
+
+// ---- Text ----
+
+#[test]
+fn text_basic() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("text.png");
+
+    panimg()
+        .args([
+            "text",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--content",
+            "Hello",
+            "--size",
+            "12",
+        ])
+        .assert()
+        .success();
+
+    assert!(out_path.exists());
+}
+
+#[test]
+fn text_with_position() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("text.png");
+
+    panimg()
+        .args([
+            "text",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--content",
+            "Watermark",
+            "--position",
+            "center",
+            "--size",
+            "8",
+        ])
+        .assert()
+        .success();
+
+    assert!(out_path.exists());
+}
+
+#[test]
+fn text_with_color() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("text.png");
+
+    panimg()
+        .args([
+            "text",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--content",
+            "Red",
+            "--color",
+            "#FF0000",
+            "--size",
+            "10",
+        ])
+        .assert()
+        .success();
+
+    assert!(out_path.exists());
+}
+
+#[test]
+fn text_with_xy() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("text.png");
+
+    panimg()
+        .args([
+            "text",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--content",
+            "XY",
+            "--x",
+            "0",
+            "--y",
+            "0",
+            "--size",
+            "8",
+        ])
+        .assert()
+        .success();
+
+    assert!(out_path.exists());
+}
+
+#[test]
+fn text_positional_output() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("text.png");
+
+    panimg()
+        .args([
+            "text",
+            img_path.to_str().unwrap(),
+            out_path.to_str().unwrap(),
+            "--content",
+            "Pos",
+            "--size",
+            "8",
+        ])
+        .assert()
+        .success();
+
+    assert!(out_path.exists());
+}
+
+#[test]
+fn text_json_output() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("text.png");
+
+    let output = panimg()
+        .args([
+            "text",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--content",
+            "JSON",
+            "--size",
+            "8",
+            "--format",
+            "json",
+        ])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(json["content"], "JSON");
+    assert!(json["output_size"].as_u64().unwrap() > 0);
+}
+
+#[test]
+fn text_dry_run() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("text.png");
+
+    panimg()
+        .args([
+            "text",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--content",
+            "DryRun",
+            "--dry-run",
+        ])
+        .assert()
+        .success();
+
+    assert!(!out_path.exists());
+}
+
+#[test]
+fn text_schema() {
+    let output = panimg().args(["text", "--schema"]).output().unwrap();
+    assert!(output.status.success());
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(json["command"], "text");
+    assert!(json["params"].is_array());
+}
+
+#[test]
+fn text_missing_content() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("text.png");
+
+    panimg()
+        .args([
+            "text",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+        ])
+        .assert()
+        .failure();
+}
+
+#[test]
+fn text_pipeline_integration() {
+    let dir = TempDir::new().unwrap();
+    let img_path = create_test_png(dir.path(), "test.png");
+    let out_path = dir.path().join("piped.png");
+
+    panimg()
+        .args([
+            "pipeline",
+            img_path.to_str().unwrap(),
+            "-o",
+            out_path.to_str().unwrap(),
+            "--steps",
+            "text --content 'Hello' --size 8 --position center",
+        ])
+        .assert()
+        .success();
+
+    assert!(out_path.exists());
+}

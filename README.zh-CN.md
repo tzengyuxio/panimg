@@ -10,7 +10,7 @@
 
 ## 特性
 
-- **30 个命令**涵盖格式转换、几何变换、滤镜、色彩调整、动画、合成等
+- **31 个命令**涵盖格式转换、几何变换、滤镜、色彩调整、动画、合成、文字渲染等
 - **结构化输出**：默认人类友好格式，`--format json` 输出机器可读的 JSON
 - **干跑模式**：使用 `--dry-run` 预览操作结果，不实际执行
 - **Schema 查询**：`--schema` 以 JSON 返回命令参数定义
@@ -82,6 +82,10 @@ panimg posterize photo.jpg --levels 4 -o poster.jpg
 # 绘图
 panimg draw photo.jpg --shape rect --x 10 --y 10 --width 100 --height 50 --color red -o annotated.jpg
 
+# 文字渲染
+panimg text photo.jpg --content "Hello World" --size 48 --color white --position center -o titled.jpg
+panimg text photo.jpg --content "© 2026" --size 16 --color '#FFFFFF80' --position bottom-right -o stamped.jpg
+
 # 合成
 panimg overlay base.jpg --layer watermark.png --position bottom-right --opacity 0.5 -o watermarked.jpg
 
@@ -148,6 +152,7 @@ panimg --capabilities --format json
 | 命令 | 说明 |
 |------|------|
 | `draw` | 绘制图形（矩形、圆形、线段） |
+| `text` | 绘制文字，支持内嵌或自定义字体 |
 | `overlay` | 叠加合成图片 |
 | `trim` | 自动裁切空白或相似色边框 |
 | `diff` | 比较两张图片并可视化差异 |
