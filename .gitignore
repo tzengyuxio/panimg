@@ -2,3 +2,5 @@
 .DS_Store
 _plans/
 PLANS/
+visual-tests/results/
+visual-tests/tmp/
