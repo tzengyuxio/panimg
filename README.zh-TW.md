@@ -6,7 +6,7 @@
 
 [English](README.md) | [日本語](README.ja.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md)
 
-圖片處理的瑞士刀——為人類與 AI 代理而生。
+以 Rust 打造的次世代圖片處理 CLI 工具。作為 ImageMagick 的現代替代方案，原生支援 AI 代理整合。
 
 ## 特色
 

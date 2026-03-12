@@ -4,7 +4,7 @@ use clap::{Parser, Subcommand, ValueEnum};
 #[command(
     name = "panimg",
     version,
-    about = "The Swiss Army knife of image processing — built for humans and AI agents alike.",
+    about = "Next-generation image processing CLI",
     long_about = "A modern, AI-agent-friendly image processing tool with structured output, \
                   dry-run support, and consistent syntax."
 )]

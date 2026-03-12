@@ -6,7 +6,7 @@
 
 [English](README.md) | [日本語](README.ja.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md)
 
-The Swiss Army knife of image processing — built for humans and AI agents alike.
+A next-generation image processing CLI built in Rust. Modern alternative to ImageMagick with first-class AI agent support.
 
 ## Features
 

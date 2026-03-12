@@ -6,7 +6,7 @@
 
 [English](README.md) | [日本語](README.ja.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md)
 
-画像処理のスイスアーミーナイフ——人間にも AI エージェントにも。
+Rust で構築された次世代の画像処理 CLI ツール。AI エージェントとのネイティブ連携を備えた、ImageMagick のモダンな代替ツールです。
 
 ## 特徴
 
