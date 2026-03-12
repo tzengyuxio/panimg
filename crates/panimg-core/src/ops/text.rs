@@ -281,7 +281,9 @@ impl Operation for DrawTextOp {
                     name: "position".into(),
                     param_type: ParamType::String,
                     required: false,
-                    description: "Named position: center, top-left, top-right, bottom-left, bottom-right".into(),
+                    description:
+                        "Named position: center, top-left, top-right, bottom-left, bottom-right"
+                            .into(),
                     default: Some(serde_json::json!("top-left")),
                     choices: Some(vec![
                         "center".into(),
@@ -336,10 +338,7 @@ fn draw_text_on_image(
             cursor_x += scaled.kern(prev, glyph_id);
         }
 
-        let glyph = glyph_id.with_scale_and_position(
-            scale,
-            ab_glyph::point(cursor_x, ascent),
-        );
+        let glyph = glyph_id.with_scale_and_position(scale, ab_glyph::point(cursor_x, ascent));
 
         if let Some(outlined) = font.outline_glyph(glyph) {
             let bounds = outlined.px_bounds();

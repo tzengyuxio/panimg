@@ -25,7 +25,7 @@ pub mod rotate;
 pub mod saturate;
 pub mod sepia;
 pub mod sharpen;
-pub mod tint;
 #[cfg(feature = "text")]
 pub mod text;
+pub mod tint;
 pub mod trim;
