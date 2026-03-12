@@ -6,7 +6,7 @@
 
 [English](README.md) | [日本語](README.ja.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md)
 
-使用 Rust 构建的下一代图片处理 CLI 工具。作为 ImageMagick 的现代替代方案，原生支持 AI 代理集成。
+图片处理的瑞士刀——为人类与 AI 代理而生。
 
 ## 特性
 
