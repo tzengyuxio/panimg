@@ -19,7 +19,7 @@ A next-generation image processing CLI built in Rust. Modern alternative to Imag
 - **Batch processing**: Process multiple files with glob patterns and parallel execution
 - **Consistent syntax**: All flags use `--key value` format
 - **Memory-safe**: Built in Rust with zero unsafe code in the core pipeline
-- **Fast**: SIMD-accelerated resize via `fast_image_resize`
+- **Fast**: SIMD-accelerated resize via `fast_image_resize` ([benchmarks](benches/results/REPORT.md))
 
 ## Installation
 
