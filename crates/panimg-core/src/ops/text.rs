@@ -4,20 +4,21 @@ use crate::ops::{Operation, OperationDescription};
 use crate::schema::{CommandSchema, ParamRange, ParamSchema, ParamType};
 use ab_glyph::{Font, FontRef, PxScale, ScaleFont};
 use image::{DynamicImage, Rgba, RgbaImage};
+use std::borrow::Cow;
 
 /// Default embedded font (DejaVu Sans).
 const DEFAULT_FONT_BYTES: &[u8] = include_bytes!("../fonts/DejaVuSans.ttf");
 
 /// Draw text on an image.
 pub struct DrawTextOp {
-    pub content: String,
-    pub font_bytes: Vec<u8>,
-    pub size: f32,
-    pub color: Rgba<u8>,
-    pub x: Option<i32>,
-    pub y: Option<i32>,
-    pub position: Option<String>,
-    pub margin: u32,
+    content: String,
+    font_bytes: Cow<'static, [u8]>,
+    size: f32,
+    color: Rgba<u8>,
+    x: Option<i32>,
+    y: Option<i32>,
+    position: Option<String>,
+    margin: u32,
 }
 
 impl DrawTextOp {
@@ -45,13 +46,13 @@ impl DrawTextOp {
             });
         }
 
-        let font_bytes = match font_path {
-            Some(path) => std::fs::read(path).map_err(|e| PanimgError::IoError {
+        let font_bytes: Cow<'static, [u8]> = match font_path {
+            Some(path) => Cow::Owned(std::fs::read(path).map_err(|e| PanimgError::IoError {
                 path: Some(path.into()),
                 message: format!("failed to read font file: {e}"),
                 suggestion: "check that the font file exists and is readable".into(),
-            })?,
-            None => DEFAULT_FONT_BYTES.to_vec(),
+            })?),
+            None => Cow::Borrowed(DEFAULT_FONT_BYTES),
         };
 
         // Validate font can be parsed
@@ -90,26 +91,6 @@ fn measure_text(font: &FontRef, scale: PxScale, text: &str) -> (u32, u32) {
 
     let height = scaled.ascent() - scaled.descent();
     (width.ceil() as u32, height.ceil() as u32)
-}
-
-/// Blend a color onto a pixel with alpha compositing.
-fn blend_pixel(base: &Rgba<u8>, color: &Rgba<u8>, coverage: f32) -> Rgba<u8> {
-    let ca = (color[3] as f32 / 255.0) * coverage;
-    let ba = base[3] as f32 / 255.0;
-    let out_a = ca + ba * (1.0 - ca);
-    if out_a == 0.0 {
-        return Rgba([0, 0, 0, 0]);
-    }
-    let blend = |cc: u8, bc: u8| -> u8 {
-        let c = (cc as f32 / 255.0 * ca + bc as f32 / 255.0 * ba * (1.0 - ca)) / out_a;
-        (c * 255.0).round().clamp(0.0, 255.0) as u8
-    };
-    Rgba([
-        blend(color[0], base[0]),
-        blend(color[1], base[1]),
-        blend(color[2], base[2]),
-        (out_a * 255.0).round().clamp(0.0, 255.0) as u8,
-    ])
 }
 
 impl Operation for DrawTextOp {
@@ -348,7 +329,7 @@ fn draw_text_on_image(
 
                 if px >= 0 && px < img_w && py >= 0 && py < img_h {
                     let base = *img.get_pixel(px as u32, py as u32);
-                    let blended = blend_pixel(&base, color, coverage);
+                    let blended = super::blend_pixel(&base, color, coverage);
                     img.put_pixel(px as u32, py as u32, blended);
                 }
             });

@@ -24,8 +24,31 @@ pub mod text;
 
 use crate::error::Result;
 use crate::schema::CommandSchema;
-use image::DynamicImage;
+use image::{DynamicImage, Rgba};
 use serde::Serialize;
+
+/// Blend a color onto a pixel with alpha compositing (Porter-Duff "over").
+///
+/// `coverage` scales the source alpha (0.0–1.0), useful for sub-pixel glyph
+/// rendering. Pass `1.0` for normal opaque blending.
+pub(crate) fn blend_pixel(base: &Rgba<u8>, color: &Rgba<u8>, coverage: f32) -> Rgba<u8> {
+    let ca = (color[3] as f32 / 255.0) * coverage;
+    let ba = base[3] as f32 / 255.0;
+    let out_a = ca + ba * (1.0 - ca);
+    if out_a == 0.0 {
+        return Rgba([0, 0, 0, 0]);
+    }
+    let blend = |cc: u8, bc: u8| -> u8 {
+        let c = (cc as f32 / 255.0 * ca + bc as f32 / 255.0 * ba * (1.0 - ca)) / out_a;
+        (c * 255.0).round().clamp(0.0, 255.0) as u8
+    };
+    Rgba([
+        blend(color[0], base[0]),
+        blend(color[1], base[1]),
+        blend(color[2], base[2]),
+        (out_a * 255.0).round().clamp(0.0, 255.0) as u8,
+    ])
+}
 
 /// Description of an operation for dry-run output.
 #[derive(Debug, Clone, Serialize)]

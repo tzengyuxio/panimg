@@ -71,30 +71,10 @@ fn color_err(s: &str) -> PanimgError {
     }
 }
 
-/// Blend a color onto a pixel with alpha compositing.
-fn blend_pixel(base: &Rgba<u8>, color: &Rgba<u8>) -> Rgba<u8> {
-    let ca = color[3] as f32 / 255.0;
-    let ba = base[3] as f32 / 255.0;
-    let out_a = ca + ba * (1.0 - ca);
-    if out_a == 0.0 {
-        return Rgba([0, 0, 0, 0]);
-    }
-    let blend = |cc: u8, bc: u8| -> u8 {
-        let c = (cc as f32 / 255.0 * ca + bc as f32 / 255.0 * ba * (1.0 - ca)) / out_a;
-        (c * 255.0).round().clamp(0.0, 255.0) as u8
-    };
-    Rgba([
-        blend(color[0], base[0]),
-        blend(color[1], base[1]),
-        blend(color[2], base[2]),
-        (out_a * 255.0).round().clamp(0.0, 255.0) as u8,
-    ])
-}
-
 fn put_blended(img: &mut RgbaImage, x: u32, y: u32, color: &Rgba<u8>) {
     if x < img.width() && y < img.height() {
         let base = *img.get_pixel(x, y);
-        img.put_pixel(x, y, blend_pixel(&base, color));
+        img.put_pixel(x, y, super::blend_pixel(&base, color, 1.0));
     }
 }
 
