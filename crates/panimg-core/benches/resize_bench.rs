@@ -7,12 +7,7 @@ use panimg_core::ops::Operation;
 fn generate_test_image(width: u32, height: u32) -> DynamicImage {
     let mut img = RgbaImage::new(width, height);
     for (x, y, pixel) in img.enumerate_pixels_mut() {
-        *pixel = image::Rgba([
-            (x % 256) as u8,
-            (y % 256) as u8,
-            ((x + y) % 256) as u8,
-            255,
-        ]);
+        *pixel = image::Rgba([(x % 256) as u8, (y % 256) as u8, ((x + y) % 256) as u8, 255]);
     }
     DynamicImage::ImageRgba8(img)
 }
@@ -33,9 +28,8 @@ fn bench_resize(c: &mut Criterion) {
         group.throughput(Throughput::Elements(pixels));
 
         group.bench_with_input(BenchmarkId::new("contain", label), &img, |b, img| {
-            let op =
-                ResizeOp::new(Some(*dst_w), None, FitMode::Contain, ResizeFilter::Lanczos3)
-                    .unwrap();
+            let op = ResizeOp::new(Some(*dst_w), None, FitMode::Contain, ResizeFilter::Lanczos3)
+                .unwrap();
             b.iter(|| {
                 op.apply(img.clone()).unwrap();
             });
