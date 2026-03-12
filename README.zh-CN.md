@@ -38,7 +38,7 @@ cd panimg
 cargo build --release
 ```
 
-可选编解码器（AVIF、JPEG XL、SVG）请参阅 [Supported Formats](docs/formats.md)。
+可选编解码器（AVIF、JPEG XL、SVG）请参阅[支持格式](docs/zh-CN/formats.md)。
 
 ## 快速开始
 
@@ -68,7 +68,7 @@ panimg pipeline photo.jpg -o result.jpg --steps "resize --width 800 | blur --sig
 panimg batch convert 'photos/*.png' --output-dir ./webp --to webp --quality 80
 ```
 
-完整 31 个命令的用法与示例请参阅 [Command Reference](docs/commands.md)。
+完整 31 个命令的用法与示例请参阅[命令参考](docs/zh-CN/commands.md)。
 
 ## 命令一览
 
@@ -105,7 +105,7 @@ panimg batch convert 'photos/*.png' --output-dir ./webp --to webp --quality 80
 | `pipeline` | 在单次读写中执行多步骤操作 |
 | `batch` | 以 glob 模式批量处理多个文件 |
 
-完整用法与示例请参阅 [Command Reference](docs/commands.md)。
+完整用法与示例请参阅[命令参考](docs/zh-CN/commands.md)。
 
 ## AI 代理集成
 
@@ -117,13 +117,13 @@ panimg resize --schema                # 获取参数定义（JSON）
 panimg resize photo.jpg --width 800 -o out.jpg --dry-run --format json  # 无副作用预览
 ```
 
-退出码、错误格式与集成模式请参阅 [AI Integration Guide](docs/ai-integration.md)。
+退出码、错误格式与集成模式请参阅 [AI 集成指南](docs/zh-CN/ai-integration.md)。
 
 ## 文档
 
-- [Command Reference](docs/commands.md) — 完整 31 个命令的用法与示例
-- [Supported Formats](docs/formats.md) — 格式支持表与可选编解码器
-- [AI Integration Guide](docs/ai-integration.md) — 结构化输出、Schema、Dry-run、退出码
+- [命令参考](docs/zh-CN/commands.md) — 完整 31 个命令的用法与示例
+- [支持格式](docs/zh-CN/formats.md) — 格式支持表与可选编解码器
+- [AI 集成指南](docs/zh-CN/ai-integration.md) — 结构化输出、Schema、Dry-run、退出码
 
 ## 许可证
 

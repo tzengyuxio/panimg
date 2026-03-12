@@ -38,7 +38,7 @@ cd panimg
 cargo build --release
 ```
 
-オプションコーデック（AVIF、JPEG XL、SVG）については [Supported Formats](docs/formats.md) を参照してください。
+オプションコーデック（AVIF、JPEG XL、SVG）については[対応フォーマット](docs/ja/formats.md)を参照してください。
 
 ## クイックスタート
 
@@ -68,7 +68,7 @@ panimg pipeline photo.jpg -o result.jpg --steps "resize --width 800 | blur --sig
 panimg batch convert 'photos/*.png' --output-dir ./webp --to webp --quality 80
 ```
 
-全 31 コマンドの詳細な使い方と例については [Command Reference](docs/commands.md) を参照してください。
+全 31 コマンドの詳細な使い方と例については[コマンドリファレンス](docs/ja/commands.md)を参照してください。
 
 ## コマンド一覧
 
@@ -105,7 +105,7 @@ panimg batch convert 'photos/*.png' --output-dir ./webp --to webp --quality 80
 | `pipeline` | 単一の読み書きで複数操作を実行 |
 | `batch` | glob パターンで複数ファイルを一括処理 |
 
-詳細な使い方と例については [Command Reference](docs/commands.md) を参照してください。
+詳細な使い方と例については[コマンドリファレンス](docs/ja/commands.md)を参照してください。
 
 ## AI エージェント連携
 
@@ -117,13 +117,13 @@ panimg resize --schema                # パラメータ定義を JSON で取得
 panimg resize photo.jpg --width 800 -o out.jpg --dry-run --format json  # 副作用なしでプレビュー
 ```
 
-終了コード、エラー形式、連携パターンについては [AI Integration Guide](docs/ai-integration.md) を参照してください。
+終了コード、エラー形式、連携パターンについては [AI 連携ガイド](docs/ja/ai-integration.md)を参照してください。
 
 ## ドキュメント
 
-- [Command Reference](docs/commands.md) — 全 31 コマンドの詳細な使い方と例
-- [Supported Formats](docs/formats.md) — フォーマット対応表とオプションコーデック
-- [AI Integration Guide](docs/ai-integration.md) — 構造化出力、スキーマ、ドライラン、終了コード
+- [コマンドリファレンス](docs/ja/commands.md) — 全 31 コマンドの詳細な使い方と例
+- [対応フォーマット](docs/ja/formats.md) — フォーマット対応表とオプションコーデック
+- [AI 連携ガイド](docs/ja/ai-integration.md) — 構造化出力、スキーマ、ドライラン、終了コード
 
 ## ライセンス
 
