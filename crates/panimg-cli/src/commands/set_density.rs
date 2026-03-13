@@ -13,7 +13,8 @@ use std::path::Path;
 pub fn schema() -> CommandSchema {
     CommandSchema {
         command: "set-density".into(),
-        description: "Set image resolution/density (DPI/DPCM) metadata, optionally resampling pixels".into(),
+        description:
+            "Set image resolution/density (DPI/DPCM) metadata, optionally resampling pixels".into(),
         params: vec![
             ParamSchema {
                 name: "input".into(),
@@ -168,7 +169,8 @@ pub fn run(
         None => {
             let err = PanimgError::InvalidArgument {
                 message: "missing required argument: input".into(),
-                suggestion: "usage: panimg set-density <input> -o <output> --density <value>".into(),
+                suggestion: "usage: panimg set-density <input> -o <output> --density <value>"
+                    .into(),
             };
             return output::print_error(format, &err);
         }
@@ -179,7 +181,8 @@ pub fn run(
         None => {
             let err = PanimgError::InvalidArgument {
                 message: "missing required argument: output (-o)".into(),
-                suggestion: "usage: panimg set-density <input> -o <output> --density <value>".into(),
+                suggestion: "usage: panimg set-density <input> -o <output> --density <value>"
+                    .into(),
             };
             return output::print_error(format, &err);
         }
@@ -196,9 +199,8 @@ pub fn run(
     let target_res = Resolution::from_density(args.density, target_unit);
 
     // Determine output format
-    let out_format = ImageFormat::from_path_extension(output_path).unwrap_or(
-        ImageFormat::from_path(input_path).unwrap_or(ImageFormat::Png),
-    );
+    let out_format = ImageFormat::from_path_extension(output_path)
+        .unwrap_or(ImageFormat::from_path(input_path).unwrap_or(ImageFormat::Png));
 
     // Dry run
     if dry_run {
@@ -212,7 +214,11 @@ pub fn run(
             source_unit: args.source_unit.clone(),
             filter: args.filter.clone(),
         };
-        let resample_msg = if args.resample { " (with resampling)" } else { "" };
+        let resample_msg = if args.resample {
+            " (with resampling)"
+        } else {
+            ""
+        };
         output::print_output(
             format,
             &format!(

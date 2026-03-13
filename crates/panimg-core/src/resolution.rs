@@ -93,7 +93,7 @@ pub fn read_resolution(path: &Path) -> Option<Resolution> {
 
     let (x_dpi, y_dpi) = match unit_value {
         3 => (x_res * INCHES_PER_CM, y_res * INCHES_PER_CM), // cm → inches
-        _ => (x_res, y_res),                                  // assume inches
+        _ => (x_res, y_res),                                 // assume inches
     };
 
     Some(Resolution { x_dpi, y_dpi })
@@ -135,13 +135,12 @@ fn inject_jpeg_resolution(data: &[u8], resolution: &Resolution) -> Result<Vec<u8
     use img_parts::jpeg::Jpeg;
     use img_parts::Bytes;
 
-    let mut jpeg = Jpeg::from_bytes(Bytes::copy_from_slice(data)).map_err(|e| {
-        PanimgError::EncodeError {
+    let mut jpeg =
+        Jpeg::from_bytes(Bytes::copy_from_slice(data)).map_err(|e| PanimgError::EncodeError {
             message: format!("failed to parse JPEG for resolution injection: {e}"),
             path: None,
             suggestion: "the encoded JPEG data may be invalid".into(),
-        }
-    })?;
+        })?;
 
     // Build a JFIF APP0 segment with the target density.
     // JFIF APP0 format:
@@ -178,15 +177,16 @@ fn inject_jpeg_resolution(data: &[u8], resolution: &Resolution) -> Result<Vec<u8
     app0_data.push(0); // thumbnail width
     app0_data.push(0); // thumbnail height
 
-    let app0_segment =
-        img_parts::jpeg::JpegSegment::new_with_contents(img_parts::jpeg::markers::APP0, app0_data.into());
+    let app0_segment = img_parts::jpeg::JpegSegment::new_with_contents(
+        img_parts::jpeg::markers::APP0,
+        app0_data.into(),
+    );
 
     // Remove existing APP0 (JFIF) segments, then insert at position 0
     let segments = jpeg.segments_mut();
     segments.retain(|seg| {
         // Only remove JFIF APP0, not other APP0 segments
-        !(seg.marker() == img_parts::jpeg::markers::APP0
-            && seg.contents().starts_with(b"JFIF\0"))
+        !(seg.marker() == img_parts::jpeg::markers::APP0 && seg.contents().starts_with(b"JFIF\0"))
     });
     segments.insert(0, app0_segment);
 
@@ -278,10 +278,7 @@ mod tests {
     fn parse_unit() {
         assert_eq!(ResolutionUnit::parse("dpi").unwrap(), ResolutionUnit::Dpi);
         assert_eq!(ResolutionUnit::parse("DPI").unwrap(), ResolutionUnit::Dpi);
-        assert_eq!(
-            ResolutionUnit::parse("dpcm").unwrap(),
-            ResolutionUnit::Dpcm
-        );
+        assert_eq!(ResolutionUnit::parse("dpcm").unwrap(), ResolutionUnit::Dpcm);
         assert!(ResolutionUnit::parse("ppi").is_err());
     }
 }
