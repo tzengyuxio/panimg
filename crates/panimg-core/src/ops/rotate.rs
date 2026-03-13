@@ -40,9 +40,7 @@ impl RotateAngle {
                     Ok(Self::Deg180)
                 } else if (normalized - 270.0).abs() < ANGLE_TOL {
                     Ok(Self::Deg270)
-                } else if normalized.abs() < ANGLE_TOL
-                    || (normalized - 360.0).abs() < ANGLE_TOL
-                {
+                } else if normalized.abs() < ANGLE_TOL || (normalized - 360.0).abs() < ANGLE_TOL {
                     // 0 or 360 degrees — effectively no rotation, but we still
                     // represent it as Arbitrary(0.0) so the caller gets a valid result.
                     Ok(Self::Arbitrary(0.0))
