@@ -110,7 +110,7 @@ impl CodecRegistry {
             ImageFormat::Jxl => decode_jxl(data, path),
             #[cfg(feature = "pdf")]
             ImageFormat::Pdf => decode_pdf(data, path, _options),
-            #[cfg(feature = "heic")]
+            #[cfg(all(feature = "heic", target_vendor = "apple"))]
             ImageFormat::Heic => decode_heic(data, path),
             #[allow(unreachable_patterns)]
             _ => Err(PanimgError::UnsupportedFormat {
@@ -204,7 +204,7 @@ fn decode_svg(data: &[u8], path: Option<&Path>) -> Result<DynamicImage> {
         })
 }
 
-#[cfg(feature = "heic")]
+#[cfg(all(feature = "heic", target_vendor = "apple"))]
 fn decode_heic(data: &[u8], path: Option<&Path>) -> Result<DynamicImage> {
     use libheif_rs::{ColorSpace, HeifContext, LibHeif, RgbChroma};
 

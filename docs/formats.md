@@ -23,6 +23,8 @@ Additional formats can be enabled at build time using Cargo feature flags:
 | AVIF | Yes | Yes | `avif` | AVIF encode/decode |
 | JPEG XL | Yes | No | `jxl` | Decode only |
 | SVG | Yes | No | `svg` | Rasterization only |
+| PDF | Yes | No | `pdf` | First page rasterization; `--dpi` option |
+| HEIC | Yes | No | `heic` | macOS only; requires system libheif ≥ 1.21 |
 
 ### Building with Optional Codecs
 
@@ -32,6 +34,8 @@ Enable individual codecs:
 cargo build --release --features avif        # AVIF encode/decode
 cargo build --release --features jxl         # JPEG XL decode
 cargo build --release --features svg         # SVG rasterization
+cargo build --release --features pdf         # PDF rasterization
+cargo build --release --features heic        # HEIC decode (macOS only)
 ```
 
 Enable all optional codecs at once:
@@ -51,4 +55,4 @@ cargo install panimg-cli --features all-codecs
 
 panimg determines the output format from the file extension specified in `-o` / `--output`. For `batch convert`, use the `--to` flag to specify the target format.
 
-Supported extensions: `.jpg` / `.jpeg`, `.png`, `.webp`, `.gif`, `.bmp`, `.tiff` / `.tif`, `.qoi`, `.avif`, `.jxl`, `.svg` (input only).
+Supported extensions: `.jpg` / `.jpeg`, `.png`, `.webp`, `.gif`, `.bmp`, `.tiff` / `.tif`, `.qoi`, `.avif`, `.jxl`, `.svg` (input only), `.pdf` (input only), `.heic` / `.heif` (input only, macOS).

@@ -55,7 +55,7 @@ panimg convert photo.jpg --convert-profile display-p3 -o photo-p3.jpg
 # Convert PDF first page to PNG (requires pdf feature)
 panimg convert document.pdf -o page1.png --dpi 300
 
-# Convert HEIC to JPEG (requires heic feature)
+# Convert HEIC to JPEG (requires heic feature, macOS only)
 panimg convert photo.heic -o photo.jpg
 
 # Resize with fit mode

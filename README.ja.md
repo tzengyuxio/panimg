@@ -55,7 +55,7 @@ panimg convert photo.jpg --convert-profile display-p3 -o photo-p3.jpg
 # PDF 最初のページを PNG に変換（pdf feature 必要）
 panimg convert document.pdf -o page1.png --dpi 300
 
-# HEIC を JPEG に変換（heic feature 必要）
+# HEIC を JPEG に変換（heic feature 必要、macOS のみ）
 panimg convert photo.heic -o photo.jpg
 
 # フィットモード指定リサイズ

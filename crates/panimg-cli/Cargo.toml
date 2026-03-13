@@ -23,7 +23,7 @@ heic = ["panimg-core/heic"]
 text = ["panimg-core/text"]
 tiny = ["panimg-core/tiny"]
 icc = ["panimg-core/icc"]
-all-codecs = ["avif", "jxl", "svg", "pdf", "heic"]
+all-codecs = ["avif", "jxl", "svg", "pdf"]
 all-features = ["all-codecs", "text", "tiny", "icc"]
 
 [dependencies]

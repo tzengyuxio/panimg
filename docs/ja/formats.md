@@ -23,6 +23,8 @@
 | AVIF | 対応 | 対応 | `avif` | AVIF エンコード/デコード |
 | JPEG XL | 対応 | 非対応 | `jxl` | デコードのみ |
 | SVG | 対応 | 非対応 | `svg` | ラスタライズのみ |
+| PDF | 対応 | 非対応 | `pdf` | 最初のページのラスタライズ；`--dpi` オプション |
+| HEIC | 対応 | 非対応 | `heic` | macOS のみ；システム libheif ≥ 1.21 が必要 |
 
 ### オプションコーデックを含めたビルド
 
@@ -32,6 +34,8 @@
 cargo build --release --features avif        # AVIF エンコード/デコード
 cargo build --release --features jxl         # JPEG XL デコード
 cargo build --release --features svg         # SVG ラスタライズ
+cargo build --release --features pdf         # PDF ラスタライズ
+cargo build --release --features heic        # HEIC デコード（macOS のみ）
 ```
 
 すべてのオプションコーデックを一括で有効化：
@@ -51,4 +55,4 @@ cargo install panimg-cli --features all-codecs
 
 panimg は `-o` / `--output` で指定されたファイル拡張子から出力フォーマットを判定します。`batch convert` の場合は `--to` フラグでターゲットフォーマットを指定してください。
 
-対応拡張子：`.jpg` / `.jpeg`、`.png`、`.webp`、`.gif`、`.bmp`、`.tiff` / `.tif`、`.qoi`、`.avif`、`.jxl`、`.svg`（入力のみ）。
+対応拡張子：`.jpg` / `.jpeg`、`.png`、`.webp`、`.gif`、`.bmp`、`.tiff` / `.tif`、`.qoi`、`.avif`、`.jxl`、`.svg`（入力のみ）、`.pdf`（入力のみ）、`.heic` / `.heif`（入力のみ、macOS）。

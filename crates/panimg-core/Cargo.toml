@@ -33,7 +33,6 @@ ravif = { workspace = true, optional = true }
 jxl-oxide = { workspace = true, optional = true }
 resvg = { workspace = true, optional = true }
 hayro = { workspace = true, optional = true }
-libheif-rs = { workspace = true, optional = true }
 
 # Optional text rendering
 ab_glyph = { workspace = true, optional = true }
@@ -46,6 +45,10 @@ png = { workspace = true, optional = true }
 # Optional ICC color management
 lcms2 = { workspace = true, optional = true }
 flate2 = { workspace = true, optional = true }
+
+# HEIC support (Apple platforms only — requires system libheif >= 1.21)
+[target.'cfg(target_vendor = "apple")'.dependencies]
+libheif-rs = { workspace = true, optional = true }
 
 [dev-dependencies]
 tempfile = "3"

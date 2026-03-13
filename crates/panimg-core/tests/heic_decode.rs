@@ -1,4 +1,4 @@
-#![cfg(feature = "heic")]
+#![cfg(all(feature = "heic", target_vendor = "apple"))]
 
 use panimg_core::codec::CodecRegistry;
 use panimg_core::format::ImageFormat;

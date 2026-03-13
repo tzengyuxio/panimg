@@ -55,7 +55,7 @@ panimg convert photo.jpg --convert-profile display-p3 -o photo-p3.jpg
 # 将 PDF 首页转换为 PNG（需启用 pdf feature）
 panimg convert document.pdf -o page1.png --dpi 300
 
-# 将 HEIC 转换为 JPEG（需启用 heic feature）
+# 将 HEIC 转换为 JPEG（需启用 heic feature，仅 macOS）
 panimg convert photo.heic -o photo.jpg
 
 # 缩放（指定适配模式）

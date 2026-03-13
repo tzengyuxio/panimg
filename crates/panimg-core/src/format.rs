@@ -251,7 +251,7 @@ impl ImageFormat {
             Self::Jxl => cfg!(feature = "jxl"),
             Self::Svg => cfg!(feature = "svg"),
             Self::Pdf => cfg!(feature = "pdf"),
-            Self::Heic => cfg!(feature = "heic"),
+            Self::Heic => cfg!(all(feature = "heic", target_vendor = "apple")),
         }
     }
 }
