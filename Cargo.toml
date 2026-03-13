@@ -22,6 +22,11 @@ ravif = "0.13"
 jxl-oxide = "0.12"
 resvg = "0.47"
 
+# Compression optimization
+imagequant = "4"
+oxipng = { version = "9", default-features = false, features = ["parallel"] }
+png = "0.18"
+
 # Text rendering
 ab_glyph = "0.2"
 

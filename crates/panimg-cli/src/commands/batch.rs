@@ -1,5 +1,7 @@
 use crate::app::{BatchArgs, OutputFormat};
 use crate::output;
+#[cfg(feature = "tiny")]
+use panimg_core::compress::{compress, CompressOptions};
 use indicatif::{ProgressBar, ProgressStyle};
 use panimg_core::codec::{CodecRegistry, EncodeOptions};
 use panimg_core::error::PanimgError;
@@ -44,6 +46,38 @@ struct FileResult {
     error: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     output_size: Option<u64>,
+}
+
+impl FileResult {
+    fn ok(input: String, output: String, output_size: Option<u64>) -> Self {
+        Self {
+            input,
+            output,
+            status: "ok".into(),
+            error: None,
+            output_size,
+        }
+    }
+
+    fn error(input: String, output: String, error: String) -> Self {
+        Self {
+            input,
+            output,
+            status: "error".into(),
+            error: Some(error),
+            output_size: None,
+        }
+    }
+
+    fn skipped(input: String, output: String) -> Self {
+        Self {
+            input,
+            output,
+            status: "skipped".into(),
+            error: None,
+            output_size: None,
+        }
+    }
 }
 
 /// Resolve output path for a given input file.
@@ -243,15 +277,54 @@ fn build_pipeline(args: &BatchArgs, input_path: &Path) -> Result<Pipeline, Panim
             let levels = args.levels.unwrap_or(4);
             pipeline = pipeline.push(PosterizeOp::new(levels)?);
         }
+        #[cfg(feature = "tiny")]
+        "tiny" => {
+            // Tiny uses its own compress() function, not the pipeline.
+            // Return empty pipeline; actual compression handled separately.
+        }
         _ => {
             return Err(PanimgError::InvalidArgument {
                 message: format!("unknown batch operation: '{op}'"),
-                suggestion: "supported: convert, resize, crop, rotate, flip, auto-orient, grayscale, invert, brightness, contrast, hue-rotate, blur, sharpen, edge-detect, emboss, trim, saturate, sepia, posterize".into(),
+                suggestion: "supported: convert, resize, crop, rotate, flip, auto-orient, grayscale, invert, brightness, contrast, hue-rotate, blur, sharpen, edge-detect, emboss, trim, saturate, sepia, posterize, tiny".into(),
             });
         }
     }
 
     Ok(pipeline)
+}
+
+/// Check output preconditions (exists, directory creation).
+/// Returns Some(FileResult) if processing should stop early, None if OK to proceed.
+fn check_output(
+    input_str: &str,
+    output_path: &Path,
+    output_str: &str,
+    overwrite: bool,
+    skip_existing: bool,
+) -> Option<FileResult> {
+    if output_path.exists() && !overwrite {
+        if skip_existing {
+            return Some(FileResult::skipped(input_str.into(), output_str.into()));
+        }
+        return Some(FileResult::error(
+            input_str.into(),
+            output_str.into(),
+            "output already exists (use --overwrite)".into(),
+        ));
+    }
+
+    // Ensure output directory exists (create_dir_all is no-op if it already exists)
+    if let Some(parent) = output_path.parent() {
+        if let Err(e) = std::fs::create_dir_all(parent) {
+            return Some(FileResult::error(
+                input_str.into(),
+                output_str.into(),
+                format!("failed to create output directory: {e}"),
+            ));
+        }
+    }
+
+    None
 }
 
 fn process_single_file(
@@ -265,53 +338,14 @@ fn process_single_file(
     let input_str = input_path.to_string_lossy().to_string();
     let output_str = output_path.to_string_lossy().to_string();
 
-    // Check output exists
-    if output_path.exists() && !overwrite {
-        if skip_existing {
-            return FileResult {
-                input: input_str,
-                output: output_str,
-                status: "skipped".into(),
-                error: None,
-                output_size: None,
-            };
-        }
-        return FileResult {
-            input: input_str,
-            output: output_str,
-            status: "error".into(),
-            error: Some("output already exists (use --overwrite)".into()),
-            output_size: None,
-        };
-    }
-
-    // Ensure output directory exists
-    if let Some(parent) = output_path.parent() {
-        if !parent.exists() {
-            if let Err(e) = std::fs::create_dir_all(parent) {
-                return FileResult {
-                    input: input_str,
-                    output: output_str,
-                    status: "error".into(),
-                    error: Some(format!("failed to create output directory: {e}")),
-                    output_size: None,
-                };
-            }
-        }
+    if let Some(early) = check_output(&input_str, output_path, &output_str, overwrite, skip_existing) {
+        return early;
     }
 
     // Decode
     let img = match CodecRegistry::decode(input_path) {
         Ok(i) => i,
-        Err(e) => {
-            return FileResult {
-                input: input_str,
-                output: output_str,
-                status: "error".into(),
-                error: Some(e.to_string()),
-                output_size: None,
-            }
-        }
+        Err(e) => return FileResult::error(input_str, output_str, e.to_string()),
     };
 
     // Execute pipeline
@@ -320,37 +354,37 @@ fn process_single_file(
     } else {
         match pipeline.execute(img) {
             Ok(i) => i,
-            Err(e) => {
-                return FileResult {
-                    input: input_str,
-                    output: output_str,
-                    status: "error".into(),
-                    error: Some(e.to_string()),
-                    output_size: None,
-                }
-            }
+            Err(e) => return FileResult::error(input_str, output_str, e.to_string()),
         }
     };
 
     // Encode
     if let Err(e) = CodecRegistry::encode(&result_img, output_path, options) {
-        return FileResult {
-            input: input_str,
-            output: output_str,
-            status: "error".into(),
-            error: Some(e.to_string()),
-            output_size: None,
-        };
+        return FileResult::error(input_str, output_str, e.to_string());
     }
 
     let output_size = std::fs::metadata(output_path).map(|m| m.len()).ok();
+    FileResult::ok(input_str, output_str, output_size)
+}
 
-    FileResult {
-        input: input_str,
-        output: output_str,
-        status: "ok".into(),
-        error: None,
-        output_size,
+#[cfg(feature = "tiny")]
+fn process_single_file_tiny(
+    input_path: &Path,
+    output_path: &Path,
+    compress_options: &CompressOptions,
+    overwrite: bool,
+    skip_existing: bool,
+) -> FileResult {
+    let input_str = input_path.to_string_lossy().to_string();
+    let output_str = output_path.to_string_lossy().to_string();
+
+    if let Some(early) = check_output(&input_str, output_path, &output_str, overwrite, skip_existing) {
+        return early;
+    }
+
+    match compress(input_path, output_path, compress_options) {
+        Ok(result) => FileResult::ok(input_str, output_str, Some(result.output_size)),
+        Err(e) => FileResult::error(input_str, output_str, e.to_string()),
     }
 }
 
@@ -442,6 +476,20 @@ pub fn run(args: &BatchArgs, format: OutputFormat, dry_run: bool) -> i32 {
     let failed = AtomicUsize::new(0);
     let results = Mutex::new(Vec::with_capacity(files.len()));
 
+    // Build CompressOptions once outside the loop (if tiny)
+    #[cfg(feature = "tiny")]
+    let is_tiny = args.operation == "tiny";
+    #[cfg(not(feature = "tiny"))]
+    let is_tiny = false;
+
+    #[cfg(feature = "tiny")]
+    let tiny_opts = CompressOptions {
+        quality: args.quality,
+        max_colors: 256,
+        lossless: false,
+        strip_metadata: args.strip,
+    };
+
     // Process files in parallel
     files.par_iter().for_each(|input_path| {
         let output_path = resolve_output_path(
@@ -455,13 +503,11 @@ pub fn run(args: &BatchArgs, format: OutputFormat, dry_run: bool) -> i32 {
         let pipeline = match build_pipeline(args, input_path) {
             Ok(p) => p,
             Err(e) => {
-                let file_result = FileResult {
-                    input: input_path.to_string_lossy().to_string(),
-                    output: output_path.to_string_lossy().to_string(),
-                    status: "error".into(),
-                    error: Some(e.to_string()),
-                    output_size: None,
-                };
+                let file_result = FileResult::error(
+                    input_path.to_string_lossy().to_string(),
+                    output_path.to_string_lossy().to_string(),
+                    e.to_string(),
+                );
                 failed.fetch_add(1, Ordering::Relaxed);
                 results.lock().unwrap().push(file_result);
                 if let Some(ref pb) = pb {
@@ -482,14 +528,29 @@ pub fn run(args: &BatchArgs, format: OutputFormat, dry_run: bool) -> i32 {
             strip_metadata: args.strip,
         };
 
-        let file_result = process_single_file(
-            input_path,
-            &output_path,
-            &pipeline,
-            &options,
-            args.overwrite,
-            args.skip_existing,
-        );
+        let file_result = if is_tiny {
+            #[cfg(feature = "tiny")]
+            {
+                process_single_file_tiny(
+                    input_path,
+                    &output_path,
+                    &tiny_opts,
+                    args.overwrite,
+                    args.skip_existing,
+                )
+            }
+            #[cfg(not(feature = "tiny"))]
+            unreachable!()
+        } else {
+            process_single_file(
+                input_path,
+                &output_path,
+                &pipeline,
+                &options,
+                args.overwrite,
+                args.skip_existing,
+            )
+        };
 
         match file_result.status.as_str() {
             "ok" => {

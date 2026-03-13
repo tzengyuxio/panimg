@@ -15,6 +15,7 @@ avif = ["dep:ravif"]
 jxl = ["dep:jxl-oxide"]
 svg = ["dep:resvg"]
 text = ["dep:ab_glyph"]
+tiny = ["dep:imagequant", "dep:oxipng", "dep:png"]
 
 [dependencies]
 image = { workspace = true }
@@ -31,6 +32,11 @@ resvg = { workspace = true, optional = true }
 
 # Optional text rendering
 ab_glyph = { workspace = true, optional = true }
+
+# Optional compression optimization
+imagequant = { workspace = true, optional = true }
+oxipng = { workspace = true, optional = true }
+png = { workspace = true, optional = true }
 
 [dev-dependencies]
 tempfile = "3"
