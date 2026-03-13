@@ -24,7 +24,7 @@ impl TiltShiftOp {
         transition: f32,
         saturation: f32,
     ) -> Result<Self> {
-        if sigma < 0.1 || sigma > 100.0 {
+        if !(0.1..=100.0).contains(&sigma) {
             return Err(PanimgError::InvalidArgument {
                 message: format!("sigma must be between 0.1 and 100.0, got {sigma}"),
                 suggestion: "use a value like 8.0 or 12.0".into(),
@@ -38,19 +38,19 @@ impl TiltShiftOp {
                 suggestion: "0.5 = center, 0.3 = upper third, 0.7 = lower third".into(),
             });
         }
-        if focus_width < 0.01 || focus_width > 1.0 {
+        if !(0.01..=1.0).contains(&focus_width) {
             return Err(PanimgError::InvalidArgument {
                 message: format!("focus-width must be between 0.01 and 1.0, got {focus_width}"),
                 suggestion: "use a value like 0.15 (15% of image height)".into(),
             });
         }
-        if transition < 0.01 || transition > 1.0 {
+        if !(0.01..=1.0).contains(&transition) {
             return Err(PanimgError::InvalidArgument {
                 message: format!("transition must be between 0.01 and 1.0, got {transition}"),
                 suggestion: "use a value like 0.2 (20% of image height)".into(),
             });
         }
-        if saturation < 0.0 || saturation > 3.0 {
+        if !(0.0..=3.0).contains(&saturation) {
             return Err(PanimgError::InvalidArgument {
                 message: format!("saturation must be between 0.0 and 3.0, got {saturation}"),
                 suggestion: "1.0 = unchanged, 1.3 = slightly boosted for miniature look".into(),
