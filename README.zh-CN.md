@@ -10,7 +10,7 @@
 
 ## 特性
 
-- **31 个命令**涵盖格式转换、缩放、裁切、旋转、色彩调整、滤镜、文字、合成、动画等
+- **丰富的命令集**涵盖格式转换、缩放、裁切、旋转、色彩调整、滤镜、文字、合成、动画、压缩等
 - **管线引擎**——在单次读写中串接多个操作
 - **批量处理**——以 glob 模式匹配多文件，并行处理
 - **AI 代理友好**——结构化 JSON 输出、`--dry-run`、`--schema`、`--capabilities` 支持程序化使用
@@ -61,6 +61,9 @@ panimg blur photo.jpg --sigma 3.0 -o blurred.jpg
 # 添加水印文字
 panimg text photo.jpg --content "© 2026" --size 24 --color white --position bottom-right -o stamped.jpg
 
+# 智能压缩
+panimg tiny photo.png -o compressed.png
+
 # 多步骤管线
 panimg pipeline photo.jpg -o result.jpg --steps "resize --width 800 | blur --sigma 1.5 | grayscale"
 
@@ -68,7 +71,7 @@ panimg pipeline photo.jpg -o result.jpg --steps "resize --width 800 | blur --sig
 panimg batch convert 'photos/*.png' --output-dir ./webp --to webp --quality 80
 ```
 
-完整 31 个命令的用法与示例请参阅[命令参考](docs/zh-CN/commands.md)。
+完整用法与示例请参阅[命令参考](docs/zh-CN/commands.md)。
 
 ## 命令一览
 
@@ -76,6 +79,7 @@ panimg batch convert 'photos/*.png' --output-dir ./webp --to webp --quality 80
 |------|------|
 | `info` | 显示图片 metadata 与属性 |
 | `convert` | 图片格式转换 |
+| `tiny` | 智能压缩（类似 TinyPNG） |
 | `resize` | 缩放图片，支持多种适配模式 |
 | `crop` | 裁切矩形区域 |
 | `rotate` | 旋转 90、180 或 270 度 |
@@ -121,7 +125,7 @@ panimg resize photo.jpg --width 800 -o out.jpg --dry-run --format json  # 无副
 
 ## 文档
 
-- [命令参考](docs/zh-CN/commands.md) — 完整 31 个命令的用法与示例
+- [命令参考](docs/zh-CN/commands.md) — 完整命令用法与示例
 - [支持格式](docs/zh-CN/formats.md) — 格式支持表与可选编解码器
 - [AI 集成指南](docs/zh-CN/ai-integration.md) — 结构化输出、Schema、Dry-run、退出码
 

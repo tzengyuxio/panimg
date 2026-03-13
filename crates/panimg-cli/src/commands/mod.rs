@@ -28,4 +28,6 @@ pub mod sharpen;
 #[cfg(feature = "text")]
 pub mod text;
 pub mod tint;
+#[cfg(feature = "tiny")]
+pub mod tiny;
 pub mod trim;

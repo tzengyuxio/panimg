@@ -1,6 +1,6 @@
 # Command Reference
 
-panimg provides 31 commands covering image processing, color manipulation, filters, drawing, animation, and workflow automation. All commands follow a consistent `panimg <command> <input> [options]` syntax.
+panimg provides a rich set of commands covering image processing, color manipulation, filters, drawing, animation, optimization, and workflow automation. All commands follow a consistent `panimg <command> <input> [options]` syntax.
 
 ## Global Options
 
@@ -380,6 +380,37 @@ panimg gif-speed animation.gif -o slow.gif --speed 0.5
 | Option | Description |
 |--------|-------------|
 | `--speed` | Speed multiplier (2.0 = twice as fast, 0.5 = half speed) |
+
+---
+
+## Optimization
+
+### `tiny`
+
+Smart image compression — automatically selects the best strategy per format (like TinyPNG).
+
+- **PNG**: lossy quantization (imagequant) + lossless optimization (oxipng)
+- **JPEG**: quality-controlled re-encoding (default quality 75)
+- **WebP**: quality-controlled encoding (default quality 75)
+- **AVIF**: quality-controlled encoding (default quality 68, requires `avif` feature)
+
+```bash
+panimg tiny photo.png                           # → photo_tiny.png
+panimg tiny photo.png -o compressed.png         # specify output
+panimg tiny photo.jpg --quality 60              # custom quality
+panimg tiny icon.png --lossless                 # PNG: lossless optimization only
+panimg tiny photo.png --max-colors 128          # PNG: limit palette colors
+panimg tiny photo.png --strip                   # strip metadata
+panimg batch tiny 'photos/*.png' --output-dir compressed/  # batch mode
+```
+
+| Option | Description |
+|--------|-------------|
+| `-o`, `--output` | Output file path (default: `{stem}_tiny.{ext}`) |
+| `--quality` | Compression quality 1-100 (JPEG, WebP, AVIF) |
+| `--max-colors` | PNG: max palette colors for quantization (2-256, default 256) |
+| `--lossless` | PNG: skip quantization, only lossless optimization |
+| `--strip` | Strip metadata from output |
 
 ---
 

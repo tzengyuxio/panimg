@@ -125,6 +125,10 @@ pub enum Commands {
     #[cfg(feature = "text")]
     Text(TextArgs),
 
+    /// Smart image compression (like TinyPNG)
+    #[cfg(feature = "tiny")]
+    Tiny(TinyArgs),
+
     /// Process multiple files in batch with glob patterns
     Batch(BatchArgs),
 }
@@ -951,6 +955,44 @@ pub struct TextArgs {
     /// Strip metadata from output
     #[arg(long)]
     pub strip: bool,
+}
+
+#[cfg(feature = "tiny")]
+#[derive(Parser)]
+pub struct TinyArgs {
+    /// Input image file
+    pub input: Option<String>,
+
+    /// Output file path (positional alternative to -o)
+    pub output_pos: Option<String>,
+
+    /// Output file path
+    #[arg(short, long)]
+    pub output: Option<String>,
+
+    /// Compression quality (1-100, default: PNG n/a, JPEG 75, WebP 75, AVIF 68)
+    #[arg(long)]
+    pub quality: Option<u8>,
+
+    /// PNG: max number of colors for quantization (2-256, default: 256)
+    #[arg(long, default_value = "256")]
+    pub max_colors: u16,
+
+    /// PNG: skip quantization, only apply lossless optimization
+    #[arg(long)]
+    pub lossless: bool,
+
+    /// Strip metadata from output
+    #[arg(long)]
+    pub strip: bool,
+
+    /// Overwrite output if it exists
+    #[arg(long)]
+    pub overwrite: bool,
+
+    /// Skip if output already exists
+    #[arg(long)]
+    pub skip_existing: bool,
 }
 
 #[derive(Parser)]
