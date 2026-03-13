@@ -1,6 +1,6 @@
 # 命令参考
 
-panimg 提供 31 个命令，涵盖图片处理、色彩调整、滤镜、绘制、动画和工作流自动化。所有命令遵循一致的 `panimg <command> <input> [options]` 语法。
+panimg 提供丰富的命令集，涵盖图片处理、色彩调整、滤镜、绘制、动画、优化和工作流自动化。所有命令遵循一致的 `panimg <command> <input> [options]` 语法。
 
 ## 全局选项
 
@@ -380,6 +380,37 @@ panimg gif-speed animation.gif -o slow.gif --speed 0.5
 | 选项 | 说明 |
 |------|------|
 | `--speed` | 速度乘数（2.0 = 两倍速，0.5 = 半速） |
+
+---
+
+## 优化
+
+### `tiny`
+
+智能图片压缩——根据格式自动选择最佳压缩策略（类似 TinyPNG）。
+
+- **PNG**：有损量化（imagequant）+ 无损优化（oxipng）
+- **JPEG**：质量控制重新编码（默认质量 75）
+- **WebP**：质量控制编码（默认质量 75）
+- **AVIF**：质量控制编码（默认质量 68，需要 `avif` feature）
+
+```bash
+panimg tiny photo.png                           # → photo_tiny.png
+panimg tiny photo.png -o compressed.png         # 指定输出路径
+panimg tiny photo.jpg --quality 60              # 自定义质量
+panimg tiny icon.png --lossless                 # PNG：仅无损优化
+panimg tiny photo.png --max-colors 128          # PNG：限制调色板颜色数
+panimg tiny photo.png --strip                   # 移除 metadata
+panimg batch tiny 'photos/*.png' --output-dir compressed/  # 批量模式
+```
+
+| 选项 | 说明 |
+|------|------|
+| `-o`, `--output` | 输出文件路径（默认：`{stem}_tiny.{ext}`） |
+| `--quality` | 压缩质量 1-100（JPEG、WebP、AVIF） |
+| `--max-colors` | PNG：量化最大调色板颜色数（2-256，默认 256） |
+| `--lossless` | PNG：跳过量化，仅进行无损优化 |
+| `--strip` | 从输出移除 metadata |
 
 ---
 

@@ -10,7 +10,7 @@
 
 ## 特徴
 
-- **31 のコマンド**でフォーマット変換、リサイズ、クロップ、回転、色調整、フィルター、テキスト、合成、アニメーションなどをカバー
+- **豊富なコマンドセット**でフォーマット変換、リサイズ、クロップ、回転、色調整、フィルター、テキスト、合成、アニメーション、圧縮などをカバー
 - **パイプラインエンジン**——単一の読み書きで複数操作を連鎖実行
 - **バッチ処理**——glob パターンによるマルチファイル処理を並列実行
 - **AI エージェント対応**——構造化 JSON 出力、`--dry-run`、`--schema`、`--capabilities` でプログラム的に利用可能
@@ -61,6 +61,9 @@ panimg blur photo.jpg --sigma 3.0 -o blurred.jpg
 # 透かしテキストを追加
 panimg text photo.jpg --content "© 2026" --size 24 --color white --position bottom-right -o stamped.jpg
 
+# スマート圧縮
+panimg tiny photo.png -o compressed.png
+
 # マルチステップパイプライン
 panimg pipeline photo.jpg -o result.jpg --steps "resize --width 800 | blur --sigma 1.5 | grayscale"
 
@@ -68,7 +71,7 @@ panimg pipeline photo.jpg -o result.jpg --steps "resize --width 800 | blur --sig
 panimg batch convert 'photos/*.png' --output-dir ./webp --to webp --quality 80
 ```
 
-全 31 コマンドの詳細な使い方と例については[コマンドリファレンス](docs/ja/commands.md)を参照してください。
+詳細な使い方と例については[コマンドリファレンス](docs/ja/commands.md)を参照してください。
 
 ## コマンド一覧
 
@@ -76,6 +79,7 @@ panimg batch convert 'photos/*.png' --output-dir ./webp --to webp --quality 80
 |----------|------|
 | `info` | 画像のメタデータとプロパティを表示 |
 | `convert` | 画像フォーマットを変換 |
+| `tiny` | スマート圧縮（TinyPNG 風） |
 | `resize` | 複数のフィットモードで画像をリサイズ |
 | `crop` | 矩形領域をクロップ |
 | `rotate` | 90、180、270 度回転 |
@@ -121,7 +125,7 @@ panimg resize photo.jpg --width 800 -o out.jpg --dry-run --format json  # 副作
 
 ## ドキュメント
 
-- [コマンドリファレンス](docs/ja/commands.md) — 全 31 コマンドの詳細な使い方と例
+- [コマンドリファレンス](docs/ja/commands.md) — 全コマンドの詳細な使い方と例
 - [対応フォーマット](docs/ja/formats.md) — フォーマット対応表とオプションコーデック
 - [AI 連携ガイド](docs/ja/ai-integration.md) — 構造化出力、スキーマ、ドライラン、終了コード
 

@@ -1,6 +1,6 @@
 # コマンドリファレンス
 
-panimg は画像処理、色操作、フィルター、描画、アニメーション、ワークフロー自動化をカバーする 31 のコマンドを提供します。すべてのコマンドは一貫した `panimg <command> <input> [options]` 構文に従います。
+panimg は画像処理、色操作、フィルター、描画、アニメーション、最適化、ワークフロー自動化をカバーする豊富なコマンドセットを提供します。すべてのコマンドは一貫した `panimg <command> <input> [options]` 構文に従います。
 
 ## グローバルオプション
 
@@ -380,6 +380,37 @@ panimg gif-speed animation.gif -o slow.gif --speed 0.5
 | オプション | 説明 |
 |------------|------|
 | `--speed` | 速度倍率（2.0 = 2 倍速、0.5 = 半速） |
+
+---
+
+## 最適化
+
+### `tiny`
+
+スマート画像圧縮——フォーマットに応じて最適な圧縮戦略を自動選択します（TinyPNG 風）。
+
+- **PNG**：非可逆量子化（imagequant）+ 可逆最適化（oxipng）
+- **JPEG**：品質制御付き再エンコード（デフォルト品質 75）
+- **WebP**：品質制御付きエンコード（デフォルト品質 75）
+- **AVIF**：品質制御付きエンコード（デフォルト品質 68、`avif` feature が必要）
+
+```bash
+panimg tiny photo.png                           # → photo_tiny.png
+panimg tiny photo.png -o compressed.png         # 出力パスを指定
+panimg tiny photo.jpg --quality 60              # カスタム品質
+panimg tiny icon.png --lossless                 # PNG：可逆最適化のみ
+panimg tiny photo.png --max-colors 128          # PNG：パレット色数を制限
+panimg tiny photo.png --strip                   # メタデータを除去
+panimg batch tiny 'photos/*.png' --output-dir compressed/  # バッチモード
+```
+
+| オプション | 説明 |
+|------------|------|
+| `-o`, `--output` | 出力ファイルパス（デフォルト：`{stem}_tiny.{ext}`） |
+| `--quality` | 圧縮品質 1-100（JPEG、WebP、AVIF） |
+| `--max-colors` | PNG：量子化の最大パレット色数（2-256、デフォルト 256） |
+| `--lossless` | PNG：量子化をスキップし、可逆最適化のみ実行 |
+| `--strip` | 出力からメタデータを除去 |
 
 ---
 

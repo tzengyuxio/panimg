@@ -10,7 +10,7 @@ The Swiss Army knife of image processing — built for humans and AI agents alik
 
 ## Features
 
-- **31 commands** for format conversion, resize, crop, rotate, color adjustment, filters, text, compositing, animation, and more
+- **Rich command set** for format conversion, resize, crop, rotate, color adjustment, filters, text, compositing, animation, compression, and more
 - **Pipeline engine** — chain multiple operations in a single read/write pass
 - **Batch processing** — process multiple files with glob patterns and parallel execution
 - **AI-agent friendly** — structured JSON output, `--dry-run`, `--schema`, and `--capabilities` for programmatic use
@@ -61,6 +61,9 @@ panimg blur photo.jpg --sigma 3.0 -o blurred.jpg
 # Add watermark text
 panimg text photo.jpg --content "© 2026" --size 24 --color white --position bottom-right -o stamped.jpg
 
+# Smart compression
+panimg tiny photo.png -o compressed.png
+
 # Multi-step pipeline
 panimg pipeline photo.jpg -o result.jpg --steps "resize --width 800 | blur --sigma 1.5 | grayscale"
 
@@ -68,7 +71,7 @@ panimg pipeline photo.jpg -o result.jpg --steps "resize --width 800 | blur --sig
 panimg batch convert 'photos/*.png' --output-dir ./webp --to webp --quality 80
 ```
 
-See [Command Reference](docs/commands.md) for all 31 commands with full usage and examples.
+See [Command Reference](docs/commands.md) for full usage and examples.
 
 ## Commands
 
@@ -76,6 +79,7 @@ See [Command Reference](docs/commands.md) for all 31 commands with full usage an
 |---------|-------------|
 | `info` | Show image metadata and properties |
 | `convert` | Convert image between formats |
+| `tiny` | Smart compression (like TinyPNG) |
 | `resize` | Resize with multiple fit modes |
 | `crop` | Crop a rectangular region |
 | `rotate` | Rotate by 90, 180, or 270 degrees |
@@ -121,7 +125,7 @@ See [AI Integration Guide](docs/ai-integration.md) for exit codes, error format,
 
 ## Documentation
 
-- [Command Reference](docs/commands.md) — full usage and examples for all 31 commands
+- [Command Reference](docs/commands.md) — full usage and examples for all commands
 - [Supported Formats](docs/formats.md) — format table and optional codec feature flags
 - [AI Integration Guide](docs/ai-integration.md) — structured output, schema, dry-run, exit codes
 
