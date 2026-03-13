@@ -172,12 +172,7 @@ mod compress_tests {
 
         // Create a larger image with gradients for more realistic test
         let img = image::RgbaImage::from_fn(200, 200, |x, y| {
-            image::Rgba([
-                (x % 256) as u8,
-                (y % 256) as u8,
-                ((x + y) % 256) as u8,
-                255,
-            ])
+            image::Rgba([(x % 256) as u8, (y % 256) as u8, ((x + y) % 256) as u8, 255])
         });
         img.save(&input).unwrap();
 

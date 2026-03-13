@@ -1,9 +1,9 @@
 use crate::app::{BatchArgs, OutputFormat};
 use crate::output;
-#[cfg(feature = "tiny")]
-use panimg_core::compress::{compress, CompressOptions};
 use indicatif::{ProgressBar, ProgressStyle};
 use panimg_core::codec::{CodecRegistry, EncodeOptions};
+#[cfg(feature = "tiny")]
+use panimg_core::compress::{compress, CompressOptions};
 use panimg_core::error::PanimgError;
 use panimg_core::format::ImageFormat;
 use panimg_core::ops::blur::BlurOp;
@@ -338,7 +338,13 @@ fn process_single_file(
     let input_str = input_path.to_string_lossy().to_string();
     let output_str = output_path.to_string_lossy().to_string();
 
-    if let Some(early) = check_output(&input_str, output_path, &output_str, overwrite, skip_existing) {
+    if let Some(early) = check_output(
+        &input_str,
+        output_path,
+        &output_str,
+        overwrite,
+        skip_existing,
+    ) {
         return early;
     }
 
@@ -378,7 +384,13 @@ fn process_single_file_tiny(
     let input_str = input_path.to_string_lossy().to_string();
     let output_str = output_path.to_string_lossy().to_string();
 
-    if let Some(early) = check_output(&input_str, output_path, &output_str, overwrite, skip_existing) {
+    if let Some(early) = check_output(
+        &input_str,
+        output_path,
+        &output_str,
+        overwrite,
+        skip_existing,
+    ) {
         return early;
     }
 

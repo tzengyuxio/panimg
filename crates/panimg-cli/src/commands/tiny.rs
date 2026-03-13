@@ -121,14 +121,8 @@ pub fn run(args: &TinyArgs, format: OutputFormat, dry_run: bool, show_schema: bo
     let output_path_str = if let Some(o) = args.output.as_ref().or(args.output_pos.as_ref()) {
         o.clone()
     } else {
-        let stem = input_path
-            .file_stem()
-            .unwrap_or_default()
-            .to_string_lossy();
-        let ext = input_path
-            .extension()
-            .unwrap_or_default()
-            .to_string_lossy();
+        let stem = input_path.file_stem().unwrap_or_default().to_string_lossy();
+        let ext = input_path.extension().unwrap_or_default().to_string_lossy();
         let dir = input_path.parent().unwrap_or(Path::new("."));
         dir.join(format!("{stem}_tiny.{ext}"))
             .to_string_lossy()

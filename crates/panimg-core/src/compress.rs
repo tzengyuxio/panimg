@@ -39,11 +39,7 @@ pub struct CompressResult {
 /// - **JPEG**: quality-controlled re-encoding
 /// - **WebP**: quality-controlled encoding
 /// - **AVIF**: quality-controlled encoding (requires `avif` feature)
-pub fn compress(
-    input: &Path,
-    output: &Path,
-    options: &CompressOptions,
-) -> Result<CompressResult> {
+pub fn compress(input: &Path, output: &Path, options: &CompressOptions) -> Result<CompressResult> {
     let data = std::fs::read(input).map_err(|e| PanimgError::IoError {
         message: e.to_string(),
         path: Some(input.to_path_buf()),
@@ -80,13 +76,14 @@ pub fn compress(
         }
     }
 
-    let output_size = std::fs::metadata(output)
-        .map(|m| m.len())
-        .map_err(|e| PanimgError::IoError {
-            message: e.to_string(),
-            path: Some(output.to_path_buf()),
-            suggestion: "check output file".into(),
-        })?;
+    let output_size =
+        std::fs::metadata(output)
+            .map(|m| m.len())
+            .map_err(|e| PanimgError::IoError {
+                message: e.to_string(),
+                path: Some(output.to_path_buf()),
+                suggestion: "check output file".into(),
+            })?;
 
     let savings_percent = if input_size > 0 {
         (1.0 - (output_size as f64 / input_size as f64)) * 100.0
@@ -234,16 +231,19 @@ fn compress_via_codec(
     format: ImageFormat,
     default_quality: u8,
 ) -> Result<()> {
-    let img_fmt = format.to_image_format().ok_or_else(|| PanimgError::UnsupportedFormat {
-        format: format.to_string(),
-        suggestion: "this format is not supported for encoding".into(),
-    })?;
-    let img =
-        image::load_from_memory_with_format(data, img_fmt).map_err(|e| PanimgError::DecodeError {
+    let img_fmt = format
+        .to_image_format()
+        .ok_or_else(|| PanimgError::UnsupportedFormat {
+            format: format.to_string(),
+            suggestion: "this format is not supported for encoding".into(),
+        })?;
+    let img = image::load_from_memory_with_format(data, img_fmt).map_err(|e| {
+        PanimgError::DecodeError {
             message: e.to_string(),
             path: None,
             suggestion: "the file may be corrupted".into(),
-        })?;
+        }
+    })?;
     let quality = options.quality.unwrap_or(default_quality);
     let encode_options = EncodeOptions {
         format,
