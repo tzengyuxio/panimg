@@ -286,6 +286,23 @@ panimg tilt-shift photo.jpg --sigma 12 --focus-position 0.4 --focus-width 0.2 --
 | `--transition` | Transition zone width as fraction of image height (default: 0.2) |
 | `--saturation` | Saturation multiplier, >1 enhances miniature look (default: 1.0) |
 
+### `smart-crop`
+
+Automatically select the best crop region based on image content. Supports entropy (Shannon entropy, prefers high-detail areas) and attention (edges + saturation + skin tone weighted) strategies.
+
+```bash
+panimg smart-crop photo.jpg -o cropped.jpg --width 400 --height 300
+panimg smart-crop photo.jpg -o cropped.jpg --width 400 --height 300 --strategy attention
+panimg smart-crop photo.jpg -o cropped.jpg --width 400 --height 300 --strategy entropy --step 5
+```
+
+| Option | Description |
+|--------|-------------|
+| `--width` | Crop width in pixels (required) |
+| `--height` | Crop height in pixels (required) |
+| `--strategy` | Scoring strategy: `entropy` or `attention` (default: entropy) |
+| `--step` | Search step size in pixels (default: auto) |
+
 ---
 
 ## Drawing & Compositing

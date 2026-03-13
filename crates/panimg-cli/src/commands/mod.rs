@@ -25,6 +25,7 @@ pub mod rotate;
 pub mod saturate;
 pub mod sepia;
 pub mod sharpen;
+pub mod smart_crop;
 #[cfg(feature = "text")]
 pub mod text;
 pub mod tilt_shift;

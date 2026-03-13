@@ -151,6 +151,11 @@ fn capabilities() -> Capabilities {
                 description: "Simulate tilt-shift (miniature/diorama) lens effect".into(),
             },
             CommandCap {
+                name: "smart-crop".into(),
+                description: "Automatically select the best crop region based on image content"
+                    .into(),
+            },
+            CommandCap {
                 name: "text".into(),
                 description: "Draw text on an image (watermark, annotation)".into(),
             },
@@ -298,6 +303,9 @@ fn main() {
         }
         Some(Commands::TiltShift(args)) => {
             commands::tilt_shift::run(args, cli.format, cli.dry_run, cli.schema)
+        }
+        Some(Commands::SmartCrop(args)) => {
+            commands::smart_crop::run(args, cli.format, cli.dry_run, cli.schema)
         }
         #[cfg(feature = "text")]
         Some(Commands::Text(args)) => {
