@@ -27,7 +27,7 @@ impl BlurOp {
     }
 }
 
-impl Operation for BlurOp {
+impl Operation<DynamicImage, PanimgError> for BlurOp {
     fn name(&self) -> &str {
         "blur"
     }

@@ -172,7 +172,7 @@ fn fit_cover(src_w: u32, src_h: u32, target_w: u32, target_h: u32) -> (u32, u32)
     )
 }
 
-impl Operation for ResizeOp {
+impl Operation<DynamicImage, PanimgError> for ResizeOp {
     fn name(&self) -> &str {
         "resize"
     }

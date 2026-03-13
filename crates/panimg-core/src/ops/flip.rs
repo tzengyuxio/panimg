@@ -41,7 +41,7 @@ impl FlipOp {
     }
 }
 
-impl Operation for FlipOp {
+impl Operation<DynamicImage, PanimgError> for FlipOp {
     fn name(&self) -> &str {
         "flip"
     }

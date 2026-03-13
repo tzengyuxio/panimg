@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/panimg-core", "crates/panimg-cli"]
+members = ["crates/pan-common", "crates/panimg-core", "crates/panimg-cli"]
 resolver = "2"
 
 [workspace.package]
@@ -60,4 +60,5 @@ rayon = "1.11"
 indicatif = "0.18"
 
 # Internal crates
+pan-common = { path = "crates/pan-common", version = "0.1.0" }
 panimg-core = { path = "crates/panimg-core", version = "0.3.0" }

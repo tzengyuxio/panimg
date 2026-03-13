@@ -49,7 +49,7 @@ impl DrawRectOp {
     }
 }
 
-impl Operation for DrawRectOp {
+impl Operation<DynamicImage, PanimgError> for DrawRectOp {
     fn name(&self) -> &str {
         "draw-rect"
     }
@@ -218,7 +218,7 @@ impl DrawCircleOp {
     }
 }
 
-impl Operation for DrawCircleOp {
+impl Operation<DynamicImage, PanimgError> for DrawCircleOp {
     fn name(&self) -> &str {
         "draw-circle"
     }
@@ -308,7 +308,7 @@ impl DrawLineOp {
     }
 }
 
-impl Operation for DrawLineOp {
+impl Operation<DynamicImage, PanimgError> for DrawLineOp {
     fn name(&self) -> &str {
         "draw-line"
     }

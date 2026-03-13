@@ -33,7 +33,7 @@ impl OverlayOp {
     }
 }
 
-impl Operation for OverlayOp {
+impl Operation<DynamicImage, PanimgError> for OverlayOp {
     fn name(&self) -> &str {
         "overlay"
     }

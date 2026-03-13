@@ -22,7 +22,7 @@ impl BrightnessOp {
     }
 }
 
-impl Operation for BrightnessOp {
+impl Operation<DynamicImage, PanimgError> for BrightnessOp {
     fn name(&self) -> &str {
         "brightness"
     }

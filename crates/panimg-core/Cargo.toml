@@ -21,6 +21,7 @@ tiny = ["dep:imagequant", "dep:oxipng", "dep:png"]
 icc = ["dep:lcms2", "dep:flate2"]
 
 [dependencies]
+pan-common = { workspace = true }
 image = { workspace = true }
 fast_image_resize = { workspace = true }
 kamadak-exif = { workspace = true }

@@ -185,7 +185,7 @@ fn rotate_arbitrary(img: &DynamicImage, degrees: f64, background: Rgba<u8>) -> D
     DynamicImage::ImageRgba8(dst)
 }
 
-impl Operation for RotateOp {
+impl Operation<DynamicImage, PanimgError> for RotateOp {
     fn name(&self) -> &str {
         "rotate"
     }

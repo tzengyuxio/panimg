@@ -97,7 +97,7 @@ fn generate_mask(h: u32, focus_position: f32, focus_width: f32, transition: f32)
         .collect()
 }
 
-impl Operation for TiltShiftOp {
+impl Operation<DynamicImage, PanimgError> for TiltShiftOp {
     fn name(&self) -> &str {
         "tilt-shift"
     }

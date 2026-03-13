@@ -1,4 +1,4 @@
-use crate::error::Result;
+use crate::error::{PanimgError, Result};
 use crate::ops::{Operation, OperationDescription};
 use crate::schema::{CommandSchema, ParamSchema, ParamType};
 use image::DynamicImage;
@@ -18,7 +18,7 @@ impl InvertOp {
     }
 }
 
-impl Operation for InvertOp {
+impl Operation<DynamicImage, PanimgError> for InvertOp {
     fn name(&self) -> &str {
         "invert"
     }

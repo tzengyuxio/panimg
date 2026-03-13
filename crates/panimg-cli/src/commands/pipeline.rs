@@ -95,7 +95,7 @@ pub fn run(args: &PipelineArgs, format: OutputFormat, dry_run: bool) -> i32 {
         Err(e) => return output::print_error(format, &e),
     };
 
-    let step_count = pipeline.describe().steps.len();
+    let step_count = pipeline.len();
 
     let result_img = match pipeline.execute(img) {
         Ok(i) => i,

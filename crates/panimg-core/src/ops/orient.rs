@@ -1,4 +1,4 @@
-use crate::error::Result;
+use crate::error::{PanimgError, Result};
 use crate::ops::{Operation, OperationDescription};
 use crate::schema::{CommandSchema, ParamSchema, ParamType};
 use image::DynamicImage;
@@ -32,7 +32,7 @@ fn read_exif_orientation(path: &std::path::Path) -> Option<u32> {
     field.value.get_uint(0)
 }
 
-impl Operation for AutoOrientOp {
+impl Operation<DynamicImage, PanimgError> for AutoOrientOp {
     fn name(&self) -> &str {
         "auto-orient"
     }

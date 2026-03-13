@@ -1,23 +1,6 @@
+pub use pan_common::error::{ExitCode, StructuredError};
 use serde::Serialize;
 use std::path::PathBuf;
-
-/// Exit codes for structured error reporting.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
-#[serde(into = "u8")]
-pub enum ExitCode {
-    Success = 0,
-    General = 1,
-    InputFile = 2,
-    OutputIssue = 3,
-    Unsupported = 4,
-    BadArgs = 5,
-}
-
-impl From<ExitCode> for u8 {
-    fn from(code: ExitCode) -> u8 {
-        code as u8
-    }
-}
 
 /// Structured error type for panimg.
 #[derive(Debug, thiserror::Error, Serialize)]
@@ -69,8 +52,8 @@ pub enum PanimgError {
     },
 }
 
-impl PanimgError {
-    pub fn exit_code(&self) -> ExitCode {
+impl StructuredError for PanimgError {
+    fn exit_code(&self) -> ExitCode {
         match self {
             Self::FileNotFound { .. } | Self::PermissionDenied { .. } => ExitCode::InputFile,
             Self::OutputExists { .. } => ExitCode::OutputIssue,
@@ -82,7 +65,7 @@ impl PanimgError {
         }
     }
 
-    pub fn suggestion(&self) -> &str {
+    fn suggestion(&self) -> &str {
         match self {
             Self::FileNotFound { suggestion, .. }
             | Self::PermissionDenied { suggestion, .. }
