@@ -3,7 +3,7 @@ members = ["crates/panimg-core", "crates/panimg-cli"]
 resolver = "2"
 
 [workspace.package]
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/tzengyuxio/panimg"
@@ -46,4 +46,4 @@ rayon = "1.11"
 indicatif = "0.18"
 
 # Internal crates
-panimg-core = { path = "crates/panimg-core", version = "0.2.0" }
+panimg-core = { path = "crates/panimg-core", version = "0.2.1" }
