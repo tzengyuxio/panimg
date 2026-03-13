@@ -110,6 +110,8 @@ impl CodecRegistry {
             ImageFormat::Jxl => decode_jxl(data, path),
             #[cfg(feature = "pdf")]
             ImageFormat::Pdf => decode_pdf(data, path, _options),
+            #[cfg(feature = "heic")]
+            ImageFormat::Heic => decode_heic(data, path),
             #[allow(unreachable_patterns)]
             _ => Err(PanimgError::UnsupportedFormat {
                 format: format.to_string(),
@@ -200,6 +202,100 @@ fn decode_svg(data: &[u8], path: Option<&Path>) -> Result<DynamicImage> {
             path: path.map(|p| p.to_path_buf()),
             suggestion: "SVG dimensions may be invalid".into(),
         })
+}
+
+#[cfg(feature = "heic")]
+fn decode_heic(data: &[u8], path: Option<&Path>) -> Result<DynamicImage> {
+    use libheif_rs::{ColorSpace, HeifContext, LibHeif, RgbChroma};
+
+    let ctx = HeifContext::read_from_bytes(data).map_err(|e| PanimgError::DecodeError {
+        message: e.to_string(),
+        path: path.map(|p| p.to_path_buf()),
+        suggestion: "check that the HEIC/HEIF file is valid".into(),
+    })?;
+
+    let handle = ctx
+        .primary_image_handle()
+        .map_err(|e| PanimgError::DecodeError {
+            message: e.to_string(),
+            path: path.map(|p| p.to_path_buf()),
+            suggestion: "failed to get primary image from HEIC container".into(),
+        })?;
+
+    let has_alpha = handle.has_alpha_channel();
+    let color_space = if has_alpha {
+        ColorSpace::Rgb(RgbChroma::Rgba)
+    } else {
+        ColorSpace::Rgb(RgbChroma::Rgb)
+    };
+
+    let lib_heif = LibHeif::new();
+    let decoded =
+        lib_heif
+            .decode(&handle, color_space, None)
+            .map_err(|e| PanimgError::DecodeError {
+                message: e.to_string(),
+                path: path.map(|p| p.to_path_buf()),
+                suggestion: "failed to decode HEIC image data".into(),
+            })?;
+
+    let width = decoded.width();
+    let height = decoded.height();
+    let planes = decoded.planes();
+    let interleaved = planes.interleaved.ok_or_else(|| PanimgError::DecodeError {
+        message: "no interleaved plane data in decoded HEIC image".into(),
+        path: path.map(|p| p.to_path_buf()),
+        suggestion: "the HEIC file may use an unsupported pixel format".into(),
+    })?;
+
+    let stride = interleaved.stride;
+    let src_data = interleaved.data;
+    let channels: usize = if has_alpha { 4 } else { 3 };
+    let row_bytes = (width as usize) * channels;
+
+    // Validate that the source buffer is large enough
+    let required_len = (height as usize).saturating_sub(1) * stride + row_bytes;
+    if src_data.len() < required_len {
+        return Err(PanimgError::DecodeError {
+            message: format!(
+                "HEIC plane data too short: need {} bytes but got {}",
+                required_len,
+                src_data.len()
+            ),
+            path: path.map(|p| p.to_path_buf()),
+            suggestion: "the HEIC file may be truncated or corrupted".into(),
+        });
+    }
+
+    // Copy pixel data, handling stride != row_bytes
+    let buf = if stride == row_bytes {
+        src_data[..row_bytes * (height as usize)].to_vec()
+    } else {
+        let mut buf = Vec::with_capacity((width as usize) * (height as usize) * channels);
+        for row in 0..height as usize {
+            let start = row * stride;
+            buf.extend_from_slice(&src_data[start..start + row_bytes]);
+        }
+        buf
+    };
+
+    if has_alpha {
+        image::RgbaImage::from_raw(width, height, buf)
+            .map(DynamicImage::ImageRgba8)
+            .ok_or_else(|| PanimgError::DecodeError {
+                message: "failed to create image from HEIC data".into(),
+                path: path.map(|p| p.to_path_buf()),
+                suggestion: "HEIC data may be invalid".into(),
+            })
+    } else {
+        image::RgbImage::from_raw(width, height, buf)
+            .map(DynamicImage::ImageRgb8)
+            .ok_or_else(|| PanimgError::DecodeError {
+                message: "failed to create image from HEIC data".into(),
+                path: path.map(|p| p.to_path_buf()),
+                suggestion: "HEIC data may be invalid".into(),
+            })
+    }
 }
 
 #[cfg(feature = "jxl")]

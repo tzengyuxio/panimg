@@ -15,6 +15,7 @@ avif = ["dep:ravif"]
 jxl = ["dep:jxl-oxide"]
 svg = ["dep:resvg"]
 pdf = ["dep:hayro"]
+heic = ["dep:libheif-rs"]
 text = ["dep:ab_glyph"]
 tiny = ["dep:imagequant", "dep:oxipng", "dep:png"]
 icc = ["dep:lcms2", "dep:flate2"]
@@ -32,6 +33,7 @@ ravif = { workspace = true, optional = true }
 jxl-oxide = { workspace = true, optional = true }
 resvg = { workspace = true, optional = true }
 hayro = { workspace = true, optional = true }
+libheif-rs = { workspace = true, optional = true }
 
 # Optional text rendering
 ab_glyph = { workspace = true, optional = true }

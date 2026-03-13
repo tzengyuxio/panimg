@@ -38,7 +38,7 @@ cd panimg
 cargo build --release
 ```
 
-See [Supported Formats](docs/formats.md) for optional codec feature flags (AVIF, JPEG XL, SVG, PDF).
+See [Supported Formats](docs/formats.md) for optional codec feature flags (AVIF, JPEG XL, SVG, PDF, HEIC).
 
 ## Quick Start
 
@@ -54,6 +54,9 @@ panimg convert photo.jpg --convert-profile display-p3 -o photo-p3.jpg
 
 # Convert PDF first page to PNG (requires pdf feature)
 panimg convert document.pdf -o page1.png --dpi 300
+
+# Convert HEIC to JPEG (requires heic feature)
+panimg convert photo.heic -o photo.jpg
 
 # Resize with fit mode
 panimg resize photo.jpg --width 800 --height 600 --fit cover -o thumb.jpg

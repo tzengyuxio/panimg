@@ -22,6 +22,7 @@ ravif = "0.13"
 jxl-oxide = "0.12"
 resvg = "0.47"
 hayro = "0.5"
+libheif-rs = "2.7"
 
 # Compression optimization
 imagequant = "4"

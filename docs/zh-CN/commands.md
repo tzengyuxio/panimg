@@ -48,6 +48,7 @@ panimg convert photo.png -o photo.webp
 panimg convert photo.png -o photo.webp --quality 80
 panimg convert photo.jpg --convert-profile display-p3 -o photo-p3.jpg
 panimg convert document.pdf -o page1.png --dpi 300
+panimg convert photo.heic -o photo.jpg
 ```
 
 | 选项 | 说明 |

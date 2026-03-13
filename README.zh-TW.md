@@ -38,7 +38,7 @@ cd panimg
 cargo build --release
 ```
 
-選用編解碼器（AVIF、JPEG XL、SVG、PDF）請參閱[支援格式](docs/zh-TW/formats.md)。
+選用編解碼器（AVIF、JPEG XL、SVG、PDF、HEIC）請參閱[支援格式](docs/zh-TW/formats.md)。
 
 ## 快速開始
 
@@ -54,6 +54,9 @@ panimg convert photo.jpg --convert-profile display-p3 -o photo-p3.jpg
 
 # 將 PDF 首頁轉換為 PNG（需啟用 pdf feature）
 panimg convert document.pdf -o page1.png --dpi 300
+
+# 將 HEIC 轉換為 JPEG（需啟用 heic feature）
+panimg convert photo.heic -o photo.jpg
 
 # 縮放（指定適配模式）
 panimg resize photo.jpg --width 800 --height 600 --fit cover -o thumb.jpg

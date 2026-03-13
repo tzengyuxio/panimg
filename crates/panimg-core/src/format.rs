@@ -16,6 +16,7 @@ pub enum ImageFormat {
     Jxl,
     Svg,
     Pdf,
+    Heic,
 }
 
 impl ImageFormat {
@@ -55,10 +56,37 @@ impl ImageFormat {
         if data.starts_with(b"qoif") {
             return Some(Self::Qoi);
         }
-        // AVIF/HEIF: ....ftyp
+        // AVIF/HEIF/HEIC: ....ftyp (ISOBMFF container)
         if data.len() >= 12 && &data[4..8] == b"ftyp" {
             let brand = &data[8..12];
-            if brand == b"avif" || brand == b"avis" || brand == b"mif1" {
+            if brand == b"avif" || brand == b"avis" {
+                return Some(Self::Avif);
+            }
+            if brand == b"heic" || brand == b"heix" || brand == b"hevc" || brand == b"hevx" {
+                return Some(Self::Heic);
+            }
+            // mif1 is generic HEIF — scan compatible brands to disambiguate
+            if brand == b"mif1" {
+                // Read ftyp box size from first 4 bytes (big-endian u32)
+                let box_size = u32::from_be_bytes([data[0], data[1], data[2], data[3]]) as usize;
+                let box_end = box_size.min(data.len());
+                // Compatible brands start at offset 16, each 4 bytes
+                let mut offset = 16;
+                while offset + 4 <= box_end {
+                    let compat = &data[offset..offset + 4];
+                    if compat == b"avif" || compat == b"avis" {
+                        return Some(Self::Avif);
+                    }
+                    if compat == b"heic"
+                        || compat == b"heix"
+                        || compat == b"hevc"
+                        || compat == b"hevx"
+                    {
+                        return Some(Self::Heic);
+                    }
+                    offset += 4;
+                }
+                // Default: treat mif1 as AVIF (most common case)
                 return Some(Self::Avif);
             }
         }
@@ -98,6 +126,7 @@ impl ImageFormat {
             "jxl" => Some(Self::Jxl),
             "svg" => Some(Self::Svg),
             "pdf" => Some(Self::Pdf),
+            "heic" | "heif" => Some(Self::Heic),
             _ => None,
         }
     }
@@ -137,6 +166,7 @@ impl ImageFormat {
             Self::Jxl => "jxl",
             Self::Svg => "svg",
             Self::Pdf => "pdf",
+            Self::Heic => "heic",
         }
     }
 
@@ -154,6 +184,7 @@ impl ImageFormat {
             Self::Jxl => "image/jxl",
             Self::Svg => "image/svg+xml",
             Self::Pdf => "application/pdf",
+            Self::Heic => "image/heic",
         }
     }
 
@@ -168,6 +199,7 @@ impl ImageFormat {
             Self::Gif => Some(image::ImageFormat::Gif),
             Self::Bmp => Some(image::ImageFormat::Bmp),
             Self::Qoi => Some(image::ImageFormat::Qoi),
+            Self::Heic => None,
             _ => None,
         }
     }
@@ -186,6 +218,7 @@ impl ImageFormat {
             Self::Jxl,
             Self::Svg,
             Self::Pdf,
+            Self::Heic,
         ]
     }
 
@@ -200,7 +233,7 @@ impl ImageFormat {
             | Self::Tiff
             | Self::Qoi => true,
             Self::Avif => cfg!(feature = "avif"),
-            Self::Jxl | Self::Svg | Self::Pdf => false,
+            Self::Jxl | Self::Svg | Self::Pdf | Self::Heic => false,
         }
     }
 
@@ -218,6 +251,7 @@ impl ImageFormat {
             Self::Jxl => cfg!(feature = "jxl"),
             Self::Svg => cfg!(feature = "svg"),
             Self::Pdf => cfg!(feature = "pdf"),
+            Self::Heic => cfg!(feature = "heic"),
         }
     }
 }
@@ -236,6 +270,7 @@ impl std::fmt::Display for ImageFormat {
             Self::Jxl => write!(f, "JPEG XL"),
             Self::Svg => write!(f, "SVG"),
             Self::Pdf => write!(f, "PDF"),
+            Self::Heic => write!(f, "HEIC"),
         }
     }
 }
@@ -278,6 +313,34 @@ mod tests {
             ImageFormat::from_bytes(b"BM\x00\x00\x00\x00"),
             Some(ImageFormat::Bmp)
         );
+    }
+
+    #[test]
+    fn detect_heic_magic() {
+        // ftyp box with "heic" brand
+        let mut data = vec![0u8; 12];
+        data[4..8].copy_from_slice(b"ftyp");
+        data[8..12].copy_from_slice(b"heic");
+        assert_eq!(ImageFormat::from_bytes(&data), Some(ImageFormat::Heic));
+
+        // ftyp box with "heix" brand
+        data[8..12].copy_from_slice(b"heix");
+        assert_eq!(ImageFormat::from_bytes(&data), Some(ImageFormat::Heic));
+
+        // ftyp box with "hevc" brand
+        data[8..12].copy_from_slice(b"hevc");
+        assert_eq!(ImageFormat::from_bytes(&data), Some(ImageFormat::Heic));
+
+        // ftyp box with "hevx" brand
+        data[8..12].copy_from_slice(b"hevx");
+        assert_eq!(ImageFormat::from_bytes(&data), Some(ImageFormat::Heic));
+    }
+
+    #[test]
+    fn detect_heic_from_extension() {
+        assert_eq!(ImageFormat::from_extension("heic"), Some(ImageFormat::Heic));
+        assert_eq!(ImageFormat::from_extension("heif"), Some(ImageFormat::Heic));
+        assert_eq!(ImageFormat::from_extension("HEIC"), Some(ImageFormat::Heic));
     }
 
     #[test]
@@ -326,6 +389,41 @@ mod tests {
         assert_eq!(ImageFormat::Pdf.mime_type(), "application/pdf");
         assert_eq!(ImageFormat::Pdf.to_image_format(), None);
         assert_eq!(ImageFormat::Pdf.to_string(), "PDF");
+    }
+
+    #[test]
+    fn detect_mif1_with_avif_compat() {
+        // mif1 with avif compatible brand → AVIF
+        let mut data = vec![0u8; 24];
+        // ftyp box size = 24
+        data[0..4].copy_from_slice(&24u32.to_be_bytes());
+        data[4..8].copy_from_slice(b"ftyp");
+        data[8..12].copy_from_slice(b"mif1");
+        // minor version (4 bytes)
+        data[16..20].copy_from_slice(b"avif");
+        assert_eq!(ImageFormat::from_bytes(&data), Some(ImageFormat::Avif));
+    }
+
+    #[test]
+    fn detect_mif1_with_heic_compat() {
+        // mif1 with heic compatible brand → HEIC
+        let mut data = vec![0u8; 24];
+        data[0..4].copy_from_slice(&24u32.to_be_bytes());
+        data[4..8].copy_from_slice(b"ftyp");
+        data[8..12].copy_from_slice(b"mif1");
+        data[16..20].copy_from_slice(b"heic");
+        assert_eq!(ImageFormat::from_bytes(&data), Some(ImageFormat::Heic));
+    }
+
+    #[test]
+    fn detect_mif1_default_avif() {
+        // mif1 with no recognizable compatible brand → defaults to AVIF
+        let mut data = vec![0u8; 20];
+        data[0..4].copy_from_slice(&20u32.to_be_bytes());
+        data[4..8].copy_from_slice(b"ftyp");
+        data[8..12].copy_from_slice(b"mif1");
+        data[16..20].copy_from_slice(b"miaf");
+        assert_eq!(ImageFormat::from_bytes(&data), Some(ImageFormat::Avif));
     }
 
     #[test]
