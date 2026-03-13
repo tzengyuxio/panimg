@@ -15,6 +15,7 @@ avif = ["dep:ravif"]
 jxl = ["dep:jxl-oxide"]
 svg = ["dep:resvg"]
 pdf = ["dep:hayro"]
+heic = ["dep:libheif-rs"]
 text = ["dep:ab_glyph"]
 tiny = ["dep:imagequant", "dep:oxipng", "dep:png"]
 icc = ["dep:lcms2", "dep:flate2"]
@@ -44,6 +45,10 @@ png = { workspace = true, optional = true }
 # Optional ICC color management
 lcms2 = { workspace = true, optional = true }
 flate2 = { workspace = true, optional = true }
+
+# HEIC support (Apple platforms only — requires system libheif >= 1.21)
+[target.'cfg(target_vendor = "apple")'.dependencies]
+libheif-rs = { workspace = true, optional = true }
 
 [dev-dependencies]
 tempfile = "3"

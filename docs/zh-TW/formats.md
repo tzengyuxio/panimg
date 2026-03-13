@@ -23,6 +23,8 @@
 | AVIF | 是 | 是 | `avif` | AVIF 編碼/解碼 |
 | JPEG XL | 是 | 否 | `jxl` | 僅支援解碼 |
 | SVG | 是 | 否 | `svg` | 僅支援柵格化 |
+| PDF | 是 | 否 | `pdf` | 首頁柵格化；`--dpi` 選項 |
+| HEIC | 是 | 否 | `heic` | 僅 macOS；需要系統 libheif ≥ 1.21 |
 
 ### 建構選用編解碼器
 
@@ -32,6 +34,8 @@
 cargo build --release --features avif        # AVIF 編碼/解碼
 cargo build --release --features jxl         # JPEG XL 解碼
 cargo build --release --features svg         # SVG 柵格化
+cargo build --release --features pdf         # PDF 柵格化
+cargo build --release --features heic        # HEIC 解碼（僅 macOS）
 ```
 
 一次啟用所有選用編解碼器：
@@ -51,4 +55,4 @@ cargo install panimg-cli --features all-codecs
 
 panimg 會從 `-o` / `--output` 指定的副檔名推斷輸出格式。使用 `batch convert` 時，請以 `--to` 旗標指定目標格式。
 
-支援的副檔名：`.jpg` / `.jpeg`、`.png`、`.webp`、`.gif`、`.bmp`、`.tiff` / `.tif`、`.qoi`、`.avif`、`.jxl`、`.svg`（僅限輸入）。
+支援的副檔名：`.jpg` / `.jpeg`、`.png`、`.webp`、`.gif`、`.bmp`、`.tiff` / `.tif`、`.qoi`、`.avif`、`.jxl`、`.svg`（僅限輸入）、`.pdf`（僅限輸入）、`.heic` / `.heif`（僅限輸入，macOS）。

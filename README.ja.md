@@ -38,7 +38,7 @@ cd panimg
 cargo build --release
 ```
 
-オプションコーデック（AVIF、JPEG XL、SVG、PDF）については[対応フォーマット](docs/ja/formats.md)を参照してください。
+オプションコーデック（AVIF、JPEG XL、SVG、PDF、HEIC）については[対応フォーマット](docs/ja/formats.md)を参照してください。
 
 ## クイックスタート
 
@@ -54,6 +54,9 @@ panimg convert photo.jpg --convert-profile display-p3 -o photo-p3.jpg
 
 # PDF 最初のページを PNG に変換（pdf feature 必要）
 panimg convert document.pdf -o page1.png --dpi 300
+
+# HEIC を JPEG に変換（heic feature 必要、macOS のみ）
+panimg convert photo.heic -o photo.jpg
 
 # フィットモード指定リサイズ
 panimg resize photo.jpg --width 800 --height 600 --fit cover -o thumb.jpg
