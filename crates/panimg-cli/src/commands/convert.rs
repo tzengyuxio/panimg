@@ -218,12 +218,41 @@ pub fn run(args: &ConvertArgs, format: OutputFormat, dry_run: bool, show_schema:
     }
 
     // Decode
-    let img = match CodecRegistry::decode(input_path) {
+    let mut img = match CodecRegistry::decode(input_path) {
         Ok(i) => i,
         Err(e) => return output::print_error(format, &e),
     };
 
     let input_size = std::fs::metadata(input_path).map(|m| m.len()).unwrap_or(0);
+
+    // Apply ICC color space conversion if requested
+    #[cfg(feature = "icc")]
+    {
+        if let Some(ref target_cs) = args.convert_profile {
+            let color_space = match target_cs.parse::<panimg_core::icc::ColorSpace>() {
+                Ok(cs) => cs,
+                Err(_) => {
+                    let err = PanimgError::InvalidArgument {
+                        message: format!("unknown color space: '{target_cs}'"),
+                        suggestion: "use one of: srgb, adobe-rgb, display-p3".into(),
+                    };
+                    return output::print_error(format, &err);
+                }
+            };
+
+            // Try to extract source ICC profile from the input file
+            let input_data = std::fs::read(input_path).ok();
+            let source_icc = input_data
+                .as_deref()
+                .and_then(panimg_core::icc::extract_icc_from_image);
+
+            match panimg_core::icc::convert_to_color_space(&img, source_icc.as_deref(), color_space)
+            {
+                Ok(converted) => img = converted,
+                Err(e) => return output::print_error(format, &e),
+            }
+        }
+    }
 
     // Encode
     let options = EncodeOptions {

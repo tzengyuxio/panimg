@@ -25,17 +25,22 @@ pub fn schema() -> CommandSchema {
                 required: false,
                 description: "Comma-separated list of fields to include in output".into(),
                 default: None,
-                choices: Some(vec![
-                    "path".into(),
-                    "format".into(),
-                    "width".into(),
-                    "height".into(),
-                    "color_type".into(),
-                    "bit_depth".into(),
-                    "file_size".into(),
-                    "has_alpha".into(),
-                    "exif".into(),
-                ]),
+                choices: Some({
+                    let mut fields = vec![
+                        "path".into(),
+                        "format".into(),
+                        "width".into(),
+                        "height".into(),
+                        "color_type".into(),
+                        "bit_depth".into(),
+                        "file_size".into(),
+                        "has_alpha".into(),
+                        "exif".into(),
+                    ];
+                    #[cfg(feature = "icc")]
+                    fields.push("icc_profile".into());
+                    fields
+                }),
                 range: None,
             },
         ],

@@ -37,7 +37,7 @@ panimg info photo.jpg --format json --fields width,height,format
 | Option | Description |
 |--------|-------------|
 | `--format` | Output format: `text` or `json` |
-| `--fields` | Comma-separated list of fields to include (JSON mode) |
+| `--fields` | Comma-separated list of fields to include (JSON mode). Includes `icc_profile` when `icc` feature is enabled |
 
 ### `convert`
 
@@ -46,12 +46,15 @@ Convert image between formats. The output format is inferred from the file exten
 ```bash
 panimg convert photo.png -o photo.webp
 panimg convert photo.png -o photo.webp --quality 80
+panimg convert photo.jpg --convert-profile display-p3 -o photo-p3.jpg
 ```
 
 | Option | Description |
 |--------|-------------|
 | `-o`, `--output` | Output file path (required) |
 | `--quality` | Quality level 1-100 (for JPEG, WebP, AVIF) |
+| `--convert-profile` | Convert to a target color space: `srgb`, `adobe-rgb`, `display-p3` (requires `icc` feature) |
+| `--strip` | Strip metadata from output |
 
 ### `resize`
 

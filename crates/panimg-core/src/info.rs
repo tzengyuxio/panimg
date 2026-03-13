@@ -17,6 +17,9 @@ pub struct ImageInfo {
     pub has_alpha: bool,
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub exif: BTreeMap<String, String>,
+    #[cfg(feature = "icc")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub icc_profile: Option<crate::icc::IccProfileInfo>,
 }
 
 impl ImageInfo {
@@ -65,6 +68,11 @@ impl ImageInfo {
         // Extract EXIF data
         let exif = extract_exif(path);
 
+        // Extract ICC profile info
+        #[cfg(feature = "icc")]
+        let icc_profile = crate::icc::extract_icc_from_image(&data)
+            .and_then(|icc_data| crate::icc::profile_info_from_bytes(&icc_data).ok());
+
         Ok(ImageInfo {
             path: path.display().to_string(),
             format,
@@ -75,6 +83,8 @@ impl ImageInfo {
             file_size,
             has_alpha,
             exif,
+            #[cfg(feature = "icc")]
+            icc_profile,
         })
     }
 
@@ -138,6 +148,23 @@ impl ImageInfo {
                 lines.push(format!("  {}: {}", key, value));
             }
         }
+
+        #[cfg(feature = "icc")]
+        {
+            let show_icc = self.icc_profile.is_some()
+                && (fields.is_empty() || fields.iter().any(|f| f == "icc_profile"));
+            if show_icc {
+                if let Some(ref icc) = self.icc_profile {
+                    lines.push("ICC Profile:".to_string());
+                    lines.push(format!("  Description:  {}", icc.description));
+                    lines.push(format!("  Color Space:  {}", icc.color_space));
+                    lines.push(format!("  PCS:          {}", icc.pcs));
+                    lines.push(format!("  Version:      {}", icc.version));
+                    lines.push(format!("  Device Class: {}", icc.device_class));
+                }
+            }
+        }
+
         lines.join("\n")
     }
 }
@@ -231,6 +258,8 @@ mod tests {
             file_size: 1024,
             has_alpha: true,
             exif: BTreeMap::new(),
+            #[cfg(feature = "icc")]
+            icc_profile: None,
         };
         let json = info.to_filtered_json(&[]);
         assert!(json.get("width").is_some());
@@ -249,6 +278,8 @@ mod tests {
             file_size: 1024,
             has_alpha: true,
             exif: BTreeMap::new(),
+            #[cfg(feature = "icc")]
+            icc_profile: None,
         };
         let json = info.to_filtered_json(&["width".into(), "height".into()]);
         let obj = json.as_object().unwrap();

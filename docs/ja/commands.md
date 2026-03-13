@@ -37,7 +37,7 @@ panimg info photo.jpg --format json --fields width,height,format
 | オプション | 説明 |
 |------------|------|
 | `--format` | 出力形式：`text` または `json` |
-| `--fields` | 含めるフィールドのカンマ区切りリスト（JSON モード） |
+| `--fields` | 含めるフィールドのカンマ区切りリスト（JSON モード）。`icc` feature 有効時は `icc_profile` を含められます |
 
 ### `convert`
 
@@ -46,12 +46,15 @@ panimg info photo.jpg --format json --fields width,height,format
 ```bash
 panimg convert photo.png -o photo.webp
 panimg convert photo.png -o photo.webp --quality 80
+panimg convert photo.jpg --convert-profile display-p3 -o photo-p3.jpg
 ```
 
 | オプション | 説明 |
 |------------|------|
 | `-o`, `--output` | 出力ファイルパス（必須） |
 | `--quality` | 品質レベル 1-100（JPEG、WebP、AVIF 用） |
+| `--convert-profile` | ターゲットカラースペースへ変換：`srgb`、`adobe-rgb`、`display-p3`（`icc` feature 必要） |
+| `--strip` | 出力からメタデータを除去 |
 
 ### `resize`
 
