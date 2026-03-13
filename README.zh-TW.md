@@ -99,6 +99,7 @@ panimg batch convert 'photos/*.png' --output-dir ./webp --to webp --quality 80
 | `edge-detect` | 邊緣偵測（Laplacian 核） |
 | `emboss` | 浮雕效果 |
 | `tilt-shift` | 移軸攝影（微縮模型）效果 |
+| `smart-crop` | 根據圖片內容自動選擇最佳裁切區域 |
 | `draw` | 繪製圖形（矩形、圓形、線段） |
 | `text` | 繪製文字，支援內嵌或自訂字型 |
 | `overlay` | 疊加合成圖片 |

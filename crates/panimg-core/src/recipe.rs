@@ -16,6 +16,7 @@ use crate::ops::position::Position;
 use crate::ops::resize::{FitMode, ResizeFilter, ResizeOp};
 use crate::ops::rotate::{RotateAngle, RotateOp};
 use crate::ops::sharpen::SharpenOp;
+use crate::ops::smart_crop::{SmartCropOp, SmartCropStrategy};
 #[cfg(feature = "text")]
 use crate::ops::text::DrawTextOp;
 use crate::ops::tilt_shift::TiltShiftOp;
@@ -234,6 +235,24 @@ fn parse_single_step(step: &str) -> Result<Box<dyn Operation>> {
                 saturation,
             )?))
         }
+        "smart-crop" => {
+            let width = parse_u32_arg(args, "--width")?
+                .ok_or_else(|| PanimgError::InvalidArgument {
+                    message: "smart-crop requires --width".into(),
+                    suggestion: "e.g. smart-crop --width 200 --height 200".into(),
+                })?;
+            let height = parse_u32_arg(args, "--height")?
+                .ok_or_else(|| PanimgError::InvalidArgument {
+                    message: "smart-crop requires --height".into(),
+                    suggestion: "e.g. smart-crop --width 200 --height 200".into(),
+                })?;
+            let strategy = parse_str_arg(args, "--strategy")
+                .map(|s| SmartCropStrategy::parse(&s))
+                .transpose()?
+                .unwrap_or(SmartCropStrategy::Entropy);
+            let step = parse_u32_arg(args, "--step")?;
+            Ok(Box::new(SmartCropOp::new(width, height, strategy, step)?))
+        }
         #[cfg(feature = "text")]
         "text" => {
             let content = parse_str_arg(args, "--content")
@@ -264,7 +283,7 @@ fn parse_single_step(step: &str) -> Result<Box<dyn Operation>> {
         }
         _ => Err(PanimgError::InvalidArgument {
             message: format!("unknown pipeline operation: '{op_name}'"),
-            suggestion: "supported: grayscale, invert, blur, sharpen, brightness, contrast, hue-rotate, resize, crop, rotate, flip, edge-detect, emboss, trim, saturate, sepia, posterize, tilt-shift, text".into(),
+            suggestion: "supported: grayscale, invert, blur, sharpen, brightness, contrast, hue-rotate, resize, crop, rotate, flip, edge-detect, emboss, trim, saturate, sepia, posterize, tilt-shift, smart-crop, text".into(),
         }),
     }
 }
@@ -460,6 +479,16 @@ fn build_op_from_recipe_step(step: &RecipeStep) -> Result<Box<dyn Operation>> {
                 saturation,
             )?))
         }
+        "smart-crop" => {
+            let width = require_u32(p, "width", op)?;
+            let height = require_u32(p, "height", op)?;
+            let strategy = get_str(p, "strategy")?
+                .map(SmartCropStrategy::parse)
+                .transpose()?
+                .unwrap_or(SmartCropStrategy::Entropy);
+            let step = get_u32(p, "step")?;
+            Ok(Box::new(SmartCropOp::new(width, height, strategy, step)?))
+        }
         #[cfg(feature = "text")]
         "text" => {
             let content = require_str(p, "content", op)?.to_owned();
@@ -486,7 +515,7 @@ fn build_op_from_recipe_step(step: &RecipeStep) -> Result<Box<dyn Operation>> {
         }
         _ => Err(PanimgError::InvalidArgument {
             message: format!("unknown recipe operation: '{op}'"),
-            suggestion: "supported: grayscale, invert, blur, sharpen, brightness, contrast, hue-rotate, resize, crop, rotate, flip, edge-detect, emboss, trim, saturate, sepia, posterize, tilt-shift, text".into(),
+            suggestion: "supported: grayscale, invert, blur, sharpen, brightness, contrast, hue-rotate, resize, crop, rotate, flip, edge-detect, emboss, trim, saturate, sepia, posterize, tilt-shift, smart-crop, text".into(),
         }),
     }
 }

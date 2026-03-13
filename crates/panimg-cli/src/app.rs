@@ -124,6 +124,9 @@ pub enum Commands {
     /// Simulate tilt-shift (miniature/diorama) lens effect
     TiltShift(TiltShiftArgs),
 
+    /// Automatically select the best crop region based on image content
+    SmartCrop(SmartCropArgs),
+
     /// Draw text on an image (watermark, annotation)
     #[cfg(feature = "text")]
     Text(TextArgs),
@@ -942,6 +945,43 @@ pub struct TiltShiftArgs {
     /// Saturation multiplier (>1 enhances miniature look, default: 1.0)
     #[arg(long)]
     pub saturation: Option<f32>,
+
+    /// Output quality (1-100, for lossy formats)
+    #[arg(long)]
+    pub quality: Option<u8>,
+
+    /// Strip metadata from output
+    #[arg(long)]
+    pub strip: bool,
+}
+
+#[derive(Parser)]
+pub struct SmartCropArgs {
+    /// Input image file
+    pub input: Option<String>,
+
+    /// Output file path (positional alternative to -o)
+    pub output_pos: Option<String>,
+
+    /// Output file path
+    #[arg(short, long)]
+    pub output: Option<String>,
+
+    /// Crop width in pixels
+    #[arg(long)]
+    pub width: Option<u32>,
+
+    /// Crop height in pixels
+    #[arg(long)]
+    pub height: Option<u32>,
+
+    /// Scoring strategy: entropy or attention (default: entropy)
+    #[arg(long)]
+    pub strategy: Option<String>,
+
+    /// Search step size in pixels (default: auto)
+    #[arg(long)]
+    pub step: Option<u32>,
 
     /// Output quality (1-100, for lossy formats)
     #[arg(long)]
