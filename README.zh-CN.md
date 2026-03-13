@@ -49,6 +49,9 @@ panimg info photo.jpg --format json
 # 格式转换
 panimg convert photo.png -o photo.webp --quality 80
 
+# 转换色彩空间（需启用 icc feature）
+panimg convert photo.jpg --convert-profile display-p3 -o photo-p3.jpg
+
 # 缩放（指定适配模式）
 panimg resize photo.jpg --width 800 --height 600 --fit cover -o thumb.jpg
 

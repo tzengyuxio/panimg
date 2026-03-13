@@ -16,6 +16,7 @@ jxl = ["dep:jxl-oxide"]
 svg = ["dep:resvg"]
 text = ["dep:ab_glyph"]
 tiny = ["dep:imagequant", "dep:oxipng", "dep:png"]
+icc = ["dep:lcms2", "dep:flate2"]
 
 [dependencies]
 image = { workspace = true }
@@ -37,6 +38,10 @@ ab_glyph = { workspace = true, optional = true }
 imagequant = { workspace = true, optional = true }
 oxipng = { workspace = true, optional = true }
 png = { workspace = true, optional = true }
+
+# Optional ICC color management
+lcms2 = { workspace = true, optional = true }
+flate2 = { workspace = true, optional = true }
 
 [dev-dependencies]
 tempfile = "3"

@@ -44,6 +44,10 @@ miette = { version = "7.6", features = ["fancy"] }
 # File matching
 glob = "0.3"
 
+# ICC color management
+lcms2 = "6"
+flate2 = "1"
+
 # Concurrency
 rayon = "1.11"
 

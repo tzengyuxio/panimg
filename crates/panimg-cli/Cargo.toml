@@ -14,14 +14,15 @@ name = "panimg"
 path = "src/main.rs"
 
 [features]
-default = ["text", "tiny"]
+default = ["text", "tiny", "icc"]
 avif = ["panimg-core/avif"]
 jxl = ["panimg-core/jxl"]
 svg = ["panimg-core/svg"]
 text = ["panimg-core/text"]
 tiny = ["panimg-core/tiny"]
+icc = ["panimg-core/icc"]
 all-codecs = ["avif", "jxl", "svg"]
-all-features = ["all-codecs", "text", "tiny"]
+all-features = ["all-codecs", "text", "tiny", "icc"]
 
 [dependencies]
 panimg-core = { workspace = true }

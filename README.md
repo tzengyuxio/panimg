@@ -49,6 +49,9 @@ panimg info photo.jpg --format json
 # Convert format
 panimg convert photo.png -o photo.webp --quality 80
 
+# Convert color space (requires icc feature)
+panimg convert photo.jpg --convert-profile display-p3 -o photo-p3.jpg
+
 # Resize with fit mode
 panimg resize photo.jpg --width 800 --height 600 --fit cover -o thumb.jpg
 

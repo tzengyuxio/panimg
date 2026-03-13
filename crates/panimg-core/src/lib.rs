@@ -3,6 +3,8 @@ pub mod color;
 pub mod compress;
 pub mod error;
 pub mod format;
+#[cfg(feature = "icc")]
+pub mod icc;
 pub mod info;
 pub mod ops;
 pub mod pipeline;

@@ -173,6 +173,11 @@ pub struct ConvertArgs {
     #[arg(long)]
     pub strip: bool,
 
+    /// Convert to a target color space (srgb, adobe-rgb, display-p3)
+    #[cfg(feature = "icc")]
+    #[arg(long)]
+    pub convert_profile: Option<String>,
+
     /// Overwrite output if it exists
     #[arg(long)]
     pub overwrite: bool,

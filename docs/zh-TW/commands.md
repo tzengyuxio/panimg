@@ -37,7 +37,7 @@ panimg info photo.jpg --format json --fields width,height,format
 | 選項 | 說明 |
 |------|------|
 | `--format` | 輸出格式：`text` 或 `json` |
-| `--fields` | 以逗號分隔的欄位清單（JSON 模式） |
+| `--fields` | 以逗號分隔的欄位清單（JSON 模式）。啟用 `icc` feature 時可包含 `icc_profile` |
 
 ### `convert`
 
@@ -46,12 +46,15 @@ panimg info photo.jpg --format json --fields width,height,format
 ```bash
 panimg convert photo.png -o photo.webp
 panimg convert photo.png -o photo.webp --quality 80
+panimg convert photo.jpg --convert-profile display-p3 -o photo-p3.jpg
 ```
 
 | 選項 | 說明 |
 |------|------|
 | `-o`, `--output` | 輸出檔案路徑（必填） |
 | `--quality` | 品質等級 1-100（適用於 JPEG、WebP、AVIF） |
+| `--convert-profile` | 轉換至目標色彩空間：`srgb`、`adobe-rgb`、`display-p3`（需啟用 `icc` feature） |
+| `--strip` | 移除輸出檔案的 metadata |
 
 ### `resize`
 
