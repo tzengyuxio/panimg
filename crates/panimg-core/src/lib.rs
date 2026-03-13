@@ -9,4 +9,5 @@ pub mod info;
 pub mod ops;
 pub mod pipeline;
 pub mod recipe;
+pub mod resolution;
 pub mod schema;

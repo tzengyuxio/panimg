@@ -249,6 +249,7 @@ fn compress_via_codec(
         format,
         quality: Some(quality),
         strip_metadata: options.strip_metadata,
+        resolution: None,
     };
     CodecRegistry::encode(&img, output, &encode_options)
 }

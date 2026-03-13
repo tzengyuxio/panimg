@@ -24,6 +24,9 @@ resvg = "0.47"
 hayro = "0.5"
 libheif-rs = "2.7"
 
+# Resolution metadata injection
+img-parts = "0.3"
+
 # Compression optimization
 imagequant = "4"
 oxipng = { version = "9", default-features = false, features = ["parallel"] }

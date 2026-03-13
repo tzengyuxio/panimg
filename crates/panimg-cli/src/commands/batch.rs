@@ -538,6 +538,7 @@ pub fn run(args: &BatchArgs, format: OutputFormat, dry_run: bool) -> i32 {
             format: out_format,
             quality: args.quality,
             strip_metadata: args.strip,
+            resolution: None,
         };
 
         let file_result = if is_tiny {

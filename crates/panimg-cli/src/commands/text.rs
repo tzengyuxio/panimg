@@ -128,6 +128,7 @@ pub fn run(args: &TextArgs, format: OutputFormat, dry_run: bool, show_schema: bo
         format: out_format,
         quality: args.quality,
         strip_metadata: args.strip,
+        resolution: None,
     };
 
     if let Err(e) = CodecRegistry::encode(&result_img, output_path, &options) {

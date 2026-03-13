@@ -27,6 +27,7 @@ kamadak-exif = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
+img-parts = { workspace = true }
 
 # Optional codec dependencies
 ravif = { workspace = true, optional = true }
