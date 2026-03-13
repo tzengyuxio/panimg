@@ -1829,7 +1829,7 @@ dependencies = [
 
 [[package]]
 name = "panimg-cli"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "assert_cmd",
  "clap",
@@ -1847,7 +1847,7 @@ dependencies = [
 
 [[package]]
 name = "panimg-core"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "ab_glyph",
  "criterion",
