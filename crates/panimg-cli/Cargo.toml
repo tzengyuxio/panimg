@@ -27,6 +27,7 @@ all-codecs = ["avif", "jxl", "svg", "pdf"]
 all-features = ["all-codecs", "text", "tiny", "icc"]
 
 [dependencies]
+pan-common = { workspace = true, features = ["clap"] }
 panimg-core = { workspace = true }
 clap = { workspace = true }
 serde = { workspace = true }

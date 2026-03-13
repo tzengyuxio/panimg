@@ -1,4 +1,4 @@
-use crate::error::Result;
+use crate::error::{PanimgError, Result};
 use crate::ops::{Operation, OperationDescription};
 use crate::schema::{CommandSchema, ParamSchema, ParamType};
 use image::DynamicImage;
@@ -18,7 +18,7 @@ impl GrayscaleOp {
     }
 }
 
-impl Operation for GrayscaleOp {
+impl Operation<DynamicImage, PanimgError> for GrayscaleOp {
     fn name(&self) -> &str {
         "grayscale"
     }

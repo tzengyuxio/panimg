@@ -36,7 +36,7 @@ impl SharpenOp {
     }
 }
 
-impl Operation for SharpenOp {
+impl Operation<DynamicImage, PanimgError> for SharpenOp {
     fn name(&self) -> &str {
         "sharpen"
     }

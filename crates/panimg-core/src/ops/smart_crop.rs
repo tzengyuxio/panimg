@@ -257,7 +257,7 @@ fn score_attention(
     0.5 * edge_norm + 0.3 * sat_norm + 0.2 * skin_norm
 }
 
-impl Operation for SmartCropOp {
+impl Operation<DynamicImage, PanimgError> for SmartCropOp {
     fn name(&self) -> &str {
         "smart-crop"
     }

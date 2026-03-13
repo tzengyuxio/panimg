@@ -1,4 +1,4 @@
-use clap::{Parser, Subcommand, ValueEnum};
+use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
 #[command(
@@ -33,11 +33,7 @@ pub struct Cli {
     pub capabilities: bool,
 }
 
-#[derive(Clone, Copy, ValueEnum)]
-pub enum OutputFormat {
-    Human,
-    Json,
-}
+pub use pan_common::output::OutputFormat;
 
 #[derive(Subcommand)]
 pub enum Commands {

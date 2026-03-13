@@ -1,4 +1,4 @@
-use crate::error::Result;
+use crate::error::{PanimgError, Result};
 use crate::ops::{Operation, OperationDescription};
 use crate::schema::{CommandSchema, ParamSchema, ParamType};
 use image::imageops::filter3x3;
@@ -22,7 +22,7 @@ impl Default for EdgeDetectOp {
 // Laplacian kernel for edge detection
 const LAPLACIAN_KERNEL: [f32; 9] = [0.0, -1.0, 0.0, -1.0, 4.0, -1.0, 0.0, -1.0, 0.0];
 
-impl Operation for EdgeDetectOp {
+impl Operation<DynamicImage, PanimgError> for EdgeDetectOp {
     fn name(&self) -> &str {
         "edge-detect"
     }

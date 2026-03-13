@@ -42,7 +42,7 @@ impl CropOp {
     }
 }
 
-impl Operation for CropOp {
+impl Operation<DynamicImage, PanimgError> for CropOp {
     fn name(&self) -> &str {
         "crop"
     }

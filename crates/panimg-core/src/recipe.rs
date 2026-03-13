@@ -21,8 +21,9 @@ use crate::ops::smart_crop::{SmartCropOp, SmartCropStrategy};
 use crate::ops::text::DrawTextOp;
 use crate::ops::tilt_shift::TiltShiftOp;
 use crate::ops::trim::TrimOp;
-use crate::ops::Operation;
 use crate::pipeline::Pipeline;
+use image::DynamicImage;
+use pan_common::pipeline::Operation;
 use serde::Deserialize;
 use serde_json::{Map, Value};
 
@@ -91,7 +92,7 @@ pub fn parse_recipe(json_str: &str) -> Result<Pipeline> {
 }
 
 /// Parse a single inline step like "resize --width 800 --height 600".
-fn parse_single_step(step: &str) -> Result<Box<dyn Operation>> {
+fn parse_single_step(step: &str) -> Result<Box<dyn Operation<DynamicImage, PanimgError>>> {
     let parts: Vec<&str> = step.split_whitespace().collect();
     if parts.is_empty() {
         return Err(PanimgError::InvalidArgument {
@@ -387,7 +388,9 @@ fn require_str<'a>(params: &'a Map<String, Value>, key: &str, op: &str) -> Resul
 }
 
 /// Build an operation from a JSON recipe step.
-fn build_op_from_recipe_step(step: &RecipeStep) -> Result<Box<dyn Operation>> {
+fn build_op_from_recipe_step(
+    step: &RecipeStep,
+) -> Result<Box<dyn Operation<DynamicImage, PanimgError>>> {
     let p = &step.params;
     let op = step.op.as_str();
 

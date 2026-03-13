@@ -25,10 +25,12 @@ pub mod trim;
 #[cfg(feature = "text")]
 pub mod text;
 
-use crate::error::Result;
-use crate::schema::CommandSchema;
-use image::{DynamicImage, Rgba};
-use serde::Serialize;
+use image::Rgba;
+
+// Re-export generic pipeline types. Within panimg, these are used
+// specialized to `Operation<DynamicImage, PanimgError>`.
+pub use pan_common::pipeline::{Operation, OperationDescription};
+pub use pan_common::schema::CommandSchema;
 
 /// Blend a color onto a pixel with alpha compositing (Porter-Duff "over").
 ///
@@ -51,29 +53,4 @@ pub(crate) fn blend_pixel(base: &Rgba<u8>, color: &Rgba<u8>, coverage: f32) -> R
         blend(color[2], base[2]),
         (out_a * 255.0).round().clamp(0.0, 255.0) as u8,
     ])
-}
-
-/// Description of an operation for dry-run output.
-#[derive(Debug, Clone, Serialize)]
-pub struct OperationDescription {
-    pub operation: String,
-    pub params: serde_json::Value,
-    pub description: String,
-}
-
-/// Trait for image processing operations.
-pub trait Operation: Send + Sync {
-    /// Human-readable name.
-    fn name(&self) -> &str;
-
-    /// Apply the operation to an image.
-    fn apply(&self, img: DynamicImage) -> Result<DynamicImage>;
-
-    /// Describe what this operation will do (for dry-run).
-    fn describe(&self) -> OperationDescription;
-
-    /// Parameter schema for this operation.
-    fn schema() -> CommandSchema
-    where
-        Self: Sized;
 }

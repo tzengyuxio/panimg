@@ -93,7 +93,7 @@ fn measure_text(font: &FontRef, scale: PxScale, text: &str) -> (u32, u32) {
     (width.ceil() as u32, height.ceil() as u32)
 }
 
-impl Operation for DrawTextOp {
+impl Operation<DynamicImage, PanimgError> for DrawTextOp {
     fn name(&self) -> &str {
         "text"
     }

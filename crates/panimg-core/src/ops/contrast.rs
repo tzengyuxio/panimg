@@ -22,7 +22,7 @@ impl ContrastOp {
     }
 }
 
-impl Operation for ContrastOp {
+impl Operation<DynamicImage, PanimgError> for ContrastOp {
     fn name(&self) -> &str {
         "contrast"
     }

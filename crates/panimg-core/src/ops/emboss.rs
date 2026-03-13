@@ -1,4 +1,4 @@
-use crate::error::Result;
+use crate::error::{PanimgError, Result};
 use crate::ops::{Operation, OperationDescription};
 use crate::schema::{CommandSchema, ParamSchema, ParamType};
 use image::imageops::filter3x3;
@@ -22,7 +22,7 @@ impl Default for EmbossOp {
 // Classic emboss kernel
 const EMBOSS_KERNEL: [f32; 9] = [-2.0, -1.0, 0.0, -1.0, 1.0, 1.0, 0.0, 1.0, 2.0];
 
-impl Operation for EmbossOp {
+impl Operation<DynamicImage, PanimgError> for EmbossOp {
     fn name(&self) -> &str {
         "emboss"
     }

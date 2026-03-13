@@ -21,7 +21,7 @@ impl HueRotateOp {
     }
 }
 
-impl Operation for HueRotateOp {
+impl Operation<DynamicImage, PanimgError> for HueRotateOp {
     fn name(&self) -> &str {
         "hue-rotate"
     }

@@ -1845,6 +1845,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "pan-common"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "panimg-cli"
 version = "0.3.0"
 dependencies = [
@@ -1854,6 +1863,7 @@ dependencies = [
  "image",
  "indicatif",
  "miette",
+ "pan-common",
  "panimg-core",
  "predicates",
  "rayon",
@@ -1879,6 +1889,7 @@ dependencies = [
  "lcms2",
  "libheif-rs",
  "oxipng",
+ "pan-common",
  "png 0.18.1",
  "ravif",
  "resvg",

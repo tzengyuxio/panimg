@@ -1,4 +1,4 @@
-use crate::error::Result;
+use crate::error::{PanimgError, Result};
 use crate::ops::{Operation, OperationDescription};
 use crate::schema::{CommandSchema, ParamSchema, ParamType};
 use image::DynamicImage;
@@ -15,7 +15,7 @@ impl SaturateOp {
     }
 }
 
-impl Operation for SaturateOp {
+impl Operation<DynamicImage, PanimgError> for SaturateOp {
     fn name(&self) -> &str {
         "saturate"
     }
@@ -73,7 +73,7 @@ impl SepiaOp {
     }
 }
 
-impl Operation for SepiaOp {
+impl Operation<DynamicImage, PanimgError> for SepiaOp {
     fn name(&self) -> &str {
         "sepia"
     }
@@ -149,7 +149,7 @@ impl TintOp {
     }
 }
 
-impl Operation for TintOp {
+impl Operation<DynamicImage, PanimgError> for TintOp {
     fn name(&self) -> &str {
         "tint"
     }
@@ -226,7 +226,7 @@ impl PosterizeOp {
     }
 }
 
-impl Operation for PosterizeOp {
+impl Operation<DynamicImage, PanimgError> for PosterizeOp {
     fn name(&self) -> &str {
         "posterize"
     }

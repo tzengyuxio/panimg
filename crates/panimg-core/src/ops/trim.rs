@@ -1,4 +1,4 @@
-use crate::error::Result;
+use crate::error::{PanimgError, Result};
 use crate::ops::{Operation, OperationDescription};
 use crate::schema::{CommandSchema, ParamRange, ParamSchema, ParamType};
 use image::DynamicImage;
@@ -19,7 +19,7 @@ impl TrimOp {
     }
 }
 
-impl Operation for TrimOp {
+impl Operation<DynamicImage, PanimgError> for TrimOp {
     fn name(&self) -> &str {
         "trim"
     }
