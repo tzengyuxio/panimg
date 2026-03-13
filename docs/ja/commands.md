@@ -47,12 +47,14 @@ panimg info photo.jpg --format json --fields width,height,format
 panimg convert photo.png -o photo.webp
 panimg convert photo.png -o photo.webp --quality 80
 panimg convert photo.jpg --convert-profile display-p3 -o photo-p3.jpg
+panimg convert document.pdf -o page1.png --dpi 300
 ```
 
 | オプション | 説明 |
 |------------|------|
 | `-o`, `--output` | 出力ファイルパス（必須） |
 | `--quality` | 品質レベル 1-100（JPEG、WebP、AVIF 用） |
+| `--dpi` | PDF 入力のラスタライズ DPI（デフォルト：150） |
 | `--convert-profile` | ターゲットカラースペースへ変換：`srgb`、`adobe-rgb`、`display-p3`（`icc` feature 必要） |
 | `--strip` | 出力からメタデータを除去 |
 

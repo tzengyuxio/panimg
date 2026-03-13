@@ -24,6 +24,10 @@ pub struct Cli {
     #[arg(long, global = true)]
     pub schema: bool,
 
+    /// DPI for rasterizing PDF input (default: 150)
+    #[arg(long, global = true)]
+    pub dpi: Option<f32>,
+
     /// List all supported commands, formats, and features
     #[arg(long)]
     pub capabilities: bool,

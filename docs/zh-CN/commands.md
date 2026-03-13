@@ -47,12 +47,14 @@ panimg info photo.jpg --format json --fields width,height,format
 panimg convert photo.png -o photo.webp
 panimg convert photo.png -o photo.webp --quality 80
 panimg convert photo.jpg --convert-profile display-p3 -o photo-p3.jpg
+panimg convert document.pdf -o page1.png --dpi 300
 ```
 
 | 选项 | 说明 |
 |------|------|
 | `-o`, `--output` | 输出文件路径（必填） |
 | `--quality` | 质量等级 1-100（适用于 JPEG、WebP、AVIF） |
+| `--dpi` | PDF 输入的光栅化 DPI（默认：150） |
 | `--convert-profile` | 转换到目标色彩空间：`srgb`、`adobe-rgb`、`display-p3`（需启用 `icc` feature） |
 | `--strip` | 移除输出文件的 metadata |
 

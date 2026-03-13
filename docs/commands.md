@@ -47,12 +47,14 @@ Convert image between formats. The output format is inferred from the file exten
 panimg convert photo.png -o photo.webp
 panimg convert photo.png -o photo.webp --quality 80
 panimg convert photo.jpg --convert-profile display-p3 -o photo-p3.jpg
+panimg convert document.pdf -o page1.png --dpi 300
 ```
 
 | Option | Description |
 |--------|-------------|
 | `-o`, `--output` | Output file path (required) |
 | `--quality` | Quality level 1-100 (for JPEG, WebP, AVIF) |
+| `--dpi` | DPI for rasterizing PDF input (default: 150) |
 | `--convert-profile` | Convert to a target color space: `srgb`, `adobe-rgb`, `display-p3` (requires `icc` feature) |
 | `--strip` | Strip metadata from output |
 

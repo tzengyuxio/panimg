@@ -15,6 +15,7 @@ pub enum ImageFormat {
     Qoi,
     Jxl,
     Svg,
+    Pdf,
 }
 
 impl ImageFormat {
@@ -75,6 +76,10 @@ impl ImageFormat {
                 return Some(Self::Svg);
             }
         }
+        // PDF: %PDF
+        if data.starts_with(b"%PDF") {
+            return Some(Self::Pdf);
+        }
 
         None
     }
@@ -92,6 +97,7 @@ impl ImageFormat {
             "qoi" => Some(Self::Qoi),
             "jxl" => Some(Self::Jxl),
             "svg" => Some(Self::Svg),
+            "pdf" => Some(Self::Pdf),
             _ => None,
         }
     }
@@ -130,6 +136,7 @@ impl ImageFormat {
             Self::Qoi => "qoi",
             Self::Jxl => "jxl",
             Self::Svg => "svg",
+            Self::Pdf => "pdf",
         }
     }
 
@@ -146,6 +153,7 @@ impl ImageFormat {
             Self::Qoi => "image/qoi",
             Self::Jxl => "image/jxl",
             Self::Svg => "image/svg+xml",
+            Self::Pdf => "application/pdf",
         }
     }
 
@@ -177,6 +185,7 @@ impl ImageFormat {
             Self::Qoi,
             Self::Jxl,
             Self::Svg,
+            Self::Pdf,
         ]
     }
 
@@ -191,7 +200,7 @@ impl ImageFormat {
             | Self::Tiff
             | Self::Qoi => true,
             Self::Avif => cfg!(feature = "avif"),
-            Self::Jxl | Self::Svg => false,
+            Self::Jxl | Self::Svg | Self::Pdf => false,
         }
     }
 
@@ -208,6 +217,7 @@ impl ImageFormat {
             | Self::Avif => true,
             Self::Jxl => cfg!(feature = "jxl"),
             Self::Svg => cfg!(feature = "svg"),
+            Self::Pdf => cfg!(feature = "pdf"),
         }
     }
 }
@@ -225,6 +235,7 @@ impl std::fmt::Display for ImageFormat {
             Self::Qoi => write!(f, "QOI"),
             Self::Jxl => write!(f, "JPEG XL"),
             Self::Svg => write!(f, "SVG"),
+            Self::Pdf => write!(f, "PDF"),
         }
     }
 }
@@ -276,6 +287,45 @@ mod tests {
         assert_eq!(ImageFormat::from_extension("png"), Some(ImageFormat::Png));
         assert_eq!(ImageFormat::from_extension("webp"), Some(ImageFormat::WebP));
         assert_eq!(ImageFormat::from_extension("xyz"), None);
+    }
+
+    #[test]
+    fn detect_pdf_magic() {
+        assert_eq!(
+            ImageFormat::from_bytes(b"%PDF-1.4 some content"),
+            Some(ImageFormat::Pdf)
+        );
+    }
+
+    #[test]
+    fn detect_pdf_extension() {
+        assert_eq!(ImageFormat::from_extension("pdf"), Some(ImageFormat::Pdf));
+        assert_eq!(ImageFormat::from_extension("PDF"), Some(ImageFormat::Pdf));
+    }
+
+    #[test]
+    fn pdf_can_encode_false() {
+        assert!(!ImageFormat::Pdf.can_encode());
+    }
+
+    #[test]
+    fn pdf_can_decode_depends_on_feature() {
+        // This test verifies can_decode returns the correct value
+        // based on whether the pdf feature is enabled.
+        let can_decode = ImageFormat::Pdf.can_decode();
+        if cfg!(feature = "pdf") {
+            assert!(can_decode);
+        } else {
+            assert!(!can_decode);
+        }
+    }
+
+    #[test]
+    fn pdf_format_properties() {
+        assert_eq!(ImageFormat::Pdf.extension(), "pdf");
+        assert_eq!(ImageFormat::Pdf.mime_type(), "application/pdf");
+        assert_eq!(ImageFormat::Pdf.to_image_format(), None);
+        assert_eq!(ImageFormat::Pdf.to_string(), "PDF");
     }
 
     #[test]
