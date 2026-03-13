@@ -38,7 +38,7 @@ cd panimg
 cargo build --release
 ```
 
-可选编解码器（AVIF、JPEG XL、SVG）请参阅[支持格式](docs/zh-CN/formats.md)。
+可选编解码器（AVIF、JPEG XL、SVG、PDF）请参阅[支持格式](docs/zh-CN/formats.md)。
 
 ## 快速开始
 
@@ -51,6 +51,9 @@ panimg convert photo.png -o photo.webp --quality 80
 
 # 转换色彩空间（需启用 icc feature）
 panimg convert photo.jpg --convert-profile display-p3 -o photo-p3.jpg
+
+# 将 PDF 首页转换为 PNG（需启用 pdf feature）
+panimg convert document.pdf -o page1.png --dpi 300
 
 # 缩放（指定适配模式）
 panimg resize photo.jpg --width 800 --height 600 --fit cover -o thumb.jpg

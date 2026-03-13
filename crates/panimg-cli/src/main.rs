@@ -183,6 +183,7 @@ fn capabilities() -> Capabilities {
             "--format <human|json>".into(),
             "--dry-run".into(),
             "--schema".into(),
+            "--dpi <number>".into(),
             "--capabilities".into(),
         ],
     }
@@ -231,10 +232,10 @@ fn main() {
     let exit_code = match &cli.command {
         Some(Commands::Info(args)) => commands::info::run(args, cli.format, cli.schema),
         Some(Commands::Convert(args)) => {
-            commands::convert::run(args, cli.format, cli.dry_run, cli.schema)
+            commands::convert::run(args, cli.format, cli.dry_run, cli.schema, cli.dpi)
         }
         Some(Commands::Resize(args)) => {
-            commands::resize::run(args, cli.format, cli.dry_run, cli.schema)
+            commands::resize::run(args, cli.format, cli.dry_run, cli.schema, cli.dpi)
         }
         Some(Commands::Crop(args)) => {
             commands::crop::run(args, cli.format, cli.dry_run, cli.schema)

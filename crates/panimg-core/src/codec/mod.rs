@@ -3,6 +3,30 @@ use crate::format::ImageFormat;
 use image::DynamicImage;
 use std::path::Path;
 
+/// Options for decoding an image.
+#[derive(Debug, Clone)]
+pub struct DecodeOptions {
+    /// DPI for rasterizing vector/document formats (PDF). Default: 150.
+    pub dpi: f32,
+}
+
+impl Default for DecodeOptions {
+    fn default() -> Self {
+        Self { dpi: 150.0 }
+    }
+}
+
+impl DecodeOptions {
+    /// Create DecodeOptions with an optional DPI override.
+    /// Falls back to the default (150) when `None` is given.
+    pub fn with_dpi(dpi: Option<f32>) -> Self {
+        match dpi {
+            Some(d) => Self { dpi: d },
+            None => Self::default(),
+        }
+    }
+}
+
 /// Options for encoding an image.
 #[derive(Debug, Clone)]
 pub struct EncodeOptions {
@@ -25,8 +49,13 @@ impl Default for EncodeOptions {
 pub struct CodecRegistry;
 
 impl CodecRegistry {
-    /// Decode an image from a file path.
+    /// Decode an image from a file path with default options.
     pub fn decode(path: &Path) -> Result<DynamicImage> {
+        Self::decode_with_options(path, &DecodeOptions::default())
+    }
+
+    /// Decode an image from a file path with custom options.
+    pub fn decode_with_options(path: &Path, options: &DecodeOptions) -> Result<DynamicImage> {
         if !path.exists() {
             return Err(PanimgError::FileNotFound {
                 path: path.to_path_buf(),
@@ -47,11 +76,16 @@ impl CodecRegistry {
                 suggestion: "specify the format explicitly or use a recognized extension".into(),
             })?;
 
-        Self::decode_bytes(&data, format, Some(path))
+        Self::decode_bytes(&data, format, Some(path), options)
     }
 
     /// Decode an image from bytes with a known format.
-    fn decode_bytes(data: &[u8], format: ImageFormat, path: Option<&Path>) -> Result<DynamicImage> {
+    fn decode_bytes(
+        data: &[u8],
+        format: ImageFormat,
+        path: Option<&Path>,
+        _options: &DecodeOptions,
+    ) -> Result<DynamicImage> {
         match format {
             ImageFormat::Jpeg
             | ImageFormat::Png
@@ -74,6 +108,8 @@ impl CodecRegistry {
             ImageFormat::Svg => decode_svg(data, path),
             #[cfg(feature = "jxl")]
             ImageFormat::Jxl => decode_jxl(data, path),
+            #[cfg(feature = "pdf")]
+            ImageFormat::Pdf => decode_pdf(data, path, _options),
             #[allow(unreachable_patterns)]
             _ => Err(PanimgError::UnsupportedFormat {
                 format: format.to_string(),
@@ -213,4 +249,55 @@ fn decode_jxl(data: &[u8], path: Option<&Path>) -> Result<DynamicImage> {
             suggestion: "only RGB and RGBA JPEG XL images are supported".into(),
         }),
     }
+}
+
+#[cfg(feature = "pdf")]
+fn decode_pdf(data: &[u8], path: Option<&Path>, options: &DecodeOptions) -> Result<DynamicImage> {
+    use hayro::hayro_interpret::InterpreterSettings;
+    use hayro::hayro_syntax::Pdf;
+    use hayro::RenderSettings;
+
+    let pdf_data: std::sync::Arc<dyn AsRef<[u8]> + Send + Sync> =
+        std::sync::Arc::new(data.to_vec());
+    let pdf = Pdf::new(pdf_data).map_err(|e| PanimgError::DecodeError {
+        // LoadPdfError does not implement Display, use Debug
+        message: format!("{e:?}"),
+        path: path.map(|p| p.to_path_buf()),
+        suggestion: "check that the PDF file is valid and not encrypted".into(),
+    })?;
+
+    let pages = pdf.pages();
+    if pages.is_empty() {
+        return Err(PanimgError::DecodeError {
+            message: "PDF has no pages".into(),
+            path: path.map(|p| p.to_path_buf()),
+            suggestion: "the PDF file appears to be empty".into(),
+        });
+    }
+
+    // Render the first page only. PDF default is 72 DPI, so scale = dpi / 72.
+    let scale = options.dpi / 72.0;
+    let interpreter_settings = InterpreterSettings::default();
+    let render_settings = RenderSettings {
+        x_scale: scale,
+        y_scale: scale,
+        bg_color: hayro::vello_cpu::color::palette::css::WHITE,
+        ..Default::default()
+    };
+
+    let pixmap = hayro::render(&pages[0], &interpreter_settings, &render_settings);
+    let width = pixmap.width() as u32;
+    let height = pixmap.height() as u32;
+    let unpremultiplied = pixmap.take_unpremultiplied();
+    let rgba_data: Vec<u8> = unpremultiplied
+        .into_iter()
+        .flat_map(|p| [p.r, p.g, p.b, p.a])
+        .collect();
+    image::RgbaImage::from_raw(width, height, rgba_data)
+        .map(DynamicImage::ImageRgba8)
+        .ok_or_else(|| PanimgError::DecodeError {
+            message: "failed to create image from PDF render".into(),
+            path: path.map(|p| p.to_path_buf()),
+            suggestion: "PDF page dimensions may be invalid".into(),
+        })
 }

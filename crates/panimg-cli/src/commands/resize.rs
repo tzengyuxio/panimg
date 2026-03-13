@@ -1,6 +1,6 @@
 use crate::app::{OutputFormat, ResizeArgs};
 use crate::output;
-use panimg_core::codec::{CodecRegistry, EncodeOptions};
+use panimg_core::codec::{CodecRegistry, DecodeOptions, EncodeOptions};
 use panimg_core::error::PanimgError;
 use panimg_core::format::ImageFormat;
 use panimg_core::ops::resize::{FitMode, ResizeFilter, ResizeOp};
@@ -29,7 +29,13 @@ struct ResizeResult {
     output_size: u64,
 }
 
-pub fn run(args: &ResizeArgs, format: OutputFormat, dry_run: bool, show_schema: bool) -> i32 {
+pub fn run(
+    args: &ResizeArgs,
+    format: OutputFormat,
+    dry_run: bool,
+    show_schema: bool,
+    dpi: Option<f32>,
+) -> i32 {
     if show_schema {
         let s = ResizeOp::schema();
         output::print_json(&serde_json::to_value(&s).unwrap());
@@ -102,7 +108,8 @@ pub fn run(args: &ResizeArgs, format: OutputFormat, dry_run: bool, show_schema: 
     }
 
     // Decode input
-    let img = match CodecRegistry::decode(input_path) {
+    let decode_opts = DecodeOptions::with_dpi(dpi);
+    let img = match CodecRegistry::decode_with_options(input_path, &decode_opts) {
         Ok(i) => i,
         Err(e) => return output::print_error(format, &e),
     };
