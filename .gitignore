@@ -4,3 +4,4 @@ _plans/
 PLANS/
 visual-tests/results/
 visual-tests/tmp/
+benches/results/
