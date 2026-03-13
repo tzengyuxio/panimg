@@ -131,6 +131,9 @@ pub enum Commands {
     /// Automatically select the best crop region based on image content
     SmartCrop(SmartCropArgs),
 
+    /// Set image resolution/density (DPI/DPCM) metadata, optionally resampling pixels
+    SetDensity(SetDensityArgs),
+
     /// Draw text on an image (watermark, annotation)
     #[cfg(feature = "text")]
     Text(TextArgs),
@@ -991,6 +994,51 @@ pub struct SmartCropArgs {
     /// Search step size in pixels (default: auto)
     #[arg(long)]
     pub step: Option<u32>,
+
+    /// Output quality (1-100, for lossy formats)
+    #[arg(long)]
+    pub quality: Option<u8>,
+
+    /// Strip metadata from output
+    #[arg(long)]
+    pub strip: bool,
+}
+
+#[derive(Parser)]
+pub struct SetDensityArgs {
+    /// Input image file
+    pub input: Option<String>,
+
+    /// Output file path (positional alternative to -o)
+    pub output_pos: Option<String>,
+
+    /// Output file path
+    #[arg(short, long)]
+    pub output: Option<String>,
+
+    /// Target density value
+    #[arg(long)]
+    pub density: f64,
+
+    /// Density unit: dpi or dpcm (default: dpi)
+    #[arg(long, default_value = "dpi")]
+    pub unit: String,
+
+    /// Resample pixels to maintain physical print size
+    #[arg(long)]
+    pub resample: bool,
+
+    /// Source density (overrides EXIF, used with --resample)
+    #[arg(long)]
+    pub source_density: Option<f64>,
+
+    /// Source density unit: dpi or dpcm (default: dpi)
+    #[arg(long, default_value = "dpi")]
+    pub source_unit: String,
+
+    /// Resize filter for resampling: lanczos3, catmull-rom, nearest, linear
+    #[arg(long, default_value = "lanczos3")]
+    pub filter: String,
 
     /// Output quality (1-100, for lossy formats)
     #[arg(long)]

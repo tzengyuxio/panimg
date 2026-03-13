@@ -1,5 +1,6 @@
 use crate::error::{PanimgError, Result};
 use crate::format::ImageFormat;
+use crate::resolution::Resolution;
 use image::DynamicImage;
 use std::path::Path;
 
@@ -33,6 +34,7 @@ pub struct EncodeOptions {
     pub format: ImageFormat,
     pub quality: Option<u8>,
     pub strip_metadata: bool,
+    pub resolution: Option<Resolution>,
 }
 
 impl Default for EncodeOptions {
@@ -41,6 +43,7 @@ impl Default for EncodeOptions {
             format: ImageFormat::Png,
             quality: None,
             strip_metadata: false,
+            resolution: None,
         }
     }
 }
@@ -123,15 +126,8 @@ impl CodecRegistry {
         }
     }
 
-    /// Encode an image and write to a file path.
-    pub fn encode(img: &DynamicImage, path: &Path, options: &EncodeOptions) -> Result<()> {
-        if !options.format.can_encode() {
-            return Err(PanimgError::UnsupportedFormat {
-                format: options.format.to_string(),
-                suggestion: "this format is not supported for encoding".into(),
-            });
-        }
-
+    /// Encode an image to bytes in memory.
+    fn encode_to_bytes(img: &DynamicImage, options: &EncodeOptions) -> Result<Vec<u8>> {
         let img_fmt =
             options
                 .format
@@ -141,7 +137,42 @@ impl CodecRegistry {
                     suggestion: "this format is not supported for encoding".into(),
                 })?;
 
-        // For JPEG, set quality
+        let mut buf = Vec::new();
+
+        if options.format == ImageFormat::Jpeg {
+            let quality = options.quality.unwrap_or(85);
+            let mut cursor = std::io::Cursor::new(&mut buf);
+            let encoder = image::codecs::jpeg::JpegEncoder::new_with_quality(&mut cursor, quality);
+            img.write_with_encoder(encoder)
+                .map_err(|e| PanimgError::EncodeError {
+                    message: e.to_string(),
+                    path: None,
+                    suggestion: "check that the image data is valid".into(),
+                })?;
+        } else {
+            let mut cursor = std::io::Cursor::new(&mut buf);
+            img.write_to(&mut cursor, img_fmt)
+                .map_err(|e| PanimgError::EncodeError {
+                    message: e.to_string(),
+                    path: None,
+                    suggestion: "check that the image data is valid".into(),
+                })?;
+        }
+
+        Ok(buf)
+    }
+
+    /// Encode an image directly to a file (no post-processing).
+    fn encode_to_file(img: &DynamicImage, path: &Path, options: &EncodeOptions) -> Result<()> {
+        let img_fmt =
+            options
+                .format
+                .to_image_format()
+                .ok_or_else(|| PanimgError::UnsupportedFormat {
+                    format: options.format.to_string(),
+                    suggestion: "this format is not supported for encoding".into(),
+                })?;
+
         if options.format == ImageFormat::Jpeg {
             let quality = options.quality.unwrap_or(85);
             let file = std::fs::File::create(path).map_err(|e| PanimgError::IoError {
@@ -160,13 +191,41 @@ impl CodecRegistry {
             return Ok(());
         }
 
-        // Default: use image crate's save method
         img.save_with_format(path, img_fmt)
             .map_err(|e| PanimgError::EncodeError {
                 message: e.to_string(),
                 path: Some(path.to_path_buf()),
                 suggestion: "check output directory exists and permissions".into(),
             })
+    }
+
+    /// Encode an image and write to a file path.
+    pub fn encode(img: &DynamicImage, path: &Path, options: &EncodeOptions) -> Result<()> {
+        if !options.format.can_encode() {
+            return Err(PanimgError::UnsupportedFormat {
+                format: options.format.to_string(),
+                suggestion: "this format is not supported for encoding".into(),
+            });
+        }
+
+        // Fast path: no resolution injection needed, write directly to file
+        if options.resolution.is_none() {
+            return Self::encode_to_file(img, path, options);
+        }
+
+        // Slow path: encode to memory, inject resolution, then write
+        let data = Self::encode_to_bytes(img, options)?;
+        let data = crate::resolution::inject_resolution(
+            data,
+            options.format,
+            options.resolution.as_ref().unwrap(),
+        )?;
+
+        std::fs::write(path, &data).map_err(|e| PanimgError::IoError {
+            message: e.to_string(),
+            path: Some(path.to_path_buf()),
+            suggestion: "check output directory exists and permissions".into(),
+        })
     }
 }
 

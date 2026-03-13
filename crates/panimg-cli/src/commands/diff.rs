@@ -77,6 +77,7 @@ pub fn run(args: &DiffArgs, format: OutputFormat, dry_run: bool) -> i32 {
             format: out_format,
             quality: args.quality,
             strip_metadata: true,
+            resolution: None,
         };
 
         if let Err(e) = CodecRegistry::encode(&diff_img, output_path, &options) {

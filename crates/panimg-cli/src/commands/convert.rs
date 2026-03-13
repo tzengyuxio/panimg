@@ -266,6 +266,7 @@ pub fn run(
         format: target_format,
         quality: args.quality,
         strip_metadata: args.strip,
+        resolution: None,
     };
 
     if let Err(e) = CodecRegistry::encode(&img, output_path, &options) {

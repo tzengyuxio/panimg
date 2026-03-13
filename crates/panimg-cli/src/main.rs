@@ -156,6 +156,12 @@ fn capabilities() -> Capabilities {
                     .into(),
             },
             CommandCap {
+                name: "set-density".into(),
+                description:
+                    "Set image resolution/density (DPI/DPCM) metadata, optionally resampling pixels"
+                        .into(),
+            },
+            CommandCap {
                 name: "text".into(),
                 description: "Draw text on an image (watermark, annotation)".into(),
             },
@@ -307,6 +313,9 @@ fn main() {
         }
         Some(Commands::SmartCrop(args)) => {
             commands::smart_crop::run(args, cli.format, cli.dry_run, cli.schema)
+        }
+        Some(Commands::SetDensity(args)) => {
+            commands::set_density::run(args, cli.format, cli.dry_run, cli.schema, cli.dpi)
         }
         #[cfg(feature = "text")]
         Some(Commands::Text(args)) => {

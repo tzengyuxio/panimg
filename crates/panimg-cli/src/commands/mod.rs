@@ -24,6 +24,7 @@ pub mod resize;
 pub mod rotate;
 pub mod saturate;
 pub mod sepia;
+pub mod set_density;
 pub mod sharpen;
 pub mod smart_crop;
 #[cfg(feature = "text")]
