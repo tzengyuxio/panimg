@@ -82,7 +82,7 @@ See [Command Reference](docs/commands.md) for full usage and examples.
 | `tiny` | Smart compression (like TinyPNG) |
 | `resize` | Resize with multiple fit modes |
 | `crop` | Crop a rectangular region |
-| `rotate` | Rotate by 90, 180, or 270 degrees |
+| `rotate` | Rotate by any angle (90/180/270 use fast lossless path) |
 | `flip` | Mirror horizontally or vertically |
 | `auto-orient` | Auto-rotate based on EXIF orientation |
 | `brightness` | Adjust image brightness |

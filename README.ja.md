@@ -82,7 +82,7 @@ panimg batch convert 'photos/*.png' --output-dir ./webp --to webp --quality 80
 | `tiny` | スマート圧縮（TinyPNG 風） |
 | `resize` | 複数のフィットモードで画像をリサイズ |
 | `crop` | 矩形領域をクロップ |
-| `rotate` | 90、180、270 度回転 |
+| `rotate` | 任意の角度で回転（90/180/270 はロスレス高速パスを使用） |
 | `flip` | 水平または垂直に反転 |
 | `auto-orient` | EXIF の方向タグに基づいて自動回転 |
 | `brightness` | 明るさを調整 |

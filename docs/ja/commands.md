@@ -87,15 +87,17 @@ panimg crop photo.jpg --x 100 --y 100 --width 400 --height 300 -o cropped.jpg
 
 ### `rotate`
 
-90、180、270 度で回転します。
+任意の角度で回転します。90、180、270 度はロスレス高速パスを使用し、任意の角度（例：45、30.5）はバイリニア補間を使用します。
 
 ```bash
 panimg rotate photo.jpg --angle 90 -o rotated.jpg
+panimg rotate photo.jpg --angle 45 --background white -o rotated.jpg
 ```
 
 | オプション | 説明 |
 |------------|------|
-| `--angle` | 回転角度：`90`、`180`、`270` |
+| `--angle` | 回転角度：`90`、`180`、`270`、`left`、`right`、または任意の数値（例：`45`、`30.5`） |
+| `--background` | 任意角度回転時の背景塗りつぶし色。hex（`#FF0000`）、RGB（`255,0,0`）、または名前付きカラー（`white`、`transparent` など）。デフォルト：アルファ対応フォーマットは `transparent`、JPEG/BMP は `white` |
 | `-o`, `--output` | 出力ファイルパス |
 
 ### `flip`
