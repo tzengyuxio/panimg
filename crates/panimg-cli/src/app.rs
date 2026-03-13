@@ -121,6 +121,9 @@ pub enum Commands {
     /// Reduce color levels (posterize)
     Posterize(PosterizeArgs),
 
+    /// Simulate tilt-shift (miniature/diorama) lens effect
+    TiltShift(TiltShiftArgs),
+
     /// Draw text on an image (watermark, annotation)
     #[cfg(feature = "text")]
     Text(TextArgs),
@@ -893,6 +896,47 @@ pub struct PosterizeArgs {
     /// Number of color levels per channel (2-256, default: 4)
     #[arg(long)]
     pub levels: Option<u8>,
+
+    /// Output quality (1-100, for lossy formats)
+    #[arg(long)]
+    pub quality: Option<u8>,
+
+    /// Strip metadata from output
+    #[arg(long)]
+    pub strip: bool,
+}
+
+#[derive(Parser)]
+pub struct TiltShiftArgs {
+    /// Input image file
+    pub input: Option<String>,
+
+    /// Output file path (positional alternative to -o)
+    pub output_pos: Option<String>,
+
+    /// Output file path
+    #[arg(short, long)]
+    pub output: Option<String>,
+
+    /// Out-of-focus blur strength (default: 8.0)
+    #[arg(long)]
+    pub sigma: Option<f32>,
+
+    /// Vertical center of the focus band (0=top, 1=bottom, default: 0.5)
+    #[arg(long)]
+    pub focus_position: Option<f32>,
+
+    /// Height of the focus band as fraction of image height (default: 0.15)
+    #[arg(long)]
+    pub focus_width: Option<f32>,
+
+    /// Transition zone width as fraction of image height (default: 0.2)
+    #[arg(long)]
+    pub transition: Option<f32>,
+
+    /// Saturation multiplier (>1 enhances miniature look, default: 1.0)
+    #[arg(long)]
+    pub saturation: Option<f32>,
 
     /// Output quality (1-100, for lossy formats)
     #[arg(long)]

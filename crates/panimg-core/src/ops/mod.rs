@@ -18,6 +18,7 @@ pub mod position;
 pub mod resize;
 pub mod rotate;
 pub mod sharpen;
+pub mod tilt_shift;
 pub mod trim;
 
 #[cfg(feature = "text")]

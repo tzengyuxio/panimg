@@ -98,6 +98,7 @@ See [Command Reference](docs/commands.md) for full usage and examples.
 | `sharpen` | Sharpen using unsharp mask |
 | `edge-detect` | Detect edges (Laplacian kernel) |
 | `emboss` | Apply emboss effect |
+| `tilt-shift` | Miniature/diorama tilt-shift effect |
 | `draw` | Draw shapes (rect, circle, line) |
 | `text` | Draw text with embedded or custom fonts |
 | `overlay` | Composite one image on another |
