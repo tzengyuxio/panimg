@@ -267,6 +267,23 @@ panimg edge-detect photo.jpg -o edges.jpg
 panimg emboss photo.jpg -o embossed.jpg
 ```
 
+### `tilt-shift`
+
+应用移轴摄影（微缩模型）效果。保持水平带状区域对焦，同时渐进模糊上下区域。
+
+```bash
+panimg tilt-shift photo.jpg -o miniature.jpg
+panimg tilt-shift photo.jpg --sigma 12 --focus-position 0.4 --focus-width 0.2 --saturation 1.3 -o miniature.jpg
+```
+
+| 选项 | 说明 |
+|------|------|
+| `--sigma` | 失焦区域模糊强度（默认：8.0） |
+| `--focus-position` | 对焦带垂直中心，0=顶部，1=底部（默认：0.5） |
+| `--focus-width` | 对焦带高度占图片高度比例（默认：0.15） |
+| `--transition` | 过渡区域宽度占图片高度比例（默认：0.2） |
+| `--saturation` | 饱和度倍数，>1 增强微缩感（默认：1.0） |
+
 ---
 
 ## 绘制与合成

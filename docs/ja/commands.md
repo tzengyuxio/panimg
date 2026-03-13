@@ -267,6 +267,23 @@ panimg edge-detect photo.jpg -o edges.jpg
 panimg emboss photo.jpg -o embossed.jpg
 ```
 
+### `tilt-shift`
+
+ミニチュア/ジオラマ風のチルトシフト効果を適用します。水平帯状の領域にフォーカスを維持しながら、上下の領域を段階的にぼかします。
+
+```bash
+panimg tilt-shift photo.jpg -o miniature.jpg
+panimg tilt-shift photo.jpg --sigma 12 --focus-position 0.4 --focus-width 0.2 --saturation 1.3 -o miniature.jpg
+```
+
+| オプション | 説明 |
+|-----------|------|
+| `--sigma` | ピンぼけ領域のぼかし強度（デフォルト：8.0） |
+| `--focus-position` | フォーカス帯の垂直中心、0=上端、1=下端（デフォルト：0.5） |
+| `--focus-width` | フォーカス帯の高さ（画像高さに対する比率、デフォルト：0.15） |
+| `--transition` | トランジションゾーンの幅（画像高さに対する比率、デフォルト：0.2） |
+| `--saturation` | 彩度倍率、>1でミニチュア感を強調（デフォルト：1.0） |
+
 ---
 
 ## 描画とコンポジット

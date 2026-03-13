@@ -98,6 +98,7 @@ panimg batch convert 'photos/*.png' --output-dir ./webp --to webp --quality 80
 | `sharpen` | アンシャープマスクでシャープ化 |
 | `edge-detect` | エッジ検出（Laplacian カーネル） |
 | `emboss` | エンボス効果 |
+| `tilt-shift` | ミニチュア/ジオラマ風チルトシフト効果 |
 | `draw` | 図形を描画（矩形、円、線） |
 | `text` | テキストを描画（内蔵またはカスタムフォント対応） |
 | `overlay` | 画像を重ね合わせて合成 |

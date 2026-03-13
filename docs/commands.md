@@ -267,6 +267,23 @@ Apply emboss effect.
 panimg emboss photo.jpg -o embossed.jpg
 ```
 
+### `tilt-shift`
+
+Apply a miniature/diorama tilt-shift effect. Keeps a horizontal band in focus while progressively blurring regions above and below.
+
+```bash
+panimg tilt-shift photo.jpg -o miniature.jpg
+panimg tilt-shift photo.jpg --sigma 12 --focus-position 0.4 --focus-width 0.2 --saturation 1.3 -o miniature.jpg
+```
+
+| Option | Description |
+|--------|-------------|
+| `--sigma` | Out-of-focus blur strength (default: 8.0) |
+| `--focus-position` | Vertical center of focus band, 0=top, 1=bottom (default: 0.5) |
+| `--focus-width` | Height of focus band as fraction of image height (default: 0.15) |
+| `--transition` | Transition zone width as fraction of image height (default: 0.2) |
+| `--saturation` | Saturation multiplier, >1 enhances miniature look (default: 1.0) |
+
 ---
 
 ## Drawing & Compositing

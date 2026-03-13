@@ -98,6 +98,7 @@ panimg batch convert 'photos/*.png' --output-dir ./webp --to webp --quality 80
 | `sharpen` | 锐化（非锐化蒙版） |
 | `edge-detect` | 边缘检测（Laplacian 核） |
 | `emboss` | 浮雕效果 |
+| `tilt-shift` | 移轴摄影（微缩模型）效果 |
 | `draw` | 绘制图形（矩形、圆形、线段） |
 | `text` | 绘制文字，支持内嵌或自定义字体 |
 | `overlay` | 叠加合成图片 |
