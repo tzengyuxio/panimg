@@ -275,7 +275,7 @@ impl Operation for PosterizeOp {
 
 // --- HSL helper functions ---
 
-fn rgb_to_hsl(r: u8, g: u8, b: u8) -> (f32, f32, f32) {
+pub(crate) fn rgb_to_hsl(r: u8, g: u8, b: u8) -> (f32, f32, f32) {
     let rf = r as f32 / 255.0;
     let gf = g as f32 / 255.0;
     let bf = b as f32 / 255.0;
@@ -310,7 +310,7 @@ fn rgb_to_hsl(r: u8, g: u8, b: u8) -> (f32, f32, f32) {
     (h / 6.0, s, l)
 }
 
-fn hsl_to_rgb(h: f32, s: f32, l: f32) -> (u8, u8, u8) {
+pub(crate) fn hsl_to_rgb(h: f32, s: f32, l: f32) -> (u8, u8, u8) {
     if s.abs() < f32::EPSILON {
         let v = (l * 255.0) as u8;
         return (v, v, v);
@@ -330,7 +330,7 @@ fn hsl_to_rgb(h: f32, s: f32, l: f32) -> (u8, u8, u8) {
     ((r * 255.0) as u8, (g * 255.0) as u8, (b * 255.0) as u8)
 }
 
-fn hue_to_rgb(p: f32, q: f32, mut t: f32) -> f32 {
+pub(crate) fn hue_to_rgb(p: f32, q: f32, mut t: f32) -> f32 {
     if t < 0.0 {
         t += 1.0;
     }

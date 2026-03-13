@@ -147,6 +147,10 @@ fn capabilities() -> Capabilities {
                 description: "Reduce color levels (posterize)".into(),
             },
             CommandCap {
+                name: "tilt-shift".into(),
+                description: "Simulate tilt-shift (miniature/diorama) lens effect".into(),
+            },
+            CommandCap {
                 name: "text".into(),
                 description: "Draw text on an image (watermark, annotation)".into(),
             },
@@ -291,6 +295,9 @@ fn main() {
         }
         Some(Commands::Posterize(args)) => {
             commands::posterize::run(args, cli.format, cli.dry_run, cli.schema)
+        }
+        Some(Commands::TiltShift(args)) => {
+            commands::tilt_shift::run(args, cli.format, cli.dry_run, cli.schema)
         }
         #[cfg(feature = "text")]
         Some(Commands::Text(args)) => {

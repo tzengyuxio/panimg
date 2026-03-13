@@ -19,6 +19,7 @@ use crate::ops::rotate::{RotateAngle, RotateOp};
 use crate::ops::sharpen::SharpenOp;
 #[cfg(feature = "text")]
 use crate::ops::text::DrawTextOp;
+use crate::ops::tilt_shift::TiltShiftOp;
 use crate::ops::trim::TrimOp;
 use crate::ops::Operation;
 use crate::pipeline::Pipeline;
@@ -75,6 +76,15 @@ pub struct RecipeStep {
     pub position: Option<String>,
     #[serde(default)]
     pub margin: Option<u32>,
+    // Tilt-shift fields
+    #[serde(default)]
+    pub focus_position: Option<f32>,
+    #[serde(default)]
+    pub focus_width: Option<f32>,
+    #[serde(default)]
+    pub transition: Option<f32>,
+    #[serde(default)]
+    pub saturation: Option<f32>,
 }
 
 /// A recipe: a list of steps to apply in order.
@@ -260,6 +270,20 @@ fn parse_single_step(step: &str) -> Result<Box<dyn Operation>> {
                 .unwrap_or(4);
             Ok(Box::new(PosterizeOp::new(levels)?))
         }
+        "tilt-shift" => {
+            let sigma = parse_f32_arg(args, "--sigma")?.unwrap_or(8.0);
+            let focus_position = parse_f32_arg(args, "--focus-position")?.unwrap_or(0.5);
+            let focus_width = parse_f32_arg(args, "--focus-width")?.unwrap_or(0.15);
+            let transition = parse_f32_arg(args, "--transition")?.unwrap_or(0.2);
+            let saturation = parse_f32_arg(args, "--saturation")?.unwrap_or(1.0);
+            Ok(Box::new(TiltShiftOp::new(
+                sigma,
+                focus_position,
+                focus_width,
+                transition,
+                saturation,
+            )?))
+        }
         #[cfg(feature = "text")]
         "text" => {
             let content = parse_str_arg(args, "--content")
@@ -290,7 +314,7 @@ fn parse_single_step(step: &str) -> Result<Box<dyn Operation>> {
         }
         _ => Err(PanimgError::InvalidArgument {
             message: format!("unknown pipeline operation: '{op_name}'"),
-            suggestion: "supported: grayscale, invert, blur, sharpen, brightness, contrast, hue-rotate, resize, crop, rotate, flip, edge-detect, emboss, trim, saturate, sepia, posterize, text".into(),
+            suggestion: "supported: grayscale, invert, blur, sharpen, brightness, contrast, hue-rotate, resize, crop, rotate, flip, edge-detect, emboss, trim, saturate, sepia, posterize, tilt-shift, text".into(),
         }),
     }
 }
@@ -399,6 +423,20 @@ fn build_op_from_recipe_step(step: &RecipeStep) -> Result<Box<dyn Operation>> {
             let levels = step.levels.unwrap_or(4);
             Ok(Box::new(PosterizeOp::new(levels)?))
         }
+        "tilt-shift" => {
+            let sigma = step.sigma.unwrap_or(8.0);
+            let focus_position = step.focus_position.unwrap_or(0.5);
+            let focus_width = step.focus_width.unwrap_or(0.15);
+            let transition = step.transition.unwrap_or(0.2);
+            let saturation = step.saturation.unwrap_or(1.0);
+            Ok(Box::new(TiltShiftOp::new(
+                sigma,
+                focus_position,
+                focus_width,
+                transition,
+                saturation,
+            )?))
+        }
         #[cfg(feature = "text")]
         "text" => {
             let content = step.content.clone().ok_or_else(|| PanimgError::InvalidArgument {
@@ -429,7 +467,7 @@ fn build_op_from_recipe_step(step: &RecipeStep) -> Result<Box<dyn Operation>> {
         }
         _ => Err(PanimgError::InvalidArgument {
             message: format!("unknown recipe operation: '{}'", step.op),
-            suggestion: "supported: grayscale, invert, blur, sharpen, brightness, contrast, hue-rotate, resize, crop, rotate, flip, edge-detect, emboss, trim, saturate, sepia, posterize, text".into(),
+            suggestion: "supported: grayscale, invert, blur, sharpen, brightness, contrast, hue-rotate, resize, crop, rotate, flip, edge-detect, emboss, trim, saturate, sepia, posterize, tilt-shift, text".into(),
         }),
     }
 }
