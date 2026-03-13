@@ -81,16 +81,30 @@ See [Command Reference](docs/commands.md) for full usage and examples.
 
 ## Commands
 
+### Info & Conversion
+
 | Command | Description |
 |---------|-------------|
 | `info` | Show image metadata and properties |
 | `convert` | Convert image between formats |
 | `tiny` | Smart compression (like TinyPNG) |
+
+### Transform
+
+| Command | Description |
+|---------|-------------|
 | `resize` | Resize with multiple fit modes |
 | `crop` | Crop a rectangular region |
+| `smart-crop` | Auto-select best crop region (entropy/attention) |
+| `trim` | Auto-crop whitespace or similar-colored borders |
 | `rotate` | Rotate by any angle (90/180/270 use fast lossless path) |
 | `flip` | Mirror horizontally or vertically |
 | `auto-orient` | Auto-rotate based on EXIF orientation |
+
+### Color & Tone
+
+| Command | Description |
+|---------|-------------|
 | `brightness` | Adjust image brightness |
 | `contrast` | Adjust image contrast |
 | `hue-rotate` | Rotate image hue |
@@ -100,20 +114,38 @@ See [Command Reference](docs/commands.md) for full usage and examples.
 | `sepia` | Apply sepia tone effect |
 | `tint` | Tint with a color |
 | `posterize` | Reduce color levels per channel |
+
+### Filters & Effects
+
+| Command | Description |
+|---------|-------------|
 | `blur` | Apply Gaussian blur |
 | `sharpen` | Sharpen using unsharp mask |
 | `edge-detect` | Detect edges (Laplacian kernel) |
 | `emboss` | Apply emboss effect |
 | `tilt-shift` | Miniature/diorama tilt-shift effect |
-| `smart-crop` | Auto-select best crop region (entropy/attention) |
+
+### Compose & Draw
+
+| Command | Description |
+|---------|-------------|
 | `draw` | Draw shapes (rect, circle, line) |
 | `text` | Draw text with embedded or custom fonts |
 | `overlay` | Composite one image on another |
-| `trim` | Auto-crop whitespace or similar-colored borders |
+
+### Compare & Animate
+
+| Command | Description |
+|---------|-------------|
 | `diff` | Compare two images and visualize differences |
 | `frames` | Extract frames from animated GIF |
 | `animate` | Assemble images into animated GIF |
 | `gif-speed` | Change animation playback speed |
+
+### Automation
+
+| Command | Description |
+|---------|-------------|
 | `pipeline` | Run multiple operations in one pass |
 | `batch` | Process multiple files with glob patterns |
 

@@ -81,16 +81,30 @@ panimg batch convert 'photos/*.png' --output-dir ./webp --to webp --quality 80
 
 ## 命令一覽
 
+### 資訊與轉換
+
 | 命令 | 說明 |
 |------|------|
 | `info` | 顯示圖片 metadata 與屬性 |
 | `convert` | 圖片格式轉換 |
 | `tiny` | 智慧壓縮（類似 TinyPNG） |
+
+### 幾何變換
+
+| 命令 | 說明 |
+|------|------|
 | `resize` | 縮放圖片，支援多種適配模式 |
 | `crop` | 裁切矩形區域 |
+| `smart-crop` | 根據圖片內容自動選擇最佳裁切區域 |
+| `trim` | 自動裁切空白或相似色邊框 |
 | `rotate` | 任意角度旋轉（90/180/270 使用快速無損路徑） |
 | `flip` | 水平或垂直翻轉 |
 | `auto-orient` | 依據 EXIF 方向標籤自動旋轉 |
+
+### 色彩與色調
+
+| 命令 | 說明 |
+|------|------|
 | `brightness` | 調整亮度 |
 | `contrast` | 調整對比度 |
 | `hue-rotate` | 色相旋轉 |
@@ -100,20 +114,38 @@ panimg batch convert 'photos/*.png' --output-dir ./webp --to webp --quality 80
 | `sepia` | 套用復古棕褐色調 |
 | `tint` | 以指定色彩著色 |
 | `posterize` | 減少每通道色階數 |
+
+### 濾鏡與特效
+
+| 命令 | 說明 |
+|------|------|
 | `blur` | 高斯模糊 |
 | `sharpen` | 銳化（非銳化遮罩） |
 | `edge-detect` | 邊緣偵測（Laplacian 核） |
 | `emboss` | 浮雕效果 |
 | `tilt-shift` | 移軸攝影（微縮模型）效果 |
-| `smart-crop` | 根據圖片內容自動選擇最佳裁切區域 |
+
+### 合成與繪製
+
+| 命令 | 說明 |
+|------|------|
 | `draw` | 繪製圖形（矩形、圓形、線段） |
 | `text` | 繪製文字，支援內嵌或自訂字型 |
 | `overlay` | 疊加合成圖片 |
-| `trim` | 自動裁切空白或相似色邊框 |
+
+### 比較與動畫
+
+| 命令 | 說明 |
+|------|------|
 | `diff` | 比較兩張圖片並視覺化差異 |
 | `frames` | 從動態 GIF 提取個別幀 |
 | `animate` | 將多張圖片組合成動態 GIF |
 | `gif-speed` | 調整動畫播放速度 |
+
+### 自動化
+
+| 命令 | 說明 |
+|------|------|
 | `pipeline` | 在單次讀寫中執行多步驟操作 |
 | `batch` | 以 glob 模式批次處理多個檔案 |
 
