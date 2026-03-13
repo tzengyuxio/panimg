@@ -24,67 +24,14 @@ use crate::ops::trim::TrimOp;
 use crate::ops::Operation;
 use crate::pipeline::Pipeline;
 use serde::Deserialize;
+use serde_json::{Map, Value};
 
 /// A single step in a recipe, parsed from JSON.
 #[derive(Debug, Deserialize)]
 pub struct RecipeStep {
     pub op: String,
-    #[serde(default)]
-    pub width: Option<u32>,
-    #[serde(default)]
-    pub height: Option<u32>,
-    #[serde(default)]
-    pub fit: Option<String>,
-    #[serde(default)]
-    pub filter: Option<String>,
-    #[serde(default)]
-    pub x: Option<u32>,
-    #[serde(default)]
-    pub y: Option<u32>,
-    #[serde(default)]
-    pub angle: Option<String>,
-    #[serde(default)]
-    pub direction: Option<String>,
-    #[serde(default)]
-    pub value: Option<i32>,
-    #[serde(default)]
-    pub contrast_value: Option<f32>,
-    #[serde(default)]
-    pub degrees: Option<i32>,
-    #[serde(default)]
-    pub sigma: Option<f32>,
-    #[serde(default)]
-    pub threshold: Option<i32>,
-    #[serde(default)]
-    pub tolerance: Option<u8>,
-    #[serde(default)]
-    pub factor: Option<f32>,
-    #[serde(default)]
-    pub intensity: Option<f32>,
-    #[serde(default)]
-    pub levels: Option<u8>,
-    // Text rendering fields
-    #[serde(default)]
-    pub content: Option<String>,
-    #[serde(default)]
-    pub font: Option<String>,
-    #[serde(default)]
-    pub size: Option<f32>,
-    #[serde(default)]
-    pub color: Option<String>,
-    #[serde(default)]
-    pub position: Option<String>,
-    #[serde(default)]
-    pub margin: Option<u32>,
-    // Tilt-shift fields
-    #[serde(default)]
-    pub focus_position: Option<f32>,
-    #[serde(default)]
-    pub focus_width: Option<f32>,
-    #[serde(default)]
-    pub transition: Option<f32>,
-    #[serde(default)]
-    pub saturation: Option<f32>,
+    #[serde(flatten)]
+    pub params: Map<String, Value>,
 }
 
 /// A recipe: a list of steps to apply in order.
@@ -319,116 +266,185 @@ fn parse_single_step(step: &str) -> Result<Box<dyn Operation>> {
     }
 }
 
+// --- Helpers for extracting typed values from a JSON params Map ---
+
+fn get_f32(params: &Map<String, Value>, key: &str) -> Result<Option<f32>> {
+    match params.get(key) {
+        None => Ok(None),
+        Some(v) => v
+            .as_f64()
+            .map(|f| Some(f as f32))
+            .ok_or_else(|| PanimgError::InvalidArgument {
+                message: format!("'{key}' must be a number"),
+                suggestion: format!("e.g. \"{key}\": 2.0"),
+            }),
+    }
+}
+
+fn require_f32(params: &Map<String, Value>, key: &str, op: &str) -> Result<f32> {
+    get_f32(params, key)?.ok_or_else(|| PanimgError::InvalidArgument {
+        message: format!("{op} requires \"{key}\""),
+        suggestion: format!("{{\"op\": \"{op}\", \"{key}\": 2.0}}"),
+    })
+}
+
+fn get_u32(params: &Map<String, Value>, key: &str) -> Result<Option<u32>> {
+    match params.get(key) {
+        None => Ok(None),
+        Some(v) => v
+            .as_u64()
+            .and_then(|n| u32::try_from(n).ok())
+            .map(Some)
+            .ok_or_else(|| PanimgError::InvalidArgument {
+                message: format!("'{key}' must be a positive integer"),
+                suggestion: format!("e.g. \"{key}\": 100"),
+            }),
+    }
+}
+
+fn require_u32(params: &Map<String, Value>, key: &str, op: &str) -> Result<u32> {
+    get_u32(params, key)?.ok_or_else(|| PanimgError::InvalidArgument {
+        message: format!("{op} requires \"{key}\""),
+        suggestion: format!("{{\"op\": \"{op}\", \"{key}\": 100}}"),
+    })
+}
+
+fn get_i32(params: &Map<String, Value>, key: &str) -> Result<Option<i32>> {
+    match params.get(key) {
+        None => Ok(None),
+        Some(v) => v
+            .as_i64()
+            .and_then(|n| i32::try_from(n).ok())
+            .map(Some)
+            .ok_or_else(|| PanimgError::InvalidArgument {
+                message: format!("'{key}' must be an integer"),
+                suggestion: format!("e.g. \"{key}\": 10"),
+            }),
+    }
+}
+
+fn require_i32(params: &Map<String, Value>, key: &str, op: &str) -> Result<i32> {
+    get_i32(params, key)?.ok_or_else(|| PanimgError::InvalidArgument {
+        message: format!("{op} requires \"{key}\""),
+        suggestion: format!("{{\"op\": \"{op}\", \"{key}\": 10}}"),
+    })
+}
+
+fn get_u8(params: &Map<String, Value>, key: &str) -> Result<Option<u8>> {
+    match params.get(key) {
+        None => Ok(None),
+        Some(v) => v
+            .as_u64()
+            .and_then(|n| u8::try_from(n).ok())
+            .map(Some)
+            .ok_or_else(|| PanimgError::InvalidArgument {
+                message: format!("'{key}' must be an integer between 0 and 255"),
+                suggestion: format!("e.g. \"{key}\": 10"),
+            }),
+    }
+}
+
+fn get_str<'a>(params: &'a Map<String, Value>, key: &str) -> Result<Option<&'a str>> {
+    match params.get(key) {
+        None => Ok(None),
+        Some(v) => v
+            .as_str()
+            .map(Some)
+            .ok_or_else(|| PanimgError::InvalidArgument {
+                message: format!("'{key}' must be a string"),
+                suggestion: format!("e.g. \"{key}\": \"value\""),
+            }),
+    }
+}
+
+fn require_str<'a>(params: &'a Map<String, Value>, key: &str, op: &str) -> Result<&'a str> {
+    get_str(params, key)?.ok_or_else(|| PanimgError::InvalidArgument {
+        message: format!("{op} requires \"{key}\""),
+        suggestion: format!("{{\"op\": \"{op}\", \"{key}\": \"value\"}}"),
+    })
+}
+
 /// Build an operation from a JSON recipe step.
 fn build_op_from_recipe_step(step: &RecipeStep) -> Result<Box<dyn Operation>> {
-    match step.op.as_str() {
+    let p = &step.params;
+    let op = step.op.as_str();
+
+    match op {
         "grayscale" => Ok(Box::new(GrayscaleOp::new())),
         "invert" => Ok(Box::new(InvertOp::new())),
         "edge-detect" => Ok(Box::new(EdgeDetectOp::new())),
         "emboss" => Ok(Box::new(EmbossOp::new())),
         "blur" => {
-            let sigma = step.sigma.ok_or_else(|| PanimgError::InvalidArgument {
-                message: "blur step requires \"sigma\"".into(),
-                suggestion: "{\"op\": \"blur\", \"sigma\": 2.0}".into(),
-            })?;
+            let sigma = require_f32(p, "sigma", op)?;
             Ok(Box::new(BlurOp::new(sigma)?))
         }
         "sharpen" => {
-            let sigma = step.sigma.ok_or_else(|| PanimgError::InvalidArgument {
-                message: "sharpen step requires \"sigma\"".into(),
-                suggestion: "{\"op\": \"sharpen\", \"sigma\": 1.5}".into(),
-            })?;
-            let threshold = step.threshold.unwrap_or(0);
+            let sigma = require_f32(p, "sigma", op)?;
+            let threshold = get_i32(p, "threshold")?.unwrap_or(0);
             Ok(Box::new(SharpenOp::new(sigma, threshold)?))
         }
         "brightness" => {
-            let value = step.value.ok_or_else(|| PanimgError::InvalidArgument {
-                message: "brightness step requires \"value\"".into(),
-                suggestion: "{\"op\": \"brightness\", \"value\": 20}".into(),
-            })?;
+            let value = require_i32(p, "value", op)?;
             Ok(Box::new(BrightnessOp::new(value)?))
         }
         "contrast" => {
-            let value = step.contrast_value.ok_or_else(|| PanimgError::InvalidArgument {
-                message: "contrast step requires \"contrast_value\"".into(),
-                suggestion: "{\"op\": \"contrast\", \"contrast_value\": 1.5}".into(),
-            })?;
+            let value = require_f32(p, "contrast_value", op)?;
             Ok(Box::new(ContrastOp::new(value)?))
         }
         "hue-rotate" => {
-            let degrees = step.degrees.ok_or_else(|| PanimgError::InvalidArgument {
-                message: "hue-rotate step requires \"degrees\"".into(),
-                suggestion: "{\"op\": \"hue-rotate\", \"degrees\": 90}".into(),
-            })?;
+            let degrees = require_i32(p, "degrees", op)?;
             Ok(Box::new(HueRotateOp::new(degrees)?))
         }
         "resize" => {
-            let fit = step
-                .fit
-                .as_deref()
+            let width = get_u32(p, "width")?;
+            let height = get_u32(p, "height")?;
+            let fit = get_str(p, "fit")?
                 .map(FitMode::parse)
                 .transpose()?
                 .unwrap_or(FitMode::Contain);
-            let filter = step
-                .filter
-                .as_deref()
+            let filter = get_str(p, "filter")?
                 .map(ResizeFilter::parse)
                 .transpose()?
                 .unwrap_or(ResizeFilter::Lanczos3);
-            Ok(Box::new(ResizeOp::new(step.width, step.height, fit, filter)?))
+            Ok(Box::new(ResizeOp::new(width, height, fit, filter)?))
         }
         "crop" => {
-            let x = step.x.unwrap_or(0);
-            let y = step.y.unwrap_or(0);
-            let width = step.width.ok_or_else(|| PanimgError::InvalidArgument {
-                message: "crop step requires \"width\"".into(),
-                suggestion: "{\"op\": \"crop\", \"x\": 0, \"y\": 0, \"width\": 100, \"height\": 100}".into(),
-            })?;
-            let height = step.height.ok_or_else(|| PanimgError::InvalidArgument {
-                message: "crop step requires \"height\"".into(),
-                suggestion: "{\"op\": \"crop\", \"x\": 0, \"y\": 0, \"width\": 100, \"height\": 100}".into(),
-            })?;
+            let x = get_u32(p, "x")?.unwrap_or(0);
+            let y = get_u32(p, "y")?.unwrap_or(0);
+            let width = require_u32(p, "width", op)?;
+            let height = require_u32(p, "height", op)?;
             Ok(Box::new(CropOp::new(x, y, width, height)?))
         }
         "rotate" => {
-            let angle_str = step.angle.as_deref().ok_or_else(|| PanimgError::InvalidArgument {
-                message: "rotate step requires \"angle\"".into(),
-                suggestion: "{\"op\": \"rotate\", \"angle\": \"90\"}".into(),
-            })?;
+            let angle_str = require_str(p, "angle", op)?;
             Ok(Box::new(RotateOp::new(RotateAngle::parse(angle_str)?)))
         }
         "flip" => {
-            let direction = step.direction.as_deref().ok_or_else(|| PanimgError::InvalidArgument {
-                message: "flip step requires \"direction\"".into(),
-                suggestion: "{\"op\": \"flip\", \"direction\": \"horizontal\"}".into(),
-            })?;
+            let direction = require_str(p, "direction", op)?;
             Ok(Box::new(FlipOp::new(FlipDirection::parse(direction)?)))
         }
         "trim" => {
-            let tolerance = step.tolerance.unwrap_or(10);
+            let tolerance = get_u8(p, "tolerance")?.unwrap_or(10);
             Ok(Box::new(TrimOp::new(tolerance)?))
         }
         "saturate" => {
-            let factor = step.factor.ok_or_else(|| PanimgError::InvalidArgument {
-                message: "saturate step requires \"factor\"".into(),
-                suggestion: "{\"op\": \"saturate\", \"factor\": 1.5}".into(),
-            })?;
+            let factor = require_f32(p, "factor", op)?;
             Ok(Box::new(SaturateOp::new(factor)?))
         }
         "sepia" => {
-            let intensity = step.intensity.unwrap_or(1.0);
+            let intensity = get_f32(p, "intensity")?.unwrap_or(1.0);
             Ok(Box::new(SepiaOp::new(intensity)?))
         }
         "posterize" => {
-            let levels = step.levels.unwrap_or(4);
+            let levels = get_u8(p, "levels")?.unwrap_or(4);
             Ok(Box::new(PosterizeOp::new(levels)?))
         }
         "tilt-shift" => {
-            let sigma = step.sigma.unwrap_or(8.0);
-            let focus_position = step.focus_position.unwrap_or(0.5);
-            let focus_width = step.focus_width.unwrap_or(0.15);
-            let transition = step.transition.unwrap_or(0.2);
-            let saturation = step.saturation.unwrap_or(1.0);
+            let sigma = get_f32(p, "sigma")?.unwrap_or(8.0);
+            let focus_position = get_f32(p, "focus_position")?.unwrap_or(0.5);
+            let focus_width = get_f32(p, "focus_width")?.unwrap_or(0.15);
+            let transition = get_f32(p, "transition")?.unwrap_or(0.2);
+            let saturation = get_f32(p, "saturation")?.unwrap_or(1.0);
             Ok(Box::new(TiltShiftOp::new(
                 sigma,
                 focus_position,
@@ -439,24 +455,20 @@ fn build_op_from_recipe_step(step: &RecipeStep) -> Result<Box<dyn Operation>> {
         }
         #[cfg(feature = "text")]
         "text" => {
-            let content = step.content.clone().ok_or_else(|| PanimgError::InvalidArgument {
-                message: "text step requires \"content\"".into(),
-                suggestion: "{\"op\": \"text\", \"content\": \"Hello World\"}".into(),
-            })?;
-            let size = step.size.unwrap_or(24.0);
-            let color_str = step.color.as_deref().unwrap_or("white");
+            let content = require_str(p, "content", op)?.to_owned();
+            let font = get_str(p, "font")?;
+            let size = get_f32(p, "size")?.unwrap_or(24.0);
+            let color_str = get_str(p, "color")?.unwrap_or("white");
             let color = parse_color(color_str)?;
-            let x = step.x.map(|v| v as i32);
-            let y = step.y.map(|v| v as i32);
-            let position = step
-                .position
-                .as_deref()
+            let x = get_i32(p, "x")?;
+            let y = get_i32(p, "y")?;
+            let position = get_str(p, "position")?
                 .map(|s| s.parse::<Position>())
                 .transpose()?;
-            let margin = step.margin.unwrap_or(10);
+            let margin = get_u32(p, "margin")?.unwrap_or(10);
             Ok(Box::new(DrawTextOp::new(
                 content,
-                step.font.as_deref(),
+                font,
                 size,
                 color,
                 x,
@@ -466,7 +478,7 @@ fn build_op_from_recipe_step(step: &RecipeStep) -> Result<Box<dyn Operation>> {
             )?))
         }
         _ => Err(PanimgError::InvalidArgument {
-            message: format!("unknown recipe operation: '{}'", step.op),
+            message: format!("unknown recipe operation: '{op}'"),
             suggestion: "supported: grayscale, invert, blur, sharpen, brightness, contrast, hue-rotate, resize, crop, rotate, flip, edge-detect, emboss, trim, saturate, sepia, posterize, tilt-shift, text".into(),
         }),
     }
