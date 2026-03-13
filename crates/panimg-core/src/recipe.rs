@@ -1,4 +1,3 @@
-#[cfg(feature = "text")]
 use crate::color::parse_color;
 use crate::error::{PanimgError, Result};
 use crate::ops::blur::BlurOp;
@@ -183,7 +182,11 @@ fn parse_single_step(step: &str) -> Result<Box<dyn Operation>> {
                     message: "rotate requires --angle".into(),
                     suggestion: "e.g. rotate --angle 90".into(),
                 })?;
-            Ok(Box::new(RotateOp::new(RotateAngle::parse(&angle_str)?)))
+            let mut op = RotateOp::new(RotateAngle::parse(&angle_str)?);
+            if let Some(bg_str) = parse_str_arg(args, "--background") {
+                op = op.with_background(parse_color(&bg_str)?);
+            }
+            Ok(Box::new(op))
         }
         "flip" => {
             let direction = parse_str_arg(args, "--direction")
@@ -417,7 +420,11 @@ fn build_op_from_recipe_step(step: &RecipeStep) -> Result<Box<dyn Operation>> {
         }
         "rotate" => {
             let angle_str = require_str(p, "angle", op)?;
-            Ok(Box::new(RotateOp::new(RotateAngle::parse(angle_str)?)))
+            let mut rotate_op = RotateOp::new(RotateAngle::parse(angle_str)?);
+            if let Some(bg_str) = get_str(p, "background")? {
+                rotate_op = rotate_op.with_background(parse_color(bg_str)?);
+            }
+            Ok(Box::new(rotate_op))
         }
         "flip" => {
             let direction = require_str(p, "direction", op)?;

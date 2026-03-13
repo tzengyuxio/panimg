@@ -87,15 +87,17 @@ panimg crop photo.jpg --x 100 --y 100 --width 400 --height 300 -o cropped.jpg
 
 ### `rotate`
 
-旋轉 90、180 或 270 度。
+任意角度旋轉。90、180、270 度使用快速無損路徑；任意角度（如 45、30.5）使用雙線性插值。
 
 ```bash
 panimg rotate photo.jpg --angle 90 -o rotated.jpg
+panimg rotate photo.jpg --angle 45 --background white -o rotated.jpg
 ```
 
 | 選項 | 說明 |
 |------|------|
-| `--angle` | 旋轉角度：`90`、`180` 或 `270` |
+| `--angle` | 旋轉角度：`90`、`180`、`270`、`left`、`right`，或任意數值（如 `45`、`30.5`） |
+| `--background` | 任意角度旋轉時的背景填充色。支援 hex（`#FF0000`）、RGB（`255,0,0`）或命名色彩（`white`、`transparent` 等）。預設：支援透明的格式用 `transparent`，JPEG/BMP 用 `white` |
 | `-o`, `--output` | 輸出檔案路徑 |
 
 ### `flip`

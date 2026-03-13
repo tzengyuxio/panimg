@@ -82,7 +82,7 @@ panimg batch convert 'photos/*.png' --output-dir ./webp --to webp --quality 80
 | `tiny` | 智慧壓縮（類似 TinyPNG） |
 | `resize` | 縮放圖片，支援多種適配模式 |
 | `crop` | 裁切矩形區域 |
-| `rotate` | 旋轉 90、180 或 270 度 |
+| `rotate` | 任意角度旋轉（90/180/270 使用快速無損路徑） |
 | `flip` | 水平或垂直翻轉 |
 | `auto-orient` | 依據 EXIF 方向標籤自動旋轉 |
 | `brightness` | 調整亮度 |

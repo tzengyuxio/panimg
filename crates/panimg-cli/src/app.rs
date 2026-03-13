@@ -49,7 +49,7 @@ pub enum Commands {
     /// Crop a rectangular region from an image
     Crop(CropArgs),
 
-    /// Rotate an image by 90, 180, or 270 degrees
+    /// Rotate an image by any angle (90/180/270 use fast lossless path)
     Rotate(RotateArgs),
 
     /// Flip (mirror) an image horizontally or vertically
@@ -265,9 +265,14 @@ pub struct RotateArgs {
     #[arg(short, long)]
     pub output: Option<String>,
 
-    /// Rotation angle: 90, 180, 270, left, right
+    /// Rotation angle: 90, 180, 270, left, right, or any numeric angle (e.g. 45, 30.5)
     #[arg(long)]
     pub angle: Option<String>,
+
+    /// Background fill color for arbitrary-angle rotation (hex, RGB, or named).
+    /// Default: transparent for RGBA output, white for RGB output.
+    #[arg(long)]
+    pub background: Option<String>,
 
     /// Output quality (1-100, for lossy formats)
     #[arg(long)]

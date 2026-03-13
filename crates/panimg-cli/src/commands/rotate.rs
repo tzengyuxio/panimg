@@ -1,6 +1,7 @@
 use crate::app::{OutputFormat, RotateArgs};
 use crate::output;
 use panimg_core::codec::{CodecRegistry, EncodeOptions};
+use panimg_core::color::parse_color;
 use panimg_core::error::PanimgError;
 use panimg_core::format::ImageFormat;
 use panimg_core::ops::rotate::{RotateAngle, RotateOp};
@@ -13,10 +14,20 @@ use std::path::Path;
 struct RotateResult {
     input: String,
     output: String,
-    angle: u32,
+    angle: f64,
     new_width: u32,
     new_height: u32,
     output_size: u64,
+}
+
+/// Determine the default background color string based on the output format.
+/// - Formats that support alpha (PNG, WebP, TIFF, GIF) → transparent
+/// - Opaque formats (JPEG, BMP) → white
+fn default_background_str(format: &ImageFormat) -> &'static str {
+    match format {
+        ImageFormat::Jpeg | ImageFormat::Bmp => "white",
+        _ => "transparent",
+    }
 }
 
 pub fn run(args: &RotateArgs, format: OutputFormat, dry_run: bool, show_schema: bool) -> i32 {
@@ -64,11 +75,26 @@ pub fn run(args: &RotateArgs, format: OutputFormat, dry_run: bool, show_schema: 
         Err(e) => return output::print_error(format, &e),
     };
 
-    let rotate_op = RotateOp::new(angle);
-    let pipeline = Pipeline::new().push(rotate_op);
-
     let input_path = Path::new(input);
     let output_path = Path::new(&output_path_str);
+
+    // Determine output format for default background color
+    let out_format = ImageFormat::from_path_extension(output_path)
+        .or_else(|| ImageFormat::from_path(input_path))
+        .unwrap_or(ImageFormat::Png);
+
+    // Parse background color
+    let bg_str = args
+        .background
+        .as_deref()
+        .unwrap_or_else(|| default_background_str(&out_format));
+    let background = match parse_color(bg_str) {
+        Ok(c) => c,
+        Err(e) => return output::print_error(format, &e),
+    };
+
+    let rotate_op = RotateOp::new(angle).with_background(background);
+    let pipeline = Pipeline::new().push(rotate_op);
 
     if dry_run {
         let plan = pipeline.describe();
@@ -90,10 +116,6 @@ pub fn run(args: &RotateArgs, format: OutputFormat, dry_run: bool, show_schema: 
         Err(e) => return output::print_error(format, &e),
     };
 
-    let out_format = ImageFormat::from_path_extension(output_path)
-        .or_else(|| ImageFormat::from_path(input_path))
-        .unwrap_or(ImageFormat::Png);
-
     let options = EncodeOptions {
         format: out_format,
         quality: args.quality,
@@ -109,11 +131,7 @@ pub fn run(args: &RotateArgs, format: OutputFormat, dry_run: bool, show_schema: 
     let result = RotateResult {
         input: input.clone(),
         output: output_path_str,
-        angle: match angle {
-            RotateAngle::Deg90 => 90,
-            RotateAngle::Deg180 => 180,
-            RotateAngle::Deg270 => 270,
-        },
+        angle: angle.degrees_f64(),
         new_width: result_img.width(),
         new_height: result_img.height(),
         output_size,

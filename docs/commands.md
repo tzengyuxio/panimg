@@ -87,15 +87,17 @@ panimg crop photo.jpg --x 100 --y 100 --width 400 --height 300 -o cropped.jpg
 
 ### `rotate`
 
-Rotate by 90, 180, or 270 degrees.
+Rotate by any angle. 90, 180, and 270 degrees use a fast lossless path; arbitrary angles (e.g. 45, 30.5) use bilinear interpolation.
 
 ```bash
 panimg rotate photo.jpg --angle 90 -o rotated.jpg
+panimg rotate photo.jpg --angle 45 --background white -o rotated.jpg
 ```
 
 | Option | Description |
 |--------|-------------|
-| `--angle` | Rotation angle: `90`, `180`, or `270` |
+| `--angle` | Rotation angle: `90`, `180`, `270`, `left`, `right`, or any numeric value (e.g. `45`, `30.5`) |
+| `--background` | Fill color for areas exposed by arbitrary-angle rotation. Hex (`#FF0000`), RGB (`255,0,0`), or named (`white`, `transparent`, etc.). Default: `transparent` for formats with alpha, `white` for JPEG/BMP |
 | `-o`, `--output` | Output file path |
 
 ### `flip`

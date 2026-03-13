@@ -19,6 +19,7 @@ pub fn parse_color(s: &str) -> Result<Rgba<u8>> {
         "yellow" => return Ok(Rgba([255, 255, 0, 255])),
         "cyan" => return Ok(Rgba([0, 255, 255, 255])),
         "magenta" => return Ok(Rgba([255, 0, 255, 255])),
+        "transparent" => return Ok(Rgba([0, 0, 0, 0])),
         _ => {}
     }
 
