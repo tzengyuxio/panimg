@@ -5,6 +5,8 @@ edition.workspace = true
 license.workspace = true
 description = "Shared infrastructure for the pan-family CLI tools"
 repository.workspace = true
+keywords = ["cli", "pipeline", "schema", "structured-output"]
+categories = ["command-line-interface", "development-tools"]
 
 [features]
 default = []
