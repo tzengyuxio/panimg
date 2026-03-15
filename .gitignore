@@ -5,3 +5,7 @@ PLANS/
 visual-tests/results/
 visual-tests/tmp/
 benches/results/
+.agent/
+.agents/
+.claude/
+skills-lock.json
