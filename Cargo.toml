@@ -23,6 +23,7 @@ jxl-oxide = "0.12"
 resvg = "0.47"
 hayro = "0.5"
 libheif-rs = "2.7"
+psd = "0.3"
 
 # Resolution metadata injection
 img-parts = "0.3"

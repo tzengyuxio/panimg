@@ -38,7 +38,7 @@ cd panimg
 cargo build --release
 ```
 
-可选编解码器（AVIF、JPEG XL、SVG、PDF、HEIC）请参阅[支持格式](docs/zh-CN/formats.md)。
+可选编解码器（AVIF、JPEG XL、SVG、PDF、HEIC、PSD）请参阅[支持格式](docs/zh-CN/formats.md)。
 
 ## 快速开始
 
@@ -57,6 +57,15 @@ panimg convert document.pdf -o page1.png --dpi 300
 
 # 将 HEIC 转换为 JPEG（需启用 heic feature，仅 macOS）
 panimg convert photo.heic -o photo.jpg
+
+# 将 PSD 转换为 PNG（需启用 psd feature）
+panimg convert design.psd -o design.png
+
+# 查看 PSD 图层信息（需启用 psd feature）
+panimg psd-info design.psd --format json
+
+# 提取 PSD 图层（需启用 psd feature）
+panimg psd-layers design.psd --output-dir ./layers
 
 # 缩放（指定适配模式）
 panimg resize photo.jpg --width 800 --height 600 --fit cover -o thumb.jpg
@@ -135,6 +144,13 @@ panimg batch convert 'photos/*.png' --output-dir ./webp --to webp --quality 80
 | `draw` | 绘制图形（矩形、圆形、线段） |
 | `text` | 绘制文字，支持内嵌或自定义字体 |
 | `overlay` | 叠加合成图片 |
+
+### PSD (Photoshop)
+
+| 命令 | 说明 |
+|------|------|
+| `psd-info` | 显示 PSD 图层 metadata |
+| `psd-layers` | 从 PSD 文件提取个别图层 |
 
 ### 比较与动画
 

@@ -38,7 +38,7 @@ cd panimg
 cargo build --release
 ```
 
-オプションコーデック（AVIF、JPEG XL、SVG、PDF、HEIC）については[対応フォーマット](docs/ja/formats.md)を参照してください。
+オプションコーデック（AVIF、JPEG XL、SVG、PDF、HEIC、PSD）については[対応フォーマット](docs/ja/formats.md)を参照してください。
 
 ## クイックスタート
 
@@ -57,6 +57,15 @@ panimg convert document.pdf -o page1.png --dpi 300
 
 # HEIC を JPEG に変換（heic feature 必要、macOS のみ）
 panimg convert photo.heic -o photo.jpg
+
+# PSD を PNG に変換（psd feature 必要）
+panimg convert design.psd -o design.png
+
+# PSD レイヤー情報を表示（psd feature 必要）
+panimg psd-info design.psd --format json
+
+# PSD レイヤーを個別に抽出（psd feature 必要）
+panimg psd-layers design.psd --output-dir ./layers
 
 # フィットモード指定リサイズ
 panimg resize photo.jpg --width 800 --height 600 --fit cover -o thumb.jpg
@@ -135,6 +144,13 @@ panimg batch convert 'photos/*.png' --output-dir ./webp --to webp --quality 80
 | `draw` | 図形を描画（矩形、円、線） |
 | `text` | テキストを描画（内蔵またはカスタムフォント対応） |
 | `overlay` | 画像を重ね合わせて合成 |
+
+### PSD (Photoshop)
+
+| コマンド | 説明 |
+|----------|------|
+| `psd-info` | PSD レイヤーのメタデータを表示 |
+| `psd-layers` | PSD ファイルから個別レイヤーを抽出 |
 
 ### 比較とアニメーション
 

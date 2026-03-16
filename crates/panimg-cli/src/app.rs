@@ -130,6 +130,14 @@ pub enum Commands {
     /// Set image resolution/density (DPI/DPCM) metadata, optionally resampling pixels
     SetDensity(SetDensityArgs),
 
+    /// Show PSD layer metadata
+    #[cfg(feature = "psd")]
+    PsdInfo(PsdInfoArgs),
+
+    /// Extract individual layers from a PSD file
+    #[cfg(feature = "psd")]
+    PsdLayers(PsdLayersArgs),
+
     /// Draw text on an image (watermark, annotation)
     #[cfg(feature = "text")]
     Text(TextArgs),
@@ -1135,6 +1143,36 @@ pub struct TinyArgs {
     /// Skip if output already exists
     #[arg(long)]
     pub skip_existing: bool,
+}
+
+#[cfg(feature = "psd")]
+#[derive(Parser)]
+pub struct PsdInfoArgs {
+    /// Input PSD file
+    pub input: Option<String>,
+}
+
+#[cfg(feature = "psd")]
+#[derive(Parser)]
+pub struct PsdLayersArgs {
+    /// Input PSD file
+    pub input: Option<String>,
+
+    /// Output directory for extracted layers
+    #[arg(long)]
+    pub output_dir: Option<String>,
+
+    /// Output format for layers (e.g. png, jpg)
+    #[arg(long, default_value = "png")]
+    pub layer_format: String,
+
+    /// Extract only this layer index
+    #[arg(long)]
+    pub layer_index: Option<usize>,
+
+    /// Extract only layers matching this name (substring)
+    #[arg(long)]
+    pub layer_name: Option<String>,
 }
 
 #[derive(Parser)]

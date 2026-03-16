@@ -162,6 +162,14 @@ fn capabilities() -> Capabilities {
                         .into(),
             },
             CommandCap {
+                name: "psd-info".into(),
+                description: "Show PSD layer metadata".into(),
+            },
+            CommandCap {
+                name: "psd-layers".into(),
+                description: "Extract individual layers from a PSD file".into(),
+            },
+            CommandCap {
                 name: "text".into(),
                 description: "Draw text on an image (watermark, annotation)".into(),
             },
@@ -316,6 +324,12 @@ fn main() {
         }
         Some(Commands::SetDensity(args)) => {
             commands::set_density::run(args, cli.format, cli.dry_run, cli.schema, cli.dpi)
+        }
+        #[cfg(feature = "psd")]
+        Some(Commands::PsdInfo(args)) => commands::psd_info::run(args, cli.format, cli.schema),
+        #[cfg(feature = "psd")]
+        Some(Commands::PsdLayers(args)) => {
+            commands::psd_layers::run(args, cli.format, cli.dry_run, cli.schema)
         }
         #[cfg(feature = "text")]
         Some(Commands::Text(args)) => {

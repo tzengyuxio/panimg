@@ -38,7 +38,7 @@ cd panimg
 cargo build --release
 ```
 
-See [Supported Formats](docs/formats.md) for optional codec feature flags (AVIF, JPEG XL, SVG, PDF, HEIC).
+See [Supported Formats](docs/formats.md) for optional codec feature flags (AVIF, JPEG XL, SVG, PDF, HEIC, PSD).
 
 ## Quick Start
 
@@ -57,6 +57,15 @@ panimg convert document.pdf -o page1.png --dpi 300
 
 # Convert HEIC to JPEG (requires heic feature, macOS only)
 panimg convert photo.heic -o photo.jpg
+
+# Convert PSD to PNG (requires psd feature)
+panimg convert design.psd -o design.png
+
+# Inspect PSD layers (requires psd feature)
+panimg psd-info design.psd --format json
+
+# Extract PSD layers (requires psd feature)
+panimg psd-layers design.psd --output-dir ./layers
 
 # Resize with fit mode
 panimg resize photo.jpg --width 800 --height 600 --fit cover -o thumb.jpg
@@ -135,6 +144,13 @@ See [Command Reference](docs/commands.md) for full usage and examples.
 | `draw` | Draw shapes (rect, circle, line) |
 | `text` | Draw text with embedded or custom fonts |
 | `overlay` | Composite one image on another |
+
+### PSD (Photoshop)
+
+| Command | Description |
+|---------|-------------|
+| `psd-info` | Show PSD layer metadata |
+| `psd-layers` | Extract individual layers from a PSD file |
 
 ### Compare & Animate
 
