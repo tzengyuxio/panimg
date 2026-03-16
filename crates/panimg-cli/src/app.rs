@@ -485,9 +485,29 @@ pub struct BlurArgs {
     #[arg(short, long)]
     pub output: Option<String>,
 
-    /// Blur sigma (radius). Higher values = more blur
+    /// Blur method: gaussian, box, motion, median, bilateral (default: gaussian)
+    #[arg(long, default_value = "gaussian")]
+    pub method: String,
+
+    /// Blur sigma (radius). For gaussian and bilateral methods
     #[arg(long)]
     pub sigma: Option<f32>,
+
+    /// Kernel radius in pixels. For box, median, and bilateral methods
+    #[arg(long)]
+    pub radius: Option<u32>,
+
+    /// Motion blur angle in degrees (0=horizontal). For motion method
+    #[arg(long)]
+    pub angle: Option<f32>,
+
+    /// Motion blur distance in pixels. For motion method
+    #[arg(long)]
+    pub distance: Option<u32>,
+
+    /// Color sigma for bilateral filter (intensity similarity)
+    #[arg(long)]
+    pub sigma_color: Option<f32>,
 
     /// Output quality (1-100, for lossy formats)
     #[arg(long)]

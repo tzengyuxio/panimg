@@ -3,7 +3,7 @@ use crate::output;
 use panimg_core::codec::{CodecRegistry, EncodeOptions};
 use panimg_core::error::PanimgError;
 use panimg_core::format::ImageFormat;
-use panimg_core::ops::blur::BlurOp;
+use panimg_core::ops::blur::{BilateralBlurOp, BlurOp, BoxBlurOp, MedianBlurOp, MotionBlurOp};
 use panimg_core::ops::Operation;
 use panimg_core::pipeline::Pipeline;
 use serde::Serialize;
@@ -13,7 +13,8 @@ use std::path::Path;
 struct BlurResult {
     input: String,
     output: String,
-    sigma: f32,
+    method: String,
+    params: serde_json::Value,
     output_size: u64,
 }
 
@@ -46,23 +47,12 @@ pub fn run(args: &BlurArgs, format: OutputFormat, dry_run: bool, show_schema: bo
         }
     };
 
-    let sigma = match args.sigma {
-        Some(s) => s,
-        None => {
-            let err = PanimgError::InvalidArgument {
-                message: "missing required argument: --sigma".into(),
-                suggestion: "usage: panimg blur <input> -o <output> --sigma 2.0".into(),
-            };
-            return output::print_error(format, &err);
-        }
-    };
-
-    let blur_op = match BlurOp::new(sigma) {
-        Ok(op) => op,
+    let method = args.method.as_str();
+    let pipeline = match build_blur_pipeline(args, method) {
+        Ok(p) => p,
         Err(e) => return output::print_error(format, &e),
     };
 
-    let pipeline = Pipeline::new().push(blur_op);
     let input_path = Path::new(input);
     let output_path = Path::new(&output_path_str);
 
@@ -71,8 +61,8 @@ pub fn run(args: &BlurArgs, format: OutputFormat, dry_run: bool, show_schema: bo
         output::print_output(
             format,
             &format!(
-                "Would blur {} → {} (sigma={})",
-                input, output_path_str, sigma
+                "Would apply {method} blur to {} → {}",
+                input, output_path_str
             ),
             &plan,
         );
@@ -105,22 +95,89 @@ pub fn run(args: &BlurArgs, format: OutputFormat, dry_run: bool, show_schema: bo
     }
 
     let output_size = std::fs::metadata(output_path).map(|m| m.len()).unwrap_or(0);
+    let desc = pipeline.describe();
+    let params = desc
+        .steps
+        .first()
+        .map(|s| s.params.clone())
+        .unwrap_or_default();
 
     let result = BlurResult {
         input: input.clone(),
         output: output_path_str,
-        sigma,
+        method: method.to_string(),
+        params,
         output_size,
     };
 
     output::print_output(
         format,
-        &format!(
-            "Blurred {} → {} (sigma={})",
-            result.input, result.output, sigma
-        ),
+        &desc
+            .steps
+            .first()
+            .map(|s| s.description.clone())
+            .unwrap_or_else(|| format!("{method} blur applied")),
         &result,
     );
 
     0
+}
+
+fn build_blur_pipeline(
+    args: &BlurArgs,
+    method: &str,
+) -> std::result::Result<Pipeline, PanimgError> {
+    match method {
+        "gaussian" => {
+            let sigma = args.sigma.ok_or_else(|| PanimgError::InvalidArgument {
+                message: "gaussian blur requires --sigma".into(),
+                suggestion: "usage: panimg blur <input> -o <output> --sigma 2.0".into(),
+            })?;
+            Ok(Pipeline::new().push(BlurOp::new(sigma)?))
+        }
+        "box" => {
+            let radius = args.radius.ok_or_else(|| PanimgError::InvalidArgument {
+                message: "box blur requires --radius".into(),
+                suggestion: "usage: panimg blur <input> -o <output> --method box --radius 3".into(),
+            })?;
+            Ok(Pipeline::new().push(BoxBlurOp::new(radius)?))
+        }
+        "motion" => {
+            let angle = args.angle.unwrap_or(0.0);
+            let distance = args.distance.ok_or_else(|| PanimgError::InvalidArgument {
+                message: "motion blur requires --distance".into(),
+                suggestion:
+                    "usage: panimg blur <input> -o <output> --method motion --distance 10 --angle 45"
+                        .into(),
+            })?;
+            Ok(Pipeline::new().push(MotionBlurOp::new(angle, distance)?))
+        }
+        "median" => {
+            let radius = args.radius.ok_or_else(|| PanimgError::InvalidArgument {
+                message: "median blur requires --radius".into(),
+                suggestion: "usage: panimg blur <input> -o <output> --method median --radius 2"
+                    .into(),
+            })?;
+            Ok(Pipeline::new().push(MedianBlurOp::new(radius)?))
+        }
+        "bilateral" => {
+            let sigma = args.sigma.ok_or_else(|| PanimgError::InvalidArgument {
+                message: "bilateral blur requires --sigma (spatial sigma)".into(),
+                suggestion: "usage: panimg blur <input> -o <output> --method bilateral --sigma 5.0 --sigma-color 50 --radius 5".into(),
+            })?;
+            let sigma_color = args.sigma_color.ok_or_else(|| PanimgError::InvalidArgument {
+                message: "bilateral blur requires --sigma-color".into(),
+                suggestion: "usage: panimg blur <input> -o <output> --method bilateral --sigma 5.0 --sigma-color 50 --radius 5".into(),
+            })?;
+            let radius = args.radius.ok_or_else(|| PanimgError::InvalidArgument {
+                message: "bilateral blur requires --radius".into(),
+                suggestion: "usage: panimg blur <input> -o <output> --method bilateral --sigma 5.0 --sigma-color 50 --radius 5".into(),
+            })?;
+            Ok(Pipeline::new().push(BilateralBlurOp::new(radius, sigma, sigma_color)?))
+        }
+        _ => Err(PanimgError::InvalidArgument {
+            message: format!("unknown blur method: '{method}'"),
+            suggestion: "supported methods: gaussian, box, motion, median, bilateral".into(),
+        }),
+    }
 }
