@@ -1,10 +1,10 @@
-use crate::app::{OutputFormat, PsdInfoArgs};
+use crate::app::{PsdInfoArgs, RunContext};
 use crate::output;
 use panimg_core::error::PanimgError;
 use std::path::Path;
 
-pub fn run(args: &PsdInfoArgs, format: OutputFormat, schema: bool) -> i32 {
-    if schema {
+pub fn run(args: &PsdInfoArgs, ctx: &RunContext) -> i32 {
+    if ctx.schema {
         let schema = serde_json::json!({
             "command": "psd-info",
             "params": {
@@ -22,7 +22,7 @@ pub fn run(args: &PsdInfoArgs, format: OutputFormat, schema: bool) -> i32 {
                 message: "missing required argument: input".into(),
                 suggestion: "usage: panimg psd-info <input.psd>".into(),
             };
-            return output::print_error(format, &err);
+            return output::print_error(ctx.format, &err);
         }
     };
 
@@ -35,13 +35,13 @@ pub fn run(args: &PsdInfoArgs, format: OutputFormat, schema: bool) -> i32 {
                 path: Some(path.to_path_buf()),
                 suggestion: "check that the file exists and is readable".into(),
             };
-            return output::print_error(format, &err);
+            return output::print_error(ctx.format, &err);
         }
     };
 
     let info = match panimg_core::psd::get_psd_info(&data) {
         Ok(i) => i,
-        Err(e) => return output::print_error(format, &e),
+        Err(e) => return output::print_error(ctx.format, &e),
     };
 
     let human = format!(
@@ -56,6 +56,6 @@ pub fn run(args: &PsdInfoArgs, format: OutputFormat, schema: bool) -> i32 {
             .join("\n")
     );
 
-    output::print_output(format, &human, &info);
+    output::print_output(ctx.format, &human, &info);
     0
 }

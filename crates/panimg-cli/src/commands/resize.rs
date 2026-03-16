@@ -1,6 +1,6 @@
-use crate::app::{OutputFormat, ResizeArgs};
+use crate::app::{ResizeArgs, RunContext};
 use crate::output;
-use panimg_core::codec::{CodecRegistry, DecodeOptions, EncodeOptions};
+use panimg_core::codec::{CodecRegistry, EncodeOptions};
 use panimg_core::error::PanimgError;
 use panimg_core::format::ImageFormat;
 use panimg_core::ops::resize::{FitMode, ResizeFilter, ResizeOp};
@@ -29,14 +29,8 @@ struct ResizeResult {
     output_size: u64,
 }
 
-pub fn run(
-    args: &ResizeArgs,
-    format: OutputFormat,
-    dry_run: bool,
-    show_schema: bool,
-    dpi: Option<f32>,
-) -> i32 {
-    if show_schema {
+pub fn run(args: &ResizeArgs, ctx: &RunContext) -> i32 {
+    if ctx.schema {
         let s = ResizeOp::schema();
         output::print_json(&serde_json::to_value(&s).unwrap());
         return 0;
@@ -49,7 +43,7 @@ pub fn run(
                 message: "missing required argument: input".into(),
                 suggestion: "usage: panimg resize <input> -o <output> --width <px>".into(),
             };
-            return output::print_error(format, &err);
+            return output::print_error(ctx.format, &err);
         }
     };
 
@@ -60,7 +54,7 @@ pub fn run(
                 message: "missing required argument: output (-o)".into(),
                 suggestion: "usage: panimg resize <input> -o <output> --width <px>".into(),
             };
-            return output::print_error(format, &err);
+            return output::print_error(ctx.format, &err);
         }
     };
 
@@ -70,17 +64,17 @@ pub fn run(
     // Parse fit and filter
     let fit = match FitMode::parse(&args.fit) {
         Ok(f) => f,
-        Err(e) => return output::print_error(format, &e),
+        Err(e) => return output::print_error(ctx.format, &e),
     };
     let filter = match ResizeFilter::parse(&args.filter) {
         Ok(f) => f,
-        Err(e) => return output::print_error(format, &e),
+        Err(e) => return output::print_error(ctx.format, &e),
     };
 
     // Build resize operation
     let resize_op = match ResizeOp::new(args.width, args.height, fit, filter) {
         Ok(op) => op,
-        Err(e) => return output::print_error(format, &e),
+        Err(e) => return output::print_error(ctx.format, &e),
     };
 
     let pipeline = Pipeline::new().push(resize_op);
@@ -91,7 +85,7 @@ pub fn run(
         .unwrap_or(ImageFormat::Png);
 
     // Dry run
-    if dry_run {
+    if ctx.dry_run {
         let plan = ResizePlan {
             input: input.clone(),
             output: output_path_str,
@@ -100,7 +94,7 @@ pub fn run(
             quality: args.quality,
         };
         output::print_output(
-            format,
+            ctx.format,
             &format!("Would resize {} → {}", input, plan.output),
             &plan,
         );
@@ -108,10 +102,10 @@ pub fn run(
     }
 
     // Decode input
-    let decode_opts = DecodeOptions::with_dpi(dpi);
+    let decode_opts = ctx.decode_options();
     let img = match CodecRegistry::decode_with_options(input_path, &decode_opts) {
         Ok(i) => i,
-        Err(e) => return output::print_error(format, &e),
+        Err(e) => return output::print_error(ctx.format, &e),
     };
 
     let original_width = img.width();
@@ -120,7 +114,7 @@ pub fn run(
     // Execute pipeline
     let result_img = match pipeline.execute(img) {
         Ok(i) => i,
-        Err(e) => return output::print_error(format, &e),
+        Err(e) => return output::print_error(ctx.format, &e),
     };
 
     let new_width = result_img.width();
@@ -135,7 +129,7 @@ pub fn run(
     };
 
     if let Err(e) = CodecRegistry::encode(&result_img, output_path, &options) {
-        return output::print_error(format, &e);
+        return output::print_error(ctx.format, &e);
     }
 
     let output_size = std::fs::metadata(output_path).map(|m| m.len()).unwrap_or(0);
@@ -151,7 +145,7 @@ pub fn run(
     };
 
     output::print_output(
-        format,
+        ctx.format,
         &format!(
             "Resized {} ({}x{}) → {} ({}x{})",
             result.input, original_width, original_height, result.output, new_width, new_height

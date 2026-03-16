@@ -1,4 +1,4 @@
-use crate::app::{OutputFormat, OverlayArgs};
+use crate::app::{OverlayArgs, RunContext};
 use crate::output;
 use panimg_core::codec::{CodecRegistry, EncodeOptions};
 use panimg_core::error::PanimgError;
@@ -21,8 +21,8 @@ struct OverlayResult {
     output_size: u64,
 }
 
-pub fn run(args: &OverlayArgs, format: OutputFormat, dry_run: bool, show_schema: bool) -> i32 {
-    if show_schema {
+pub fn run(args: &OverlayArgs, ctx: &RunContext) -> i32 {
+    if ctx.schema {
         let s = OverlayOp::schema();
         output::print_json(&serde_json::to_value(&s).unwrap());
         return 0;
@@ -35,7 +35,7 @@ pub fn run(args: &OverlayArgs, format: OutputFormat, dry_run: bool, show_schema:
                 message: "missing required argument: input".into(),
                 suggestion: "usage: panimg overlay <base> --layer <overlay> -o <output>".into(),
             };
-            return output::print_error(format, &err);
+            return output::print_error(ctx.format, &err);
         }
     };
 
@@ -46,7 +46,7 @@ pub fn run(args: &OverlayArgs, format: OutputFormat, dry_run: bool, show_schema:
                 message: "missing required argument: --layer".into(),
                 suggestion: "usage: panimg overlay <base> --layer <overlay> -o <output>".into(),
             };
-            return output::print_error(format, &err);
+            return output::print_error(ctx.format, &err);
         }
     };
 
@@ -57,7 +57,7 @@ pub fn run(args: &OverlayArgs, format: OutputFormat, dry_run: bool, show_schema:
                 message: "missing required argument: output (-o)".into(),
                 suggestion: "usage: panimg overlay <base> --layer <overlay> -o <output>".into(),
             };
-            return output::print_error(format, &err);
+            return output::print_error(ctx.format, &err);
         }
     };
 
@@ -69,15 +69,15 @@ pub fn run(args: &OverlayArgs, format: OutputFormat, dry_run: bool, show_schema:
     let output_path = Path::new(&output_path_str);
 
     // Decode layer image first (needed for position calculation and tiling)
-    let layer_img = match CodecRegistry::decode(layer_path) {
+    let layer_img = match CodecRegistry::decode_with_options(layer_path, &ctx.decode_options()) {
         Ok(i) => i,
-        Err(e) => return output::print_error(format, &e),
+        Err(e) => return output::print_error(ctx.format, &e),
     };
 
     // We need base dimensions for position calculation; decode base for that
-    let base_img = match CodecRegistry::decode(input_path) {
+    let base_img = match CodecRegistry::decode_with_options(input_path, &ctx.decode_options()) {
         Ok(i) => i,
-        Err(e) => return output::print_error(format, &e),
+        Err(e) => return output::print_error(ctx.format, &e),
     };
 
     let base_w = base_img.width();
@@ -89,7 +89,7 @@ pub fn run(args: &OverlayArgs, format: OutputFormat, dry_run: bool, show_schema:
     let (x, y) = if let Some(pos_str) = &args.position {
         let pos: Position = match pos_str.parse() {
             Ok(p) => p,
-            Err(e) => return output::print_error(format, &e),
+            Err(e) => return output::print_error(ctx.format, &e),
         };
         resolve_position(pos, base_w, base_h, layer_w, layer_h, margin)
     } else {
@@ -101,7 +101,7 @@ pub fn run(args: &OverlayArgs, format: OutputFormat, dry_run: bool, show_schema:
         let spacing = args.spacing.unwrap_or(0);
         match create_tiled_overlay(&layer_img, base_w, base_h, opacity, spacing) {
             Ok(tiled) => tiled,
-            Err(e) => return output::print_error(format, &e),
+            Err(e) => return output::print_error(ctx.format, &e),
         }
     } else {
         layer_img
@@ -109,7 +109,7 @@ pub fn run(args: &OverlayArgs, format: OutputFormat, dry_run: bool, show_schema:
 
     let (final_x, final_y) = if args.tile { (0, 0) } else { (x, y) };
 
-    if dry_run {
+    if ctx.dry_run {
         let plan = serde_json::json!({
             "operation": "overlay",
             "x": final_x,
@@ -118,7 +118,7 @@ pub fn run(args: &OverlayArgs, format: OutputFormat, dry_run: bool, show_schema:
             "tile": args.tile,
         });
         output::print_output(
-            format,
+            ctx.format,
             &format!(
                 "Would overlay {} on {} → {} (x={}, y={}, opacity={})",
                 layer_path_str, input, output_path_str, final_x, final_y, opacity
@@ -130,14 +130,14 @@ pub fn run(args: &OverlayArgs, format: OutputFormat, dry_run: bool, show_schema:
 
     let overlay_op = match OverlayOp::new(final_layer, final_x, final_y, opacity) {
         Ok(op) => op,
-        Err(e) => return output::print_error(format, &e),
+        Err(e) => return output::print_error(ctx.format, &e),
     };
 
     let pipeline = Pipeline::new().push(overlay_op);
 
     let result_img = match pipeline.execute(base_img) {
         Ok(i) => i,
-        Err(e) => return output::print_error(format, &e),
+        Err(e) => return output::print_error(ctx.format, &e),
     };
 
     let out_format = ImageFormat::from_path_extension(output_path)
@@ -152,7 +152,7 @@ pub fn run(args: &OverlayArgs, format: OutputFormat, dry_run: bool, show_schema:
     };
 
     if let Err(e) = CodecRegistry::encode(&result_img, output_path, &options) {
-        return output::print_error(format, &e);
+        return output::print_error(ctx.format, &e);
     }
 
     let output_size = std::fs::metadata(output_path).map(|m| m.len()).unwrap_or(0);
@@ -168,7 +168,7 @@ pub fn run(args: &OverlayArgs, format: OutputFormat, dry_run: bool, show_schema:
     };
 
     output::print_output(
-        format,
+        ctx.format,
         &format!(
             "Overlay {} + {} → {} (x={}, y={}, opacity={})",
             result.input, result.layer, result.output, result.x, result.y, result.opacity

@@ -1,4 +1,4 @@
-use crate::app::{OutputFormat, TinyArgs};
+use crate::app::{OutputFormat, RunContext, TinyArgs};
 use crate::output;
 use panimg_core::compress::{compress, CompressOptions};
 use panimg_core::error::PanimgError;
@@ -97,8 +97,8 @@ struct TinyResult {
     savings_percent: f64,
 }
 
-pub fn run(args: &TinyArgs, format: OutputFormat, dry_run: bool, show_schema: bool) -> i32 {
-    if show_schema {
+pub fn run(args: &TinyArgs, ctx: &RunContext) -> i32 {
+    if ctx.schema {
         let s = schema();
         output::print_json(&serde_json::to_value(&s).unwrap());
         return 0;
@@ -111,7 +111,7 @@ pub fn run(args: &TinyArgs, format: OutputFormat, dry_run: bool, show_schema: bo
                 message: "missing required argument: input".into(),
                 suggestion: "usage: panimg tiny <input> [-o <output>]".into(),
             };
-            return output::print_error(format, &err);
+            return output::print_error(ctx.format, &err);
         }
     };
 
@@ -134,7 +134,7 @@ pub fn run(args: &TinyArgs, format: OutputFormat, dry_run: bool, show_schema: bo
     // Check output exists
     if output_path.exists() && !args.overwrite {
         if args.skip_existing {
-            match format {
+            match ctx.format {
                 OutputFormat::Human => println!("Skipped: output already exists"),
                 OutputFormat::Json => {
                     println!(r#"{{"status": "skipped", "reason": "output_exists"}}"#)
@@ -146,11 +146,11 @@ pub fn run(args: &TinyArgs, format: OutputFormat, dry_run: bool, show_schema: bo
             path: output_path.to_path_buf(),
             suggestion: "use --overwrite to replace or --skip-existing to skip".into(),
         };
-        return output::print_error(format, &err);
+        return output::print_error(ctx.format, &err);
     }
 
     // Dry run — need format detection here only for display
-    if dry_run {
+    if ctx.dry_run {
         let img_format = ImageFormat::from_path(input_path)
             .map(|f| f.to_string())
             .unwrap_or_else(|| "unknown".into());
@@ -164,7 +164,7 @@ pub fn run(args: &TinyArgs, format: OutputFormat, dry_run: bool, show_schema: bo
             strip_metadata: args.strip,
         };
         output::print_output(
-            format,
+            ctx.format,
             &format!("Would compress {} ({})", input, img_format),
             &plan,
         );
@@ -180,7 +180,7 @@ pub fn run(args: &TinyArgs, format: OutputFormat, dry_run: bool, show_schema: bo
                     path: Some(parent.to_path_buf()),
                     suggestion: "check output directory permissions".into(),
                 };
-                return output::print_error(format, &err);
+                return output::print_error(ctx.format, &err);
             }
         }
     }
@@ -223,10 +223,10 @@ pub fn run(args: &TinyArgs, format: OutputFormat, dry_run: bool, show_schema: bo
                 )
             };
 
-            output::print_output(format, &human_msg, &tiny_result);
+            output::print_output(ctx.format, &human_msg, &tiny_result);
             0
         }
-        Err(e) => output::print_error(format, &e),
+        Err(e) => output::print_error(ctx.format, &e),
     }
 }
 

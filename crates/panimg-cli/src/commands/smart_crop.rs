@@ -1,4 +1,4 @@
-use crate::app::{OutputFormat, SmartCropArgs};
+use crate::app::{RunContext, SmartCropArgs};
 use crate::output;
 use panimg_core::codec::{CodecRegistry, EncodeOptions};
 use panimg_core::error::PanimgError;
@@ -22,8 +22,8 @@ struct SmartCropResult {
     output_size: u64,
 }
 
-pub fn run(args: &SmartCropArgs, format: OutputFormat, dry_run: bool, show_schema: bool) -> i32 {
-    if show_schema {
+pub fn run(args: &SmartCropArgs, ctx: &RunContext) -> i32 {
+    if ctx.schema {
         let s = SmartCropOp::schema();
         output::print_json(&serde_json::to_value(&s).unwrap());
         return 0;
@@ -37,7 +37,7 @@ pub fn run(args: &SmartCropArgs, format: OutputFormat, dry_run: bool, show_schem
                 suggestion: "usage: panimg smart-crop <input> -o <output> --width W --height H"
                     .into(),
             };
-            return output::print_error(format, &err);
+            return output::print_error(ctx.format, &err);
         }
     };
 
@@ -49,7 +49,7 @@ pub fn run(args: &SmartCropArgs, format: OutputFormat, dry_run: bool, show_schem
                 suggestion: "usage: panimg smart-crop <input> -o <output> --width W --height H"
                     .into(),
             };
-            return output::print_error(format, &err);
+            return output::print_error(ctx.format, &err);
         }
     };
 
@@ -61,7 +61,7 @@ pub fn run(args: &SmartCropArgs, format: OutputFormat, dry_run: bool, show_schem
                 suggestion: "usage: panimg smart-crop <input> -o <output> --width W --height H"
                     .into(),
             };
-            return output::print_error(format, &err);
+            return output::print_error(ctx.format, &err);
         }
     };
 
@@ -73,30 +73,30 @@ pub fn run(args: &SmartCropArgs, format: OutputFormat, dry_run: bool, show_schem
                 suggestion: "usage: panimg smart-crop <input> -o <output> --width W --height H"
                     .into(),
             };
-            return output::print_error(format, &err);
+            return output::print_error(ctx.format, &err);
         }
     };
 
     let strategy = match SmartCropStrategy::parse(args.strategy.as_deref().unwrap_or("entropy")) {
         Ok(s) => s,
-        Err(e) => return output::print_error(format, &e),
+        Err(e) => return output::print_error(ctx.format, &e),
     };
 
     let step = args.step;
 
     let op = match SmartCropOp::new(width, height, strategy, step) {
         Ok(op) => op,
-        Err(e) => return output::print_error(format, &e),
+        Err(e) => return output::print_error(ctx.format, &e),
     };
 
     let input_path = Path::new(input);
     let output_path = Path::new(&output_path_str);
 
-    if dry_run {
+    if ctx.dry_run {
         let pipeline = Pipeline::new().push(op);
         let plan = pipeline.describe();
         output::print_output(
-            format,
+            ctx.format,
             &format!(
                 "Would smart-crop {} → {} ({}x{}, strategy={})",
                 input, output_path_str, width, height, strategy
@@ -106,26 +106,26 @@ pub fn run(args: &SmartCropArgs, format: OutputFormat, dry_run: bool, show_schem
         return 0;
     }
 
-    let img = match CodecRegistry::decode(input_path) {
+    let img = match CodecRegistry::decode_with_options(input_path, &ctx.decode_options()) {
         Ok(i) => i,
-        Err(e) => return output::print_error(format, &e),
+        Err(e) => return output::print_error(ctx.format, &e),
     };
 
     // Find best crop position once, then crop directly (avoid double search).
     let (crop_x, crop_y) = match op.find_best_crop(&img) {
         Ok(pos) => pos,
-        Err(e) => return output::print_error(format, &e),
+        Err(e) => return output::print_error(ctx.format, &e),
     };
 
     let crop_op = match CropOp::new(crop_x, crop_y, width, height) {
         Ok(op) => op,
-        Err(e) => return output::print_error(format, &e),
+        Err(e) => return output::print_error(ctx.format, &e),
     };
 
     let pipeline = Pipeline::new().push(crop_op);
     let result_img = match pipeline.execute(img) {
         Ok(i) => i,
-        Err(e) => return output::print_error(format, &e),
+        Err(e) => return output::print_error(ctx.format, &e),
     };
 
     let out_format = ImageFormat::from_path_extension(output_path)
@@ -140,7 +140,7 @@ pub fn run(args: &SmartCropArgs, format: OutputFormat, dry_run: bool, show_schem
     };
 
     if let Err(e) = CodecRegistry::encode(&result_img, output_path, &options) {
-        return output::print_error(format, &e);
+        return output::print_error(ctx.format, &e);
     }
 
     let output_size = std::fs::metadata(output_path).map(|m| m.len()).unwrap_or(0);
@@ -157,7 +157,7 @@ pub fn run(args: &SmartCropArgs, format: OutputFormat, dry_run: bool, show_schem
     };
 
     output::print_output(
-        format,
+        ctx.format,
         &format!(
             "Smart-crop {} → {} ({}x{} at ({},{}), strategy={})",
             result.input, result.output, width, height, crop_x, crop_y, strategy

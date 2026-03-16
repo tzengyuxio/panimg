@@ -1,4 +1,4 @@
-use crate::app::{OutputFormat, PipelineArgs};
+use crate::app::{PipelineArgs, RunContext};
 use crate::output;
 use panimg_core::codec::{CodecRegistry, EncodeOptions};
 use panimg_core::error::PanimgError;
@@ -15,7 +15,7 @@ struct PipelineResult {
     output_size: u64,
 }
 
-pub fn run(args: &PipelineArgs, format: OutputFormat, dry_run: bool) -> i32 {
+pub fn run(args: &PipelineArgs, ctx: &RunContext) -> i32 {
     let input = match &args.input {
         Some(i) => i,
         None => {
@@ -25,7 +25,7 @@ pub fn run(args: &PipelineArgs, format: OutputFormat, dry_run: bool) -> i32 {
                     "usage: panimg pipeline <input> -o <output> --steps \"grayscale | blur --sigma 2\""
                         .into(),
             };
-            return output::print_error(format, &err);
+            return output::print_error(ctx.format, &err);
         }
     };
 
@@ -38,7 +38,7 @@ pub fn run(args: &PipelineArgs, format: OutputFormat, dry_run: bool) -> i32 {
                     "usage: panimg pipeline <input> -o <output> --steps \"grayscale | blur --sigma 2\""
                         .into(),
             };
-            return output::print_error(format, &err);
+            return output::print_error(ctx.format, &err);
         }
     };
 
@@ -46,7 +46,7 @@ pub fn run(args: &PipelineArgs, format: OutputFormat, dry_run: bool) -> i32 {
     let pipeline = if let Some(steps) = &args.steps {
         match recipe::parse_steps(steps) {
             Ok(p) => p,
-            Err(e) => return output::print_error(format, &e),
+            Err(e) => return output::print_error(ctx.format, &e),
         }
     } else if let Some(recipe_path) = &args.recipe {
         let json_str = match std::fs::read_to_string(recipe_path) {
@@ -57,28 +57,28 @@ pub fn run(args: &PipelineArgs, format: OutputFormat, dry_run: bool) -> i32 {
                     path: Some(std::path::PathBuf::from(recipe_path)),
                     suggestion: "check that the recipe file exists and is readable".into(),
                 };
-                return output::print_error(format, &err);
+                return output::print_error(ctx.format, &err);
             }
         };
         match recipe::parse_recipe(&json_str) {
             Ok(p) => p,
-            Err(e) => return output::print_error(format, &e),
+            Err(e) => return output::print_error(ctx.format, &e),
         }
     } else {
         let err = PanimgError::InvalidArgument {
             message: "pipeline requires --steps or --recipe".into(),
             suggestion: "use --steps \"grayscale | blur --sigma 2\" or --recipe recipe.json".into(),
         };
-        return output::print_error(format, &err);
+        return output::print_error(ctx.format, &err);
     };
 
     let input_path = Path::new(input);
     let output_path = Path::new(&output_path_str);
 
-    if dry_run {
+    if ctx.dry_run {
         let plan = pipeline.describe();
         output::print_output(
-            format,
+            ctx.format,
             &format!(
                 "Would run {} steps on {} → {}",
                 plan.steps.len(),
@@ -90,16 +90,16 @@ pub fn run(args: &PipelineArgs, format: OutputFormat, dry_run: bool) -> i32 {
         return 0;
     }
 
-    let img = match CodecRegistry::decode(input_path) {
+    let img = match CodecRegistry::decode_with_options(input_path, &ctx.decode_options()) {
         Ok(i) => i,
-        Err(e) => return output::print_error(format, &e),
+        Err(e) => return output::print_error(ctx.format, &e),
     };
 
     let step_count = pipeline.len();
 
     let result_img = match pipeline.execute(img) {
         Ok(i) => i,
-        Err(e) => return output::print_error(format, &e),
+        Err(e) => return output::print_error(ctx.format, &e),
     };
 
     let out_format = ImageFormat::from_path_extension(output_path)
@@ -114,7 +114,7 @@ pub fn run(args: &PipelineArgs, format: OutputFormat, dry_run: bool) -> i32 {
     };
 
     if let Err(e) = CodecRegistry::encode(&result_img, output_path, &options) {
-        return output::print_error(format, &e);
+        return output::print_error(ctx.format, &e);
     }
 
     let output_size = std::fs::metadata(output_path).map(|m| m.len()).unwrap_or(0);
@@ -127,7 +127,7 @@ pub fn run(args: &PipelineArgs, format: OutputFormat, dry_run: bool) -> i32 {
     };
 
     output::print_output(
-        format,
+        ctx.format,
         &format!(
             "Pipeline {} → {} ({} steps)",
             result.input, result.output, result.steps

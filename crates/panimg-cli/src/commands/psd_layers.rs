@@ -1,4 +1,4 @@
-use crate::app::{OutputFormat, PsdLayersArgs};
+use crate::app::{PsdLayersArgs, RunContext};
 use crate::output;
 use panimg_core::codec::{CodecRegistry, EncodeOptions};
 use panimg_core::error::PanimgError;
@@ -36,8 +36,8 @@ fn sanitize_name(name: &str) -> String {
         .collect()
 }
 
-pub fn run(args: &PsdLayersArgs, format: OutputFormat, dry_run: bool, schema: bool) -> i32 {
-    if schema {
+pub fn run(args: &PsdLayersArgs, ctx: &RunContext) -> i32 {
+    if ctx.schema {
         let schema = serde_json::json!({
             "command": "psd-layers",
             "params": {
@@ -59,18 +59,22 @@ pub fn run(args: &PsdLayersArgs, format: OutputFormat, dry_run: bool, schema: bo
                 message: "missing required argument: input".into(),
                 suggestion: "usage: panimg psd-layers <input.psd> --output-dir ./layers".into(),
             };
-            return output::print_error(format, &err);
+            return output::print_error(ctx.format, &err);
         }
     };
 
     let input_path = Path::new(input);
 
-    if dry_run {
+    if ctx.dry_run {
         let plan = serde_json::json!({
             "operation": "psd-layers",
             "input": input,
         });
-        output::print_output(format, &format!("Would extract layers from {input}"), &plan);
+        output::print_output(
+            ctx.format,
+            &format!("Would extract layers from {input}"),
+            &plan,
+        );
         return 0;
     }
 
@@ -82,7 +86,7 @@ pub fn run(args: &PsdLayersArgs, format: OutputFormat, dry_run: bool, schema: bo
                 path: Some(input_path.to_path_buf()),
                 suggestion: "check that the file exists and is readable".into(),
             };
-            return output::print_error(format, &err);
+            return output::print_error(ctx.format, &err);
         }
     };
 
@@ -94,7 +98,7 @@ pub fn run(args: &PsdLayersArgs, format: OutputFormat, dry_run: bool, schema: bo
             path: Some(out_dir.to_path_buf()),
             suggestion: "check the output directory path".into(),
         };
-        return output::print_error(format, &err);
+        return output::print_error(ctx.format, &err);
     }
 
     let ext = &args.layer_format;
@@ -105,7 +109,7 @@ pub fn run(args: &PsdLayersArgs, format: OutputFormat, dry_run: bool, schema: bo
                 message: format!("unsupported layer format: {ext}"),
                 suggestion: "use png, jpg, webp, etc.".into(),
             };
-            return output::print_error(format, &err);
+            return output::print_error(ctx.format, &err);
         }
     };
 
@@ -164,11 +168,11 @@ pub fn run(args: &PsdLayersArgs, format: OutputFormat, dry_run: bool, schema: bo
         Ok(true)
     }) {
         Ok(total) => total,
-        Err(e) => return output::print_error(format, &e),
+        Err(e) => return output::print_error(ctx.format, &e),
     };
 
     if let Some(e) = encode_error {
-        return output::print_error(format, &e);
+        return output::print_error(ctx.format, &e);
     }
 
     let result = LayersResult {
@@ -180,7 +184,7 @@ pub fn run(args: &PsdLayersArgs, format: OutputFormat, dry_run: bool, schema: bo
     };
 
     output::print_output(
-        format,
+        ctx.format,
         &format!(
             "Extracted {}/{} layers from {} → {}",
             result.extracted, result.total_layers, result.input, result.output_dir
