@@ -1,5 +1,4 @@
 use crate::app::{FramesArgs, RunContext};
-use crate::output;
 use panimg_core::error::PanimgError;
 use panimg_core::ops::animation;
 use serde::Serialize;
@@ -28,7 +27,7 @@ pub fn run(args: &FramesArgs, ctx: &RunContext) -> i32 {
                 message: "missing required argument: input".into(),
                 suggestion: "usage: panimg frames <input.gif> --output-dir ./frames".into(),
             };
-            return output::print_error(ctx.format, &err);
+            return ctx.print_error(&err);
         }
     };
 
@@ -39,17 +38,13 @@ pub fn run(args: &FramesArgs, ctx: &RunContext) -> i32 {
             "operation": "frames",
             "input": input,
         });
-        output::print_output(
-            ctx.format,
-            &format!("Would extract frames from {input}"),
-            &plan,
-        );
+        ctx.print_output(&format!("Would extract frames from {input}"), &plan);
         return 0;
     }
 
     let (frames, extract_result) = match animation::extract_frames(input_path) {
         Ok(r) => r,
-        Err(e) => return output::print_error(ctx.format, &e),
+        Err(e) => return ctx.print_error(&e),
     };
 
     let output_dir = args.output_dir.as_deref().unwrap_or(".");
@@ -62,7 +57,7 @@ pub fn run(args: &FramesArgs, ctx: &RunContext) -> i32 {
                 path: Some(out_dir.to_path_buf()),
                 suggestion: "check the output directory path".into(),
             };
-            return output::print_error(ctx.format, &err);
+            return ctx.print_error(&err);
         }
     }
 
@@ -75,7 +70,7 @@ pub fn run(args: &FramesArgs, ctx: &RunContext) -> i32 {
         let frame_path = out_dir.join(&filename);
 
         if let Err(e) = animation::save_frame(frame, &frame_path) {
-            return output::print_error(ctx.format, &e);
+            return ctx.print_error(&e);
         }
 
         let delay_ms = extract_result
@@ -98,8 +93,7 @@ pub fn run(args: &FramesArgs, ctx: &RunContext) -> i32 {
         frames: frame_outputs,
     };
 
-    output::print_output(
-        ctx.format,
+    ctx.print_output(
         &format!(
             "Extracted {} frames from {} → {}",
             result.total_frames, result.input, result.output_dir

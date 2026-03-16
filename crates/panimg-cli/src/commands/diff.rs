@@ -1,5 +1,4 @@
 use crate::app::{DiffArgs, RunContext};
-use crate::output;
 use panimg_core::codec::{CodecRegistry, EncodeOptions};
 use panimg_core::error::PanimgError;
 use panimg_core::format::ImageFormat;
@@ -14,7 +13,7 @@ pub fn run(args: &DiffArgs, ctx: &RunContext) -> i32 {
                 message: "missing required argument: first input image".into(),
                 suggestion: "usage: panimg diff <image_a> <image_b> [-o diff.png]".into(),
             };
-            return output::print_error(ctx.format, &err);
+            return ctx.print_error(&err);
         }
     };
 
@@ -25,7 +24,7 @@ pub fn run(args: &DiffArgs, ctx: &RunContext) -> i32 {
                 message: "missing required argument: second input image".into(),
                 suggestion: "usage: panimg diff <image_a> <image_b> [-o diff.png]".into(),
             };
-            return output::print_error(ctx.format, &err);
+            return ctx.print_error(&err);
         }
     };
 
@@ -41,31 +40,27 @@ pub fn run(args: &DiffArgs, ctx: &RunContext) -> i32 {
             "image_b": input_b,
             "threshold": threshold,
         });
-        output::print_output(
-            ctx.format,
-            &format!("Would compare {} vs {}", input_a, input_b),
-            &plan,
-        );
+        ctx.print_output(&format!("Would compare {} vs {}", input_a, input_b), &plan);
         return 0;
     }
 
     let img_a = match CodecRegistry::decode_with_options(path_a, &ctx.decode_options()) {
         Ok(i) => i,
-        Err(e) => return output::print_error(ctx.format, &e),
+        Err(e) => return ctx.print_error(&e),
     };
 
     let img_b = match CodecRegistry::decode_with_options(path_b, &ctx.decode_options()) {
         Ok(i) => i,
-        Err(e) => return output::print_error(ctx.format, &e),
+        Err(e) => return ctx.print_error(&e),
     };
 
     if let Err(e) = diff::validate_inputs(&img_a, &img_b) {
-        return output::print_error(ctx.format, &e);
+        return ctx.print_error(&e);
     }
 
     let (result, diff_img) = match diff::compare(&img_a, &img_b, threshold) {
         Ok(r) => r,
-        Err(e) => return output::print_error(ctx.format, &e),
+        Err(e) => return ctx.print_error(&e),
     };
 
     // Save diff image if output path provided
@@ -81,12 +76,11 @@ pub fn run(args: &DiffArgs, ctx: &RunContext) -> i32 {
         };
 
         if let Err(e) = CodecRegistry::encode(&diff_img, output_path, &options) {
-            return output::print_error(ctx.format, &e);
+            return ctx.print_error(&e);
         }
     }
 
-    output::print_output(
-        ctx.format,
+    ctx.print_output(
         &format!(
             "{} vs {}: {}",
             input_a,

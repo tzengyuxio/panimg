@@ -1,5 +1,4 @@
 use crate::app::{PdfPagesArgs, RunContext};
-use crate::output;
 use panimg_core::codec::EncodeOptions;
 use panimg_core::error::PanimgError;
 use panimg_core::format::ImageFormat;
@@ -94,7 +93,7 @@ pub fn schema() -> CommandSchema {
 pub fn run(args: &PdfPagesArgs, ctx: &RunContext) -> i32 {
     if ctx.schema {
         let s = schema();
-        output::print_json(&serde_json::to_value(&s).unwrap());
+        ctx.print_json(&serde_json::to_value(&s).unwrap());
         return 0;
     }
 
@@ -105,7 +104,7 @@ pub fn run(args: &PdfPagesArgs, ctx: &RunContext) -> i32 {
                 message: "missing required argument: input".into(),
                 suggestion: "usage: panimg pdf-pages <input.pdf> --output-dir ./pages".into(),
             };
-            return output::print_error(ctx.format, &err);
+            return ctx.print_error(&err);
         }
     };
 
@@ -116,11 +115,7 @@ pub fn run(args: &PdfPagesArgs, ctx: &RunContext) -> i32 {
             "operation": "pdf-pages",
             "input": input,
         });
-        output::print_output(
-            ctx.format,
-            &format!("Would extract pages from {input}"),
-            &plan,
-        );
+        ctx.print_output(&format!("Would extract pages from {input}"), &plan);
         return 0;
     }
 
@@ -132,20 +127,20 @@ pub fn run(args: &PdfPagesArgs, ctx: &RunContext) -> i32 {
                 path: Some(input_path.to_path_buf()),
                 suggestion: "check that the file exists and is readable".into(),
             };
-            return output::print_error(ctx.format, &err);
+            return ctx.print_error(&err);
         }
     };
 
     // Parse the PDF once — used for both page count and rendering
     let doc = match PdfDocument::from_bytes(&data) {
         Ok(d) => d,
-        Err(e) => return output::print_error(ctx.format, &e),
+        Err(e) => return ctx.print_error(&e),
     };
 
     let range = match &args.pages {
         Some(spec) => match PageRange::parse(spec) {
             Ok(r) => r,
-            Err(e) => return output::print_error(ctx.format, &e),
+            Err(e) => return ctx.print_error(&e),
         },
         None => PageRange::all(doc.page_count()),
     };
@@ -158,7 +153,7 @@ pub fn run(args: &PdfPagesArgs, ctx: &RunContext) -> i32 {
             path: Some(out_dir.to_path_buf()),
             suggestion: "check the output directory path".into(),
         };
-        return output::print_error(ctx.format, &err);
+        return ctx.print_error(&err);
     }
 
     let ext = &args.page_format;
@@ -169,7 +164,7 @@ pub fn run(args: &PdfPagesArgs, ctx: &RunContext) -> i32 {
                 message: format!("unsupported page format: {ext}"),
                 suggestion: "use png, jpg, webp, etc.".into(),
             };
-            return output::print_error(ctx.format, &err);
+            return ctx.print_error(&err);
         }
     };
 
@@ -206,11 +201,11 @@ pub fn run(args: &PdfPagesArgs, ctx: &RunContext) -> i32 {
         Ok(true)
     }) {
         Ok(total) => total,
-        Err(e) => return output::print_error(ctx.format, &e),
+        Err(e) => return ctx.print_error(&e),
     };
 
     if let Some(e) = encode_error {
-        return output::print_error(ctx.format, &e);
+        return ctx.print_error(&e);
     }
 
     let result = PdfPagesResult {
@@ -221,8 +216,7 @@ pub fn run(args: &PdfPagesArgs, ctx: &RunContext) -> i32 {
         pages: page_outputs,
     };
 
-    output::print_output(
-        ctx.format,
+    ctx.print_output(
         &format!(
             "Extracted {}/{} pages from {} → {}",
             result.extracted, result.total_pages, result.input, result.output_dir

@@ -1,5 +1,4 @@
 use crate::app::{RunContext, TintArgs};
-use crate::output;
 use panimg_core::codec::{CodecRegistry, EncodeOptions};
 use panimg_core::color::parse_color;
 use panimg_core::error::PanimgError;
@@ -23,7 +22,7 @@ struct TintResult {
 pub fn run(args: &TintArgs, ctx: &RunContext) -> i32 {
     if ctx.schema {
         let s = TintOp::schema();
-        output::print_json(&serde_json::to_value(&s).unwrap());
+        ctx.print_json(&serde_json::to_value(&s).unwrap());
         return 0;
     }
 
@@ -35,7 +34,7 @@ pub fn run(args: &TintArgs, ctx: &RunContext) -> i32 {
                 suggestion: "usage: panimg tint <input> -o <output> --color red --strength 0.5"
                     .into(),
             };
-            return output::print_error(ctx.format, &err);
+            return ctx.print_error(&err);
         }
     };
 
@@ -46,7 +45,7 @@ pub fn run(args: &TintArgs, ctx: &RunContext) -> i32 {
                 message: "missing required argument: output (-o)".into(),
                 suggestion: "usage: panimg tint <input> -o <output> --color red".into(),
             };
-            return output::print_error(ctx.format, &err);
+            return ctx.print_error(&err);
         }
     };
 
@@ -57,26 +56,25 @@ pub fn run(args: &TintArgs, ctx: &RunContext) -> i32 {
                 message: "missing required argument: --color".into(),
                 suggestion: "use --color red, --color '#FF0000', or --color '255,0,0'".into(),
             };
-            return output::print_error(ctx.format, &err);
+            return ctx.print_error(&err);
         }
     };
 
     let rgba = match parse_color(&color_str) {
         Ok(c) => c,
-        Err(e) => return output::print_error(ctx.format, &e),
+        Err(e) => return ctx.print_error(&e),
     };
 
     let strength = args.strength.unwrap_or(0.5);
 
     let op = match TintOp::new(rgba[0], rgba[1], rgba[2], strength) {
         Ok(o) => o,
-        Err(e) => return output::print_error(ctx.format, &e),
+        Err(e) => return ctx.print_error(&e),
     };
 
     if ctx.dry_run {
         let desc = op.describe();
-        output::print_output(
-            ctx.format,
+        ctx.print_output(
             &format!("Would tint {input} with {color_str} at strength {strength}"),
             &desc,
         );
@@ -88,13 +86,13 @@ pub fn run(args: &TintArgs, ctx: &RunContext) -> i32 {
 
     let img = match CodecRegistry::decode_with_options(input_path, &ctx.decode_options()) {
         Ok(i) => i,
-        Err(e) => return output::print_error(ctx.format, &e),
+        Err(e) => return ctx.print_error(&e),
     };
 
     let pipeline = Pipeline::new().push(op);
     let result_img = match pipeline.execute(img) {
         Ok(i) => i,
-        Err(e) => return output::print_error(ctx.format, &e),
+        Err(e) => return ctx.print_error(&e),
     };
 
     let out_format = ImageFormat::from_path_extension(output_path)
@@ -109,7 +107,7 @@ pub fn run(args: &TintArgs, ctx: &RunContext) -> i32 {
     };
 
     if let Err(e) = CodecRegistry::encode(&result_img, output_path, &options) {
-        return output::print_error(ctx.format, &e);
+        return ctx.print_error(&e);
     }
 
     let result = TintResult {
@@ -121,8 +119,7 @@ pub fn run(args: &TintArgs, ctx: &RunContext) -> i32 {
         height: result_img.height(),
     };
 
-    output::print_output(
-        ctx.format,
+    ctx.print_output(
         &format!(
             "Tinted with {} at {}: {} → {}",
             result.color, result.strength, result.input, result.output

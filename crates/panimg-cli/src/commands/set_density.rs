@@ -1,5 +1,4 @@
 use crate::app::{RunContext, SetDensityArgs};
-use crate::output;
 use panimg_core::codec::{CodecRegistry, EncodeOptions};
 use panimg_core::error::PanimgError;
 use panimg_core::format::ImageFormat;
@@ -154,7 +153,7 @@ struct SetDensityResult {
 pub fn run(args: &SetDensityArgs, ctx: &RunContext) -> i32 {
     if ctx.schema {
         let s = schema();
-        output::print_json(&serde_json::to_value(&s).unwrap());
+        ctx.print_json(&serde_json::to_value(&s).unwrap());
         return 0;
     }
 
@@ -166,7 +165,7 @@ pub fn run(args: &SetDensityArgs, ctx: &RunContext) -> i32 {
                 suggestion: "usage: panimg set-density <input> -o <output> --density <value>"
                     .into(),
             };
-            return output::print_error(ctx.format, &err);
+            return ctx.print_error(&err);
         }
     };
 
@@ -178,7 +177,7 @@ pub fn run(args: &SetDensityArgs, ctx: &RunContext) -> i32 {
                 suggestion: "usage: panimg set-density <input> -o <output> --density <value>"
                     .into(),
             };
-            return output::print_error(ctx.format, &err);
+            return ctx.print_error(&err);
         }
     };
 
@@ -188,7 +187,7 @@ pub fn run(args: &SetDensityArgs, ctx: &RunContext) -> i32 {
     // Parse target unit and resolution
     let target_unit = match ResolutionUnit::parse(&args.unit) {
         Ok(u) => u,
-        Err(e) => return output::print_error(ctx.format, &e),
+        Err(e) => return ctx.print_error(&e),
     };
     let target_res = Resolution::from_density(args.density, target_unit);
 
@@ -213,8 +212,7 @@ pub fn run(args: &SetDensityArgs, ctx: &RunContext) -> i32 {
         } else {
             ""
         };
-        output::print_output(
-            ctx.format,
+        ctx.print_output(
             &format!(
                 "Would set density of {} to {} {}{} → {}",
                 input, args.density, args.unit, resample_msg, plan.output
@@ -228,7 +226,7 @@ pub fn run(args: &SetDensityArgs, ctx: &RunContext) -> i32 {
     let decode_opts = ctx.decode_options();
     let mut img = match CodecRegistry::decode_with_options(input_path, &decode_opts) {
         Ok(i) => i,
-        Err(e) => return output::print_error(ctx.format, &e),
+        Err(e) => return ctx.print_error(&e),
     };
 
     let input_size = std::fs::metadata(input_path).map(|m| m.len()).unwrap_or(0);
@@ -239,11 +237,11 @@ pub fn run(args: &SetDensityArgs, ctx: &RunContext) -> i32 {
     if args.resample {
         let source_unit = match ResolutionUnit::parse(&args.source_unit) {
             Ok(u) => u,
-            Err(e) => return output::print_error(ctx.format, &e),
+            Err(e) => return ctx.print_error(&e),
         };
         let filter = match ResizeFilter::parse(&args.filter) {
             Ok(f) => f,
-            Err(e) => return output::print_error(ctx.format, &e),
+            Err(e) => return ctx.print_error(&e),
         };
 
         // Determine source resolution
@@ -253,7 +251,7 @@ pub fn run(args: &SetDensityArgs, ctx: &RunContext) -> i32 {
                     message: format!("--source-density must be positive, got {src_density}"),
                     suggestion: "specify a positive density value".into(),
                 };
-                return output::print_error(ctx.format, &err);
+                return ctx.print_error(&err);
             }
             Resolution::from_density(src_density, source_unit)
         } else {
@@ -264,7 +262,7 @@ pub fn run(args: &SetDensityArgs, ctx: &RunContext) -> i32 {
                         message: "cannot resample: no resolution metadata found in input".into(),
                         suggestion: "specify --source-density and --source-unit manually".into(),
                     };
-                    return output::print_error(ctx.format, &err);
+                    return ctx.print_error(&err);
                 }
             }
         };
@@ -281,18 +279,18 @@ pub fn run(args: &SetDensityArgs, ctx: &RunContext) -> i32 {
                 message: format!("resampled dimensions would be zero: {new_w}x{new_h}"),
                 suggestion: "check that density values produce reasonable scaling".into(),
             };
-            return output::print_error(ctx.format, &err);
+            return ctx.print_error(&err);
         }
 
         if new_w != orig_w || new_h != orig_h {
             let resize_op = match ResizeOp::new(Some(new_w), Some(new_h), FitMode::Fill, filter) {
                 Ok(op) => op,
-                Err(e) => return output::print_error(ctx.format, &e),
+                Err(e) => return ctx.print_error(&e),
             };
 
             img = match resize_op.apply(img) {
                 Ok(i) => i,
-                Err(e) => return output::print_error(ctx.format, &e),
+                Err(e) => return ctx.print_error(&e),
             };
         }
     }
@@ -309,7 +307,7 @@ pub fn run(args: &SetDensityArgs, ctx: &RunContext) -> i32 {
     };
 
     if let Err(e) = CodecRegistry::encode(&img, output_path, &options) {
-        return output::print_error(ctx.format, &e);
+        return ctx.print_error(&e);
     }
 
     let output_size = std::fs::metadata(output_path).map(|m| m.len()).unwrap_or(0);
@@ -346,6 +344,6 @@ pub fn run(args: &SetDensityArgs, ctx: &RunContext) -> i32 {
         )
     };
 
-    output::print_output(ctx.format, &human_msg, &result);
+    ctx.print_output(&human_msg, &result);
     0
 }

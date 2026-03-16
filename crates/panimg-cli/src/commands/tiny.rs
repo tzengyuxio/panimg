@@ -1,5 +1,4 @@
 use crate::app::{OutputFormat, RunContext, TinyArgs};
-use crate::output;
 use panimg_core::compress::{compress, CompressOptions};
 use panimg_core::error::PanimgError;
 use panimg_core::format::ImageFormat;
@@ -100,7 +99,7 @@ struct TinyResult {
 pub fn run(args: &TinyArgs, ctx: &RunContext) -> i32 {
     if ctx.schema {
         let s = schema();
-        output::print_json(&serde_json::to_value(&s).unwrap());
+        ctx.print_json(&serde_json::to_value(&s).unwrap());
         return 0;
     }
 
@@ -111,7 +110,7 @@ pub fn run(args: &TinyArgs, ctx: &RunContext) -> i32 {
                 message: "missing required argument: input".into(),
                 suggestion: "usage: panimg tiny <input> [-o <output>]".into(),
             };
-            return output::print_error(ctx.format, &err);
+            return ctx.print_error(&err);
         }
     };
 
@@ -146,7 +145,7 @@ pub fn run(args: &TinyArgs, ctx: &RunContext) -> i32 {
             path: output_path.to_path_buf(),
             suggestion: "use --overwrite to replace or --skip-existing to skip".into(),
         };
-        return output::print_error(ctx.format, &err);
+        return ctx.print_error(&err);
     }
 
     // Dry run — need format detection here only for display
@@ -163,11 +162,7 @@ pub fn run(args: &TinyArgs, ctx: &RunContext) -> i32 {
             lossless: args.lossless,
             strip_metadata: args.strip,
         };
-        output::print_output(
-            ctx.format,
-            &format!("Would compress {} ({})", input, img_format),
-            &plan,
-        );
+        ctx.print_output(&format!("Would compress {} ({})", input, img_format), &plan);
         return 0;
     }
 
@@ -180,7 +175,7 @@ pub fn run(args: &TinyArgs, ctx: &RunContext) -> i32 {
                     path: Some(parent.to_path_buf()),
                     suggestion: "check output directory permissions".into(),
                 };
-                return output::print_error(ctx.format, &err);
+                return ctx.print_error(&err);
             }
         }
     }
@@ -223,10 +218,10 @@ pub fn run(args: &TinyArgs, ctx: &RunContext) -> i32 {
                 )
             };
 
-            output::print_output(ctx.format, &human_msg, &tiny_result);
+            ctx.print_output(&human_msg, &tiny_result);
             0
         }
-        Err(e) => output::print_error(ctx.format, &e),
+        Err(e) => ctx.print_error(&e),
     }
 }
 

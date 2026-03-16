@@ -1,6 +1,5 @@
 mod app;
 mod commands;
-mod output;
 
 use app::{Cli, Commands, OutputFormat};
 use clap::Parser;

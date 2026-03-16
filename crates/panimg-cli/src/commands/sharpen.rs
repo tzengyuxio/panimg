@@ -1,5 +1,4 @@
 use crate::app::{RunContext, SharpenArgs};
-use crate::output;
 use panimg_core::codec::{CodecRegistry, EncodeOptions};
 use panimg_core::error::PanimgError;
 use panimg_core::format::ImageFormat;
@@ -21,7 +20,7 @@ struct SharpenResult {
 pub fn run(args: &SharpenArgs, ctx: &RunContext) -> i32 {
     if ctx.schema {
         let s = SharpenOp::schema();
-        output::print_json(&serde_json::to_value(&s).unwrap());
+        ctx.print_json(&serde_json::to_value(&s).unwrap());
         return 0;
     }
 
@@ -32,7 +31,7 @@ pub fn run(args: &SharpenArgs, ctx: &RunContext) -> i32 {
                 message: "missing required argument: input".into(),
                 suggestion: "usage: panimg sharpen <input> -o <output> --sigma 1.0".into(),
             };
-            return output::print_error(ctx.format, &err);
+            return ctx.print_error(&err);
         }
     };
 
@@ -43,7 +42,7 @@ pub fn run(args: &SharpenArgs, ctx: &RunContext) -> i32 {
                 message: "missing required argument: output (-o)".into(),
                 suggestion: "usage: panimg sharpen <input> -o <output> --sigma 1.0".into(),
             };
-            return output::print_error(ctx.format, &err);
+            return ctx.print_error(&err);
         }
     };
 
@@ -54,7 +53,7 @@ pub fn run(args: &SharpenArgs, ctx: &RunContext) -> i32 {
                 message: "missing required argument: --sigma".into(),
                 suggestion: "usage: panimg sharpen <input> -o <output> --sigma 1.0".into(),
             };
-            return output::print_error(ctx.format, &err);
+            return ctx.print_error(&err);
         }
     };
 
@@ -62,7 +61,7 @@ pub fn run(args: &SharpenArgs, ctx: &RunContext) -> i32 {
 
     let sharpen_op = match SharpenOp::new(sigma, threshold) {
         Ok(op) => op,
-        Err(e) => return output::print_error(ctx.format, &e),
+        Err(e) => return ctx.print_error(&e),
     };
 
     let pipeline = Pipeline::new().push(sharpen_op);
@@ -71,8 +70,7 @@ pub fn run(args: &SharpenArgs, ctx: &RunContext) -> i32 {
 
     if ctx.dry_run {
         let plan = pipeline.describe();
-        output::print_output(
-            ctx.format,
+        ctx.print_output(
             &format!(
                 "Would sharpen {} → {} (sigma={}, threshold={})",
                 input, output_path_str, sigma, threshold
@@ -84,12 +82,12 @@ pub fn run(args: &SharpenArgs, ctx: &RunContext) -> i32 {
 
     let img = match CodecRegistry::decode_with_options(input_path, &ctx.decode_options()) {
         Ok(i) => i,
-        Err(e) => return output::print_error(ctx.format, &e),
+        Err(e) => return ctx.print_error(&e),
     };
 
     let result_img = match pipeline.execute(img) {
         Ok(i) => i,
-        Err(e) => return output::print_error(ctx.format, &e),
+        Err(e) => return ctx.print_error(&e),
     };
 
     let out_format = ImageFormat::from_path_extension(output_path)
@@ -104,7 +102,7 @@ pub fn run(args: &SharpenArgs, ctx: &RunContext) -> i32 {
     };
 
     if let Err(e) = CodecRegistry::encode(&result_img, output_path, &options) {
-        return output::print_error(ctx.format, &e);
+        return ctx.print_error(&e);
     }
 
     let output_size = std::fs::metadata(output_path).map(|m| m.len()).unwrap_or(0);
@@ -117,8 +115,7 @@ pub fn run(args: &SharpenArgs, ctx: &RunContext) -> i32 {
         output_size,
     };
 
-    output::print_output(
-        ctx.format,
+    ctx.print_output(
         &format!(
             "Sharpened {} → {} (sigma={}, threshold={})",
             result.input, result.output, sigma, threshold
