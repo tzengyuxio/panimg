@@ -1195,7 +1195,8 @@ fn blur_json_output() {
         .unwrap();
     assert!(output.status.success());
     let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-    assert_eq!(json["sigma"], 1.5);
+    assert_eq!(json["method"], "gaussian");
+    assert_eq!(json["params"]["sigma"], 1.5);
 }
 
 // ---- Sharpen Command ----

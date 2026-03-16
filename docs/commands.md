@@ -239,15 +239,24 @@ panimg posterize photo.jpg --levels 4 -o poster.jpg
 
 ### `blur`
 
-Apply Gaussian blur.
+Apply blur with selectable algorithm. Default is Gaussian.
 
 ```bash
 panimg blur photo.jpg --sigma 3.0 -o blurred.jpg
+panimg blur photo.jpg --method box --radius 3 -o blurred.jpg
+panimg blur photo.jpg --method motion --distance 15 --angle 45 -o blurred.jpg
+panimg blur photo.jpg --method median --radius 2 -o blurred.jpg
+panimg blur photo.jpg --method bilateral --sigma 5.0 --sigma-color 50 --radius 5 -o blurred.jpg
 ```
 
 | Option | Description |
 |--------|-------------|
-| `--sigma` | Blur radius (higher = more blur) |
+| `--method` | Blur algorithm: `gaussian` (default), `box`, `motion`, `median`, `bilateral` |
+| `--sigma` | Blur radius/sigma. For gaussian and bilateral |
+| `--radius` | Kernel radius in pixels. For box, median, and bilateral |
+| `--angle` | Motion blur angle in degrees, 0=horizontal (default: 0) |
+| `--distance` | Motion blur distance in pixels |
+| `--sigma-color` | Bilateral filter color sigma (intensity similarity) |
 
 ### `sharpen`
 

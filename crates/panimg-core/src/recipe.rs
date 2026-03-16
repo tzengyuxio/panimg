@@ -1,6 +1,6 @@
 use crate::color::parse_color;
 use crate::error::{PanimgError, Result};
-use crate::ops::blur::BlurOp;
+use crate::ops::blur::{BilateralBlurOp, BlurOp, BoxBlurOp, MedianBlurOp, MotionBlurOp};
 use crate::ops::brightness::BrightnessOp;
 use crate::ops::color::{PosterizeOp, SaturateOp, SepiaOp};
 use crate::ops::contrast::ContrastOp;
@@ -110,12 +110,64 @@ fn parse_single_step(step: &str) -> Result<Box<dyn Operation<DynamicImage, Panim
         "edge-detect" => Ok(Box::new(EdgeDetectOp::new())),
         "emboss" => Ok(Box::new(EmbossOp::new())),
         "blur" => {
-            let sigma = parse_f32_arg(args, "--sigma")?
-                .ok_or_else(|| PanimgError::InvalidArgument {
-                    message: "blur requires --sigma".into(),
-                    suggestion: "e.g. blur --sigma 2.0".into(),
-                })?;
-            Ok(Box::new(BlurOp::new(sigma)?))
+            let method = parse_str_arg(args, "--method");
+            match method.as_deref().unwrap_or("gaussian") {
+                "gaussian" | "" => {
+                    let sigma = parse_f32_arg(args, "--sigma")?
+                        .ok_or_else(|| PanimgError::InvalidArgument {
+                            message: "blur requires --sigma".into(),
+                            suggestion: "e.g. blur --sigma 2.0".into(),
+                        })?;
+                    Ok(Box::new(BlurOp::new(sigma)?))
+                }
+                "box" => {
+                    let radius = parse_u32_arg(args, "--radius")?
+                        .ok_or_else(|| PanimgError::InvalidArgument {
+                            message: "box blur requires --radius".into(),
+                            suggestion: "e.g. blur --method box --radius 3".into(),
+                        })?;
+                    Ok(Box::new(BoxBlurOp::new(radius)?))
+                }
+                "motion" => {
+                    let angle = parse_f32_arg(args, "--angle")?.unwrap_or(0.0);
+                    let distance = parse_u32_arg(args, "--distance")?
+                        .ok_or_else(|| PanimgError::InvalidArgument {
+                            message: "motion blur requires --distance".into(),
+                            suggestion: "e.g. blur --method motion --distance 10 --angle 45".into(),
+                        })?;
+                    Ok(Box::new(MotionBlurOp::new(angle, distance)?))
+                }
+                "median" => {
+                    let radius = parse_u32_arg(args, "--radius")?
+                        .ok_or_else(|| PanimgError::InvalidArgument {
+                            message: "median blur requires --radius".into(),
+                            suggestion: "e.g. blur --method median --radius 2".into(),
+                        })?;
+                    Ok(Box::new(MedianBlurOp::new(radius)?))
+                }
+                "bilateral" => {
+                    let sigma = parse_f32_arg(args, "--sigma")?
+                        .ok_or_else(|| PanimgError::InvalidArgument {
+                            message: "bilateral blur requires --sigma".into(),
+                            suggestion: "e.g. blur --method bilateral --sigma 5 --sigma-color 50 --radius 5".into(),
+                        })?;
+                    let sigma_color = parse_f32_arg(args, "--sigma-color")?
+                        .ok_or_else(|| PanimgError::InvalidArgument {
+                            message: "bilateral blur requires --sigma-color".into(),
+                            suggestion: "e.g. blur --method bilateral --sigma 5 --sigma-color 50 --radius 5".into(),
+                        })?;
+                    let radius = parse_u32_arg(args, "--radius")?
+                        .ok_or_else(|| PanimgError::InvalidArgument {
+                            message: "bilateral blur requires --radius".into(),
+                            suggestion: "e.g. blur --method bilateral --sigma 5 --sigma-color 50 --radius 5".into(),
+                        })?;
+                    Ok(Box::new(BilateralBlurOp::new(radius, sigma, sigma_color)?))
+                }
+                other => Err(PanimgError::InvalidArgument {
+                    message: format!("unknown blur method: '{other}'"),
+                    suggestion: "supported: gaussian, box, motion, median, bilateral".into(),
+                }),
+            }
         }
         "sharpen" => {
             let sigma = parse_f32_arg(args, "--sigma")?
@@ -400,8 +452,36 @@ fn build_op_from_recipe_step(
         "edge-detect" => Ok(Box::new(EdgeDetectOp::new())),
         "emboss" => Ok(Box::new(EmbossOp::new())),
         "blur" => {
-            let sigma = require_f32(p, "sigma", op)?;
-            Ok(Box::new(BlurOp::new(sigma)?))
+            let method = get_str(p, "method")?.unwrap_or("gaussian");
+            match method {
+                "gaussian" => {
+                    let sigma = require_f32(p, "sigma", op)?;
+                    Ok(Box::new(BlurOp::new(sigma)?))
+                }
+                "box" => {
+                    let radius = require_u32(p, "radius", op)?;
+                    Ok(Box::new(BoxBlurOp::new(radius)?))
+                }
+                "motion" => {
+                    let angle = get_f32(p, "angle")?.unwrap_or(0.0);
+                    let distance = require_u32(p, "distance", op)?;
+                    Ok(Box::new(MotionBlurOp::new(angle, distance)?))
+                }
+                "median" => {
+                    let radius = require_u32(p, "radius", op)?;
+                    Ok(Box::new(MedianBlurOp::new(radius)?))
+                }
+                "bilateral" => {
+                    let sigma = require_f32(p, "sigma", op)?;
+                    let sigma_color = require_f32(p, "sigma_color", op)?;
+                    let radius = require_u32(p, "radius", op)?;
+                    Ok(Box::new(BilateralBlurOp::new(radius, sigma, sigma_color)?))
+                }
+                other => Err(PanimgError::InvalidArgument {
+                    message: format!("unknown blur method: '{other}'"),
+                    suggestion: "supported: gaussian, box, motion, median, bilateral".into(),
+                }),
+            }
         }
         "sharpen" => {
             let sigma = require_f32(p, "sigma", op)?;
