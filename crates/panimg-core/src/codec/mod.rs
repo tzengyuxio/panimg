@@ -115,6 +115,8 @@ impl CodecRegistry {
             ImageFormat::Pdf => decode_pdf(data, path, _options),
             #[cfg(all(feature = "heic", target_vendor = "apple"))]
             ImageFormat::Heic => decode_heic(data, path),
+            #[cfg(feature = "psd")]
+            ImageFormat::Psd => decode_psd(data, path),
             #[allow(unreachable_patterns)]
             _ => Err(PanimgError::UnsupportedFormat {
                 format: format.to_string(),
@@ -404,6 +406,25 @@ fn decode_jxl(data: &[u8], path: Option<&Path>) -> Result<DynamicImage> {
             suggestion: "only RGB and RGBA JPEG XL images are supported".into(),
         }),
     }
+}
+
+#[cfg(feature = "psd")]
+fn decode_psd(data: &[u8], path: Option<&Path>) -> Result<DynamicImage> {
+    let psd_file = psd::Psd::from_bytes(data).map_err(|e| PanimgError::DecodeError {
+        message: format!("{e}"),
+        path: path.map(|p| p.to_path_buf()),
+        suggestion: "check that the PSD file is valid".into(),
+    })?;
+    let width = psd_file.width();
+    let height = psd_file.height();
+    let rgba = psd_file.rgba();
+    image::RgbaImage::from_raw(width, height, rgba)
+        .map(DynamicImage::ImageRgba8)
+        .ok_or_else(|| PanimgError::DecodeError {
+            message: "failed to create image from PSD data".into(),
+            path: path.map(|p| p.to_path_buf()),
+            suggestion: "PSD dimensions may be invalid".into(),
+        })
 }
 
 #[cfg(feature = "pdf")]

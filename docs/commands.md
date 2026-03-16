@@ -383,6 +383,41 @@ panimg diff before.png after.png -o diff.png
 
 ---
 
+## PSD (Photoshop)
+
+### `psd-info`
+
+Show PSD layer metadata. Requires `psd` feature.
+
+```bash
+panimg psd-info design.psd
+panimg psd-info design.psd --format json
+```
+
+Output includes document dimensions and a list of layers with their index, name, and size.
+
+### `psd-layers`
+
+Extract individual layers from a PSD file as separate images. Requires `psd` feature.
+
+```bash
+panimg psd-layers design.psd --output-dir ./layers
+panimg psd-layers design.psd --output-dir ./layers --layer-format jpg
+panimg psd-layers design.psd --output-dir ./layers --layer-index 3
+panimg psd-layers design.psd --output-dir ./layers --layer-name "Background"
+```
+
+| Option | Description |
+|--------|-------------|
+| `--output-dir` | Directory to save extracted layers (default: `.`) |
+| `--layer-format` | Output format for layers (default: `png`) |
+| `--layer-index` | Extract only this layer by index |
+| `--layer-name` | Extract only layers matching this name (substring match) |
+
+Output filenames follow the pattern `{stem}_layer_{index:03}_{name}.{ext}`.
+
+---
+
 ## Animation
 
 ### `frames`

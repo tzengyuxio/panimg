@@ -17,6 +17,7 @@ pub enum ImageFormat {
     Svg,
     Pdf,
     Heic,
+    Psd,
 }
 
 impl ImageFormat {
@@ -108,6 +109,10 @@ impl ImageFormat {
         if data.starts_with(b"%PDF") {
             return Some(Self::Pdf);
         }
+        // PSD: 8BPS
+        if data.starts_with(b"8BPS") {
+            return Some(Self::Psd);
+        }
 
         None
     }
@@ -127,6 +132,7 @@ impl ImageFormat {
             "svg" => Some(Self::Svg),
             "pdf" => Some(Self::Pdf),
             "heic" | "heif" => Some(Self::Heic),
+            "psd" => Some(Self::Psd),
             _ => None,
         }
     }
@@ -167,6 +173,7 @@ impl ImageFormat {
             Self::Svg => "svg",
             Self::Pdf => "pdf",
             Self::Heic => "heic",
+            Self::Psd => "psd",
         }
     }
 
@@ -185,6 +192,7 @@ impl ImageFormat {
             Self::Svg => "image/svg+xml",
             Self::Pdf => "application/pdf",
             Self::Heic => "image/heic",
+            Self::Psd => "image/vnd.adobe.photoshop",
         }
     }
 
@@ -199,7 +207,7 @@ impl ImageFormat {
             Self::Gif => Some(image::ImageFormat::Gif),
             Self::Bmp => Some(image::ImageFormat::Bmp),
             Self::Qoi => Some(image::ImageFormat::Qoi),
-            Self::Heic => None,
+            Self::Heic | Self::Psd => None,
             _ => None,
         }
     }
@@ -219,6 +227,7 @@ impl ImageFormat {
             Self::Svg,
             Self::Pdf,
             Self::Heic,
+            Self::Psd,
         ]
     }
 
@@ -233,7 +242,7 @@ impl ImageFormat {
             | Self::Tiff
             | Self::Qoi => true,
             Self::Avif => cfg!(feature = "avif"),
-            Self::Jxl | Self::Svg | Self::Pdf | Self::Heic => false,
+            Self::Jxl | Self::Svg | Self::Pdf | Self::Heic | Self::Psd => false,
         }
     }
 
@@ -252,6 +261,7 @@ impl ImageFormat {
             Self::Svg => cfg!(feature = "svg"),
             Self::Pdf => cfg!(feature = "pdf"),
             Self::Heic => cfg!(all(feature = "heic", target_vendor = "apple")),
+            Self::Psd => cfg!(feature = "psd"),
         }
     }
 }
@@ -271,6 +281,7 @@ impl std::fmt::Display for ImageFormat {
             Self::Svg => write!(f, "SVG"),
             Self::Pdf => write!(f, "PDF"),
             Self::Heic => write!(f, "HEIC"),
+            Self::Psd => write!(f, "PSD"),
         }
     }
 }

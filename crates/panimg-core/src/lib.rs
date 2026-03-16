@@ -8,6 +8,8 @@ pub mod icc;
 pub mod info;
 pub mod ops;
 pub mod pipeline;
+#[cfg(feature = "psd")]
+pub mod psd;
 pub mod recipe;
 pub mod resolution;
 pub mod schema;

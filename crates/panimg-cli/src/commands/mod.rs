@@ -20,6 +20,10 @@ pub mod orient;
 pub mod overlay;
 pub mod pipeline;
 pub mod posterize;
+#[cfg(feature = "psd")]
+pub mod psd_info;
+#[cfg(feature = "psd")]
+pub mod psd_layers;
 pub mod resize;
 pub mod rotate;
 pub mod saturate;
