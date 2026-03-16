@@ -1,4 +1,4 @@
-use crate::app::{CropArgs, OutputFormat};
+use crate::app::{CropArgs, RunContext};
 use crate::output;
 use panimg_core::codec::{CodecRegistry, EncodeOptions};
 use panimg_core::error::PanimgError;
@@ -20,8 +20,8 @@ struct CropResult {
     output_size: u64,
 }
 
-pub fn run(args: &CropArgs, format: OutputFormat, dry_run: bool, show_schema: bool) -> i32 {
-    if show_schema {
+pub fn run(args: &CropArgs, ctx: &RunContext) -> i32 {
+    if ctx.schema {
         let s = CropOp::schema();
         output::print_json(&serde_json::to_value(&s).unwrap());
         return 0;
@@ -36,7 +36,7 @@ pub fn run(args: &CropArgs, format: OutputFormat, dry_run: bool, show_schema: bo
                     "usage: panimg crop <input> -o <output> --x 0 --y 0 --width 100 --height 100"
                         .into(),
             };
-            return output::print_error(format, &err);
+            return output::print_error(ctx.format, &err);
         }
     };
 
@@ -48,7 +48,7 @@ pub fn run(args: &CropArgs, format: OutputFormat, dry_run: bool, show_schema: bo
                 suggestion: "usage: panimg crop <input> -o <output> --width 100 --height 100"
                     .into(),
             };
-            return output::print_error(format, &err);
+            return output::print_error(ctx.format, &err);
         }
     };
 
@@ -59,7 +59,7 @@ pub fn run(args: &CropArgs, format: OutputFormat, dry_run: bool, show_schema: bo
                 message: "missing required argument: --width".into(),
                 suggestion: "specify crop dimensions with --width and --height".into(),
             };
-            return output::print_error(format, &err);
+            return output::print_error(ctx.format, &err);
         }
     };
 
@@ -70,13 +70,13 @@ pub fn run(args: &CropArgs, format: OutputFormat, dry_run: bool, show_schema: bo
                 message: "missing required argument: --height".into(),
                 suggestion: "specify crop dimensions with --width and --height".into(),
             };
-            return output::print_error(format, &err);
+            return output::print_error(ctx.format, &err);
         }
     };
 
     let crop_op = match CropOp::new(args.x, args.y, width, height) {
         Ok(op) => op,
-        Err(e) => return output::print_error(format, &e),
+        Err(e) => return output::print_error(ctx.format, &e),
     };
 
     let pipeline = Pipeline::new().push(crop_op);
@@ -84,24 +84,24 @@ pub fn run(args: &CropArgs, format: OutputFormat, dry_run: bool, show_schema: bo
     let input_path = Path::new(input);
     let output_path = Path::new(&output_path_str);
 
-    if dry_run {
+    if ctx.dry_run {
         let plan = pipeline.describe();
         output::print_output(
-            format,
+            ctx.format,
             &format!("Would crop {} → {}", input, output_path_str),
             &plan,
         );
         return 0;
     }
 
-    let img = match CodecRegistry::decode(input_path) {
+    let img = match CodecRegistry::decode_with_options(input_path, &ctx.decode_options()) {
         Ok(i) => i,
-        Err(e) => return output::print_error(format, &e),
+        Err(e) => return output::print_error(ctx.format, &e),
     };
 
     let result_img = match pipeline.execute(img) {
         Ok(i) => i,
-        Err(e) => return output::print_error(format, &e),
+        Err(e) => return output::print_error(ctx.format, &e),
     };
 
     let out_format = ImageFormat::from_path_extension(output_path)
@@ -116,7 +116,7 @@ pub fn run(args: &CropArgs, format: OutputFormat, dry_run: bool, show_schema: bo
     };
 
     if let Err(e) = CodecRegistry::encode(&result_img, output_path, &options) {
-        return output::print_error(format, &e);
+        return output::print_error(ctx.format, &e);
     }
 
     let output_size = std::fs::metadata(output_path).map(|m| m.len()).unwrap_or(0);
@@ -132,7 +132,7 @@ pub fn run(args: &CropArgs, format: OutputFormat, dry_run: bool, show_schema: bo
     };
 
     output::print_output(
-        format,
+        ctx.format,
         &format!(
             "Cropped {} → {} ({}x{} at {}, {})",
             result.input, result.output, width, height, args.x, args.y

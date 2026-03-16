@@ -35,6 +35,30 @@ pub struct Cli {
 
 pub use pan_common::output::OutputFormat;
 
+/// Shared context for all command handlers, built from global CLI flags.
+pub struct RunContext {
+    pub format: OutputFormat,
+    pub dry_run: bool,
+    pub schema: bool,
+    pub dpi: Option<f32>,
+}
+
+impl RunContext {
+    pub fn from_cli(cli: &Cli) -> Self {
+        Self {
+            format: cli.format,
+            dry_run: cli.dry_run,
+            schema: cli.schema,
+            dpi: cli.dpi,
+        }
+    }
+
+    /// Build DecodeOptions with the global DPI setting.
+    pub fn decode_options(&self) -> panimg_core::codec::DecodeOptions {
+        panimg_core::codec::DecodeOptions::with_dpi(self.dpi)
+    }
+}
+
 #[derive(Subcommand)]
 pub enum Commands {
     /// Show image metadata and properties

@@ -1,4 +1,4 @@
-use crate::app::{OutputFormat, PosterizeArgs};
+use crate::app::{PosterizeArgs, RunContext};
 use crate::output;
 use panimg_core::codec::{CodecRegistry, EncodeOptions};
 use panimg_core::error::PanimgError;
@@ -18,8 +18,8 @@ struct PosterizeResult {
     height: u32,
 }
 
-pub fn run(args: &PosterizeArgs, format: OutputFormat, dry_run: bool, show_schema: bool) -> i32 {
-    if show_schema {
+pub fn run(args: &PosterizeArgs, ctx: &RunContext) -> i32 {
+    if ctx.schema {
         let s = PosterizeOp::schema();
         output::print_json(&serde_json::to_value(&s).unwrap());
         return 0;
@@ -32,7 +32,7 @@ pub fn run(args: &PosterizeArgs, format: OutputFormat, dry_run: bool, show_schem
                 message: "missing required argument: input".into(),
                 suggestion: "usage: panimg posterize <input> -o <output> --levels 4".into(),
             };
-            return output::print_error(format, &err);
+            return output::print_error(ctx.format, &err);
         }
     };
 
@@ -43,7 +43,7 @@ pub fn run(args: &PosterizeArgs, format: OutputFormat, dry_run: bool, show_schem
                 message: "missing required argument: output (-o)".into(),
                 suggestion: "usage: panimg posterize <input> -o <output> --levels 4".into(),
             };
-            return output::print_error(format, &err);
+            return output::print_error(ctx.format, &err);
         }
     };
 
@@ -51,13 +51,13 @@ pub fn run(args: &PosterizeArgs, format: OutputFormat, dry_run: bool, show_schem
 
     let op = match PosterizeOp::new(levels) {
         Ok(o) => o,
-        Err(e) => return output::print_error(format, &e),
+        Err(e) => return output::print_error(ctx.format, &e),
     };
 
-    if dry_run {
+    if ctx.dry_run {
         let desc = op.describe();
         output::print_output(
-            format,
+            ctx.format,
             &format!("Would posterize {input} to {levels} levels"),
             &desc,
         );
@@ -67,15 +67,15 @@ pub fn run(args: &PosterizeArgs, format: OutputFormat, dry_run: bool, show_schem
     let input_path = Path::new(input);
     let output_path = Path::new(&output_path_str);
 
-    let img = match CodecRegistry::decode(input_path) {
+    let img = match CodecRegistry::decode_with_options(input_path, &ctx.decode_options()) {
         Ok(i) => i,
-        Err(e) => return output::print_error(format, &e),
+        Err(e) => return output::print_error(ctx.format, &e),
     };
 
     let pipeline = Pipeline::new().push(op);
     let result_img = match pipeline.execute(img) {
         Ok(i) => i,
-        Err(e) => return output::print_error(format, &e),
+        Err(e) => return output::print_error(ctx.format, &e),
     };
 
     let out_format = ImageFormat::from_path_extension(output_path)
@@ -90,7 +90,7 @@ pub fn run(args: &PosterizeArgs, format: OutputFormat, dry_run: bool, show_schem
     };
 
     if let Err(e) = CodecRegistry::encode(&result_img, output_path, &options) {
-        return output::print_error(format, &e);
+        return output::print_error(ctx.format, &e);
     }
 
     let result = PosterizeResult {
@@ -102,7 +102,7 @@ pub fn run(args: &PosterizeArgs, format: OutputFormat, dry_run: bool, show_schem
     };
 
     output::print_output(
-        format,
+        ctx.format,
         &format!(
             "Posterized to {} levels: {} → {}",
             result.levels, result.input, result.output

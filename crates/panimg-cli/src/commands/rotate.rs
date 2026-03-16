@@ -1,4 +1,4 @@
-use crate::app::{OutputFormat, RotateArgs};
+use crate::app::{RotateArgs, RunContext};
 use crate::output;
 use panimg_core::codec::{CodecRegistry, EncodeOptions};
 use panimg_core::color::parse_color;
@@ -30,8 +30,8 @@ fn default_background_str(format: &ImageFormat) -> &'static str {
     }
 }
 
-pub fn run(args: &RotateArgs, format: OutputFormat, dry_run: bool, show_schema: bool) -> i32 {
-    if show_schema {
+pub fn run(args: &RotateArgs, ctx: &RunContext) -> i32 {
+    if ctx.schema {
         let s = RotateOp::schema();
         output::print_json(&serde_json::to_value(&s).unwrap());
         return 0;
@@ -44,7 +44,7 @@ pub fn run(args: &RotateArgs, format: OutputFormat, dry_run: bool, show_schema: 
                 message: "missing required argument: input".into(),
                 suggestion: "usage: panimg rotate <input> -o <output> --angle 90".into(),
             };
-            return output::print_error(format, &err);
+            return output::print_error(ctx.format, &err);
         }
     };
 
@@ -55,7 +55,7 @@ pub fn run(args: &RotateArgs, format: OutputFormat, dry_run: bool, show_schema: 
                 message: "missing required argument: output (-o)".into(),
                 suggestion: "usage: panimg rotate <input> -o <output> --angle 90".into(),
             };
-            return output::print_error(format, &err);
+            return output::print_error(ctx.format, &err);
         }
     };
 
@@ -66,13 +66,13 @@ pub fn run(args: &RotateArgs, format: OutputFormat, dry_run: bool, show_schema: 
                 message: "missing required argument: --angle".into(),
                 suggestion: "usage: panimg rotate <input> -o <output> --angle 90".into(),
             };
-            return output::print_error(format, &err);
+            return output::print_error(ctx.format, &err);
         }
     };
 
     let angle = match RotateAngle::parse(angle_str) {
         Ok(a) => a,
-        Err(e) => return output::print_error(format, &e),
+        Err(e) => return output::print_error(ctx.format, &e),
     };
 
     let input_path = Path::new(input);
@@ -90,30 +90,30 @@ pub fn run(args: &RotateArgs, format: OutputFormat, dry_run: bool, show_schema: 
         .unwrap_or_else(|| default_background_str(&out_format));
     let background = match parse_color(bg_str) {
         Ok(c) => c,
-        Err(e) => return output::print_error(format, &e),
+        Err(e) => return output::print_error(ctx.format, &e),
     };
 
     let rotate_op = RotateOp::new(angle).with_background(background);
     let pipeline = Pipeline::new().push(rotate_op);
 
-    if dry_run {
+    if ctx.dry_run {
         let plan = pipeline.describe();
         output::print_output(
-            format,
+            ctx.format,
             &format!("Would rotate {} → {}", input, output_path_str),
             &plan,
         );
         return 0;
     }
 
-    let img = match CodecRegistry::decode(input_path) {
+    let img = match CodecRegistry::decode_with_options(input_path, &ctx.decode_options()) {
         Ok(i) => i,
-        Err(e) => return output::print_error(format, &e),
+        Err(e) => return output::print_error(ctx.format, &e),
     };
 
     let result_img = match pipeline.execute(img) {
         Ok(i) => i,
-        Err(e) => return output::print_error(format, &e),
+        Err(e) => return output::print_error(ctx.format, &e),
     };
 
     let options = EncodeOptions {
@@ -124,7 +124,7 @@ pub fn run(args: &RotateArgs, format: OutputFormat, dry_run: bool, show_schema: 
     };
 
     if let Err(e) = CodecRegistry::encode(&result_img, output_path, &options) {
-        return output::print_error(format, &e);
+        return output::print_error(ctx.format, &e);
     }
 
     let output_size = std::fs::metadata(output_path).map(|m| m.len()).unwrap_or(0);
@@ -139,7 +139,7 @@ pub fn run(args: &RotateArgs, format: OutputFormat, dry_run: bool, show_schema: 
     };
 
     output::print_output(
-        format,
+        ctx.format,
         &format!(
             "Rotated {} → {} ({}°, {}x{})",
             result.input, result.output, result.angle, result.new_width, result.new_height

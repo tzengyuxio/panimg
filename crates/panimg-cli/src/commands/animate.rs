@@ -1,4 +1,4 @@
-use crate::app::{AnimateArgs, OutputFormat};
+use crate::app::{AnimateArgs, RunContext};
 use crate::output;
 use panimg_core::codec::CodecRegistry;
 use panimg_core::error::PanimgError;
@@ -14,7 +14,7 @@ struct AnimateResult {
     output_size: u64,
 }
 
-pub fn run(args: &AnimateArgs, format: OutputFormat, dry_run: bool) -> i32 {
+pub fn run(args: &AnimateArgs, ctx: &RunContext) -> i32 {
     let pattern = match &args.pattern {
         Some(p) => p,
         None => {
@@ -22,7 +22,7 @@ pub fn run(args: &AnimateArgs, format: OutputFormat, dry_run: bool) -> i32 {
                 message: "missing required argument: pattern".into(),
                 suggestion: "usage: panimg animate <pattern> -o <output.gif> --delay 100".into(),
             };
-            return output::print_error(format, &err);
+            return output::print_error(ctx.format, &err);
         }
     };
 
@@ -33,7 +33,7 @@ pub fn run(args: &AnimateArgs, format: OutputFormat, dry_run: bool) -> i32 {
                 message: "missing required argument: output (-o)".into(),
                 suggestion: "usage: panimg animate 'frames/*.png' -o output.gif --delay 100".into(),
             };
-            return output::print_error(format, &err);
+            return output::print_error(ctx.format, &err);
         }
     };
 
@@ -48,7 +48,7 @@ pub fn run(args: &AnimateArgs, format: OutputFormat, dry_run: bool) -> i32 {
                 message: format!("invalid glob pattern: {e}"),
                 suggestion: "use a pattern like 'frames/*.png'".into(),
             };
-            return output::print_error(format, &err);
+            return output::print_error(ctx.format, &err);
         }
     };
     files.sort();
@@ -58,13 +58,13 @@ pub fn run(args: &AnimateArgs, format: OutputFormat, dry_run: bool) -> i32 {
             message: format!("no files matched pattern: '{pattern}'"),
             suggestion: "check the glob pattern and ensure matching files exist".into(),
         };
-        return output::print_error(format, &err);
+        return output::print_error(ctx.format, &err);
     }
 
     let delay_ms = args.delay.unwrap_or(100);
     let repeat = !args.no_repeat;
 
-    if dry_run {
+    if ctx.dry_run {
         let plan = serde_json::json!({
             "operation": "animate",
             "pattern": pattern,
@@ -73,7 +73,7 @@ pub fn run(args: &AnimateArgs, format: OutputFormat, dry_run: bool) -> i32 {
             "repeat": repeat,
         });
         output::print_output(
-            format,
+            ctx.format,
             &format!(
                 "Would assemble {} frames into {} (delay={}ms)",
                 files.len(),
@@ -86,17 +86,18 @@ pub fn run(args: &AnimateArgs, format: OutputFormat, dry_run: bool) -> i32 {
     }
 
     // Load all images
+    let decode_opts = ctx.decode_options();
     let mut images = Vec::with_capacity(files.len());
     for file in &files {
-        match CodecRegistry::decode(file) {
+        match CodecRegistry::decode_with_options(file, &decode_opts) {
             Ok(img) => images.push(img),
-            Err(e) => return output::print_error(format, &e),
+            Err(e) => return output::print_error(ctx.format, &e),
         }
     }
 
     let output_path = Path::new(&output_path_str);
     if let Err(e) = animation::assemble_gif(&images, output_path, delay_ms, repeat) {
-        return output::print_error(format, &e);
+        return output::print_error(ctx.format, &e);
     }
 
     let output_size = std::fs::metadata(output_path).map(|m| m.len()).unwrap_or(0);
@@ -109,7 +110,7 @@ pub fn run(args: &AnimateArgs, format: OutputFormat, dry_run: bool) -> i32 {
     };
 
     output::print_output(
-        format,
+        ctx.format,
         &format!(
             "Assembled {} frames → {} (delay={}ms, {})",
             result.total_frames,

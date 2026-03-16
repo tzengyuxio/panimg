@@ -1,4 +1,4 @@
-use crate::app::{AutoOrientArgs, OutputFormat};
+use crate::app::{AutoOrientArgs, RunContext};
 use crate::output;
 use panimg_core::codec::{CodecRegistry, EncodeOptions};
 use panimg_core::error::PanimgError;
@@ -18,8 +18,8 @@ struct AutoOrientResult {
     output_size: u64,
 }
 
-pub fn run(args: &AutoOrientArgs, format: OutputFormat, dry_run: bool, show_schema: bool) -> i32 {
-    if show_schema {
+pub fn run(args: &AutoOrientArgs, ctx: &RunContext) -> i32 {
+    if ctx.schema {
         let s = AutoOrientOp::schema();
         output::print_json(&serde_json::to_value(&s).unwrap());
         return 0;
@@ -32,7 +32,7 @@ pub fn run(args: &AutoOrientArgs, format: OutputFormat, dry_run: bool, show_sche
                 message: "missing required argument: input".into(),
                 suggestion: "usage: panimg auto-orient <input> -o <output>".into(),
             };
-            return output::print_error(format, &err);
+            return output::print_error(ctx.format, &err);
         }
     };
 
@@ -43,7 +43,7 @@ pub fn run(args: &AutoOrientArgs, format: OutputFormat, dry_run: bool, show_sche
                 message: "missing required argument: output (-o)".into(),
                 suggestion: "usage: panimg auto-orient <input> -o <output>".into(),
             };
-            return output::print_error(format, &err);
+            return output::print_error(ctx.format, &err);
         }
     };
 
@@ -53,24 +53,24 @@ pub fn run(args: &AutoOrientArgs, format: OutputFormat, dry_run: bool, show_sche
     let orient_op = AutoOrientOp::from_path(input_path);
     let pipeline = Pipeline::new().push(orient_op);
 
-    if dry_run {
+    if ctx.dry_run {
         let plan = pipeline.describe();
         output::print_output(
-            format,
+            ctx.format,
             &format!("Would auto-orient {} → {}", input, output_path_str),
             &plan,
         );
         return 0;
     }
 
-    let img = match CodecRegistry::decode(input_path) {
+    let img = match CodecRegistry::decode_with_options(input_path, &ctx.decode_options()) {
         Ok(i) => i,
-        Err(e) => return output::print_error(format, &e),
+        Err(e) => return output::print_error(ctx.format, &e),
     };
 
     let result_img = match pipeline.execute(img) {
         Ok(i) => i,
-        Err(e) => return output::print_error(format, &e),
+        Err(e) => return output::print_error(ctx.format, &e),
     };
 
     let out_format = ImageFormat::from_path_extension(output_path)
@@ -85,7 +85,7 @@ pub fn run(args: &AutoOrientArgs, format: OutputFormat, dry_run: bool, show_sche
     };
 
     if let Err(e) = CodecRegistry::encode(&result_img, output_path, &options) {
-        return output::print_error(format, &e);
+        return output::print_error(ctx.format, &e);
     }
 
     let output_size = std::fs::metadata(output_path).map(|m| m.len()).unwrap_or(0);
@@ -99,7 +99,7 @@ pub fn run(args: &AutoOrientArgs, format: OutputFormat, dry_run: bool, show_sche
     };
 
     output::print_output(
-        format,
+        ctx.format,
         &format!(
             "Auto-oriented {} → {} ({}x{})",
             result.input, result.output, result.new_width, result.new_height

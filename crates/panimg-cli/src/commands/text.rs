@@ -1,4 +1,4 @@
-use crate::app::{OutputFormat, TextArgs};
+use crate::app::{RunContext, TextArgs};
 use crate::output;
 use panimg_core::codec::{CodecRegistry, EncodeOptions};
 use panimg_core::color::parse_color;
@@ -20,8 +20,8 @@ struct TextResult {
     output_size: u64,
 }
 
-pub fn run(args: &TextArgs, format: OutputFormat, dry_run: bool, show_schema: bool) -> i32 {
-    if show_schema {
+pub fn run(args: &TextArgs, ctx: &RunContext) -> i32 {
+    if ctx.schema {
         let s = DrawTextOp::schema();
         output::print_json(&serde_json::to_value(&s).unwrap());
         return 0;
@@ -34,7 +34,7 @@ pub fn run(args: &TextArgs, format: OutputFormat, dry_run: bool, show_schema: bo
                 message: "missing required argument: input".into(),
                 suggestion: "usage: panimg text <input> -o <output> --content \"Hello\"".into(),
             };
-            return output::print_error(format, &err);
+            return output::print_error(ctx.format, &err);
         }
     };
 
@@ -45,7 +45,7 @@ pub fn run(args: &TextArgs, format: OutputFormat, dry_run: bool, show_schema: bo
                 message: "missing required argument: --content".into(),
                 suggestion: "usage: panimg text <input> -o <output> --content \"Hello\"".into(),
             };
-            return output::print_error(format, &err);
+            return output::print_error(ctx.format, &err);
         }
     };
 
@@ -56,7 +56,7 @@ pub fn run(args: &TextArgs, format: OutputFormat, dry_run: bool, show_schema: bo
                 message: "missing required argument: output (-o)".into(),
                 suggestion: "usage: panimg text <input> -o <output> --content \"Hello\"".into(),
             };
-            return output::print_error(format, &err);
+            return output::print_error(ctx.format, &err);
         }
     };
 
@@ -64,7 +64,7 @@ pub fn run(args: &TextArgs, format: OutputFormat, dry_run: bool, show_schema: bo
     let color_str = args.color.as_deref().unwrap_or("white");
     let color = match parse_color(color_str) {
         Ok(c) => c,
-        Err(e) => return output::print_error(format, &e),
+        Err(e) => return output::print_error(ctx.format, &e),
     };
     let margin = args.margin.unwrap_or(10);
 
@@ -75,7 +75,7 @@ pub fn run(args: &TextArgs, format: OutputFormat, dry_run: bool, show_schema: bo
         .transpose()
     {
         Ok(p) => p,
-        Err(e) => return output::print_error(format, &e),
+        Err(e) => return output::print_error(ctx.format, &e),
     };
 
     let text_op = match DrawTextOp::new(
@@ -89,13 +89,13 @@ pub fn run(args: &TextArgs, format: OutputFormat, dry_run: bool, show_schema: bo
         margin,
     ) {
         Ok(op) => op,
-        Err(e) => return output::print_error(format, &e),
+        Err(e) => return output::print_error(ctx.format, &e),
     };
 
-    if dry_run {
+    if ctx.dry_run {
         let desc = text_op.describe();
         output::print_output(
-            format,
+            ctx.format,
             &format!(
                 "Would draw text \"{}\" on {} → {} (size={})",
                 content, input, output_path_str, size
@@ -108,16 +108,16 @@ pub fn run(args: &TextArgs, format: OutputFormat, dry_run: bool, show_schema: bo
     let input_path = Path::new(input);
     let output_path = Path::new(&output_path_str);
 
-    let img = match CodecRegistry::decode(input_path) {
+    let img = match CodecRegistry::decode_with_options(input_path, &ctx.decode_options()) {
         Ok(i) => i,
-        Err(e) => return output::print_error(format, &e),
+        Err(e) => return output::print_error(ctx.format, &e),
     };
 
     let pipeline = Pipeline::new().push(text_op);
 
     let result_img = match pipeline.execute(img) {
         Ok(i) => i,
-        Err(e) => return output::print_error(format, &e),
+        Err(e) => return output::print_error(ctx.format, &e),
     };
 
     let out_format = ImageFormat::from_path_extension(output_path)
@@ -132,7 +132,7 @@ pub fn run(args: &TextArgs, format: OutputFormat, dry_run: bool, show_schema: bo
     };
 
     if let Err(e) = CodecRegistry::encode(&result_img, output_path, &options) {
-        return output::print_error(format, &e);
+        return output::print_error(ctx.format, &e);
     }
 
     let output_size = std::fs::metadata(output_path).map(|m| m.len()).unwrap_or(0);
@@ -146,7 +146,7 @@ pub fn run(args: &TextArgs, format: OutputFormat, dry_run: bool, show_schema: bo
     };
 
     output::print_output(
-        format,
+        ctx.format,
         &format!(
             "Text \"{}\" → {} (size={}, {})",
             result.content,

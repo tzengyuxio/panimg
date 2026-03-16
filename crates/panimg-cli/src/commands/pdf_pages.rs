@@ -1,4 +1,4 @@
-use crate::app::{OutputFormat, PdfPagesArgs};
+use crate::app::{PdfPagesArgs, RunContext};
 use crate::output;
 use panimg_core::codec::EncodeOptions;
 use panimg_core::error::PanimgError;
@@ -91,14 +91,8 @@ pub fn schema() -> CommandSchema {
     }
 }
 
-pub fn run(
-    args: &PdfPagesArgs,
-    format: OutputFormat,
-    dry_run: bool,
-    show_schema: bool,
-    dpi: Option<f32>,
-) -> i32 {
-    if show_schema {
+pub fn run(args: &PdfPagesArgs, ctx: &RunContext) -> i32 {
+    if ctx.schema {
         let s = schema();
         output::print_json(&serde_json::to_value(&s).unwrap());
         return 0;
@@ -111,18 +105,22 @@ pub fn run(
                 message: "missing required argument: input".into(),
                 suggestion: "usage: panimg pdf-pages <input.pdf> --output-dir ./pages".into(),
             };
-            return output::print_error(format, &err);
+            return output::print_error(ctx.format, &err);
         }
     };
 
     let input_path = Path::new(input);
 
-    if dry_run {
+    if ctx.dry_run {
         let plan = serde_json::json!({
             "operation": "pdf-pages",
             "input": input,
         });
-        output::print_output(format, &format!("Would extract pages from {input}"), &plan);
+        output::print_output(
+            ctx.format,
+            &format!("Would extract pages from {input}"),
+            &plan,
+        );
         return 0;
     }
 
@@ -134,20 +132,20 @@ pub fn run(
                 path: Some(input_path.to_path_buf()),
                 suggestion: "check that the file exists and is readable".into(),
             };
-            return output::print_error(format, &err);
+            return output::print_error(ctx.format, &err);
         }
     };
 
     // Parse the PDF once — used for both page count and rendering
     let doc = match PdfDocument::from_bytes(&data) {
         Ok(d) => d,
-        Err(e) => return output::print_error(format, &e),
+        Err(e) => return output::print_error(ctx.format, &e),
     };
 
     let range = match &args.pages {
         Some(spec) => match PageRange::parse(spec) {
             Ok(r) => r,
-            Err(e) => return output::print_error(format, &e),
+            Err(e) => return output::print_error(ctx.format, &e),
         },
         None => PageRange::all(doc.page_count()),
     };
@@ -160,7 +158,7 @@ pub fn run(
             path: Some(out_dir.to_path_buf()),
             suggestion: "check the output directory path".into(),
         };
-        return output::print_error(format, &err);
+        return output::print_error(ctx.format, &err);
     }
 
     let ext = &args.page_format;
@@ -171,12 +169,12 @@ pub fn run(
                 message: format!("unsupported page format: {ext}"),
                 suggestion: "use png, jpg, webp, etc.".into(),
             };
-            return output::print_error(format, &err);
+            return output::print_error(ctx.format, &err);
         }
     };
 
     let prefix = args.prefix.as_deref().unwrap_or("page");
-    let render_dpi = dpi.unwrap_or(150.0);
+    let render_dpi = ctx.dpi.unwrap_or(panimg_core::codec::DEFAULT_DPI);
 
     let encode_opts = EncodeOptions {
         format: out_format,
@@ -208,11 +206,11 @@ pub fn run(
         Ok(true)
     }) {
         Ok(total) => total,
-        Err(e) => return output::print_error(format, &e),
+        Err(e) => return output::print_error(ctx.format, &e),
     };
 
     if let Some(e) = encode_error {
-        return output::print_error(format, &e);
+        return output::print_error(ctx.format, &e);
     }
 
     let result = PdfPagesResult {
@@ -224,7 +222,7 @@ pub fn run(
     };
 
     output::print_output(
-        format,
+        ctx.format,
         &format!(
             "Extracted {}/{} pages from {} → {}",
             result.extracted, result.total_pages, result.input, result.output_dir

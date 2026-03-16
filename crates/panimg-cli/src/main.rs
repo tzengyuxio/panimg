@@ -247,107 +247,51 @@ fn main() {
         std::process::exit(0);
     }
 
+    let ctx = app::RunContext::from_cli(&cli);
+
     let exit_code = match &cli.command {
-        Some(Commands::Info(args)) => commands::info::run(args, cli.format, cli.schema),
-        Some(Commands::Convert(args)) => {
-            commands::convert::run(args, cli.format, cli.dry_run, cli.schema, cli.dpi)
-        }
-        Some(Commands::Resize(args)) => {
-            commands::resize::run(args, cli.format, cli.dry_run, cli.schema, cli.dpi)
-        }
-        Some(Commands::Crop(args)) => {
-            commands::crop::run(args, cli.format, cli.dry_run, cli.schema)
-        }
-        Some(Commands::Rotate(args)) => {
-            commands::rotate::run(args, cli.format, cli.dry_run, cli.schema)
-        }
-        Some(Commands::Flip(args)) => {
-            commands::flip::run(args, cli.format, cli.dry_run, cli.schema)
-        }
-        Some(Commands::AutoOrient(args)) => {
-            commands::orient::run(args, cli.format, cli.dry_run, cli.schema)
-        }
-        Some(Commands::Grayscale(args)) => {
-            commands::grayscale::run(args, cli.format, cli.dry_run, cli.schema)
-        }
-        Some(Commands::Invert(args)) => {
-            commands::invert::run(args, cli.format, cli.dry_run, cli.schema)
-        }
-        Some(Commands::Brightness(args)) => {
-            commands::brightness::run(args, cli.format, cli.dry_run, cli.schema)
-        }
-        Some(Commands::Contrast(args)) => {
-            commands::contrast::run(args, cli.format, cli.dry_run, cli.schema)
-        }
-        Some(Commands::HueRotate(args)) => {
-            commands::hue_rotate::run(args, cli.format, cli.dry_run, cli.schema)
-        }
-        Some(Commands::Blur(args)) => {
-            commands::blur::run(args, cli.format, cli.dry_run, cli.schema)
-        }
-        Some(Commands::Sharpen(args)) => {
-            commands::sharpen::run(args, cli.format, cli.dry_run, cli.schema)
-        }
-        Some(Commands::EdgeDetect(args)) => {
-            commands::edge_detect::run(args, cli.format, cli.dry_run, cli.schema)
-        }
-        Some(Commands::Emboss(args)) => {
-            commands::emboss::run(args, cli.format, cli.dry_run, cli.schema)
-        }
-        Some(Commands::Draw(args)) => {
-            commands::draw::run(args, cli.format, cli.dry_run, cli.schema)
-        }
-        Some(Commands::Overlay(args)) => {
-            commands::overlay::run(args, cli.format, cli.dry_run, cli.schema)
-        }
-        Some(Commands::Trim(args)) => {
-            commands::trim::run(args, cli.format, cli.dry_run, cli.schema)
-        }
-        Some(Commands::Diff(args)) => commands::diff::run(args, cli.format, cli.dry_run),
-        Some(Commands::Pipeline(args)) => commands::pipeline::run(args, cli.format, cli.dry_run),
-        Some(Commands::Frames(args)) => commands::frames::run(args, cli.format, cli.dry_run),
-        Some(Commands::Animate(args)) => commands::animate::run(args, cli.format, cli.dry_run),
-        Some(Commands::GifSpeed(args)) => commands::gif_speed::run(args, cli.format, cli.dry_run),
-        Some(Commands::Saturate(args)) => {
-            commands::saturate::run(args, cli.format, cli.dry_run, cli.schema)
-        }
-        Some(Commands::Sepia(args)) => {
-            commands::sepia::run(args, cli.format, cli.dry_run, cli.schema)
-        }
-        Some(Commands::Tint(args)) => {
-            commands::tint::run(args, cli.format, cli.dry_run, cli.schema)
-        }
-        Some(Commands::Posterize(args)) => {
-            commands::posterize::run(args, cli.format, cli.dry_run, cli.schema)
-        }
-        Some(Commands::TiltShift(args)) => {
-            commands::tilt_shift::run(args, cli.format, cli.dry_run, cli.schema)
-        }
-        Some(Commands::SmartCrop(args)) => {
-            commands::smart_crop::run(args, cli.format, cli.dry_run, cli.schema)
-        }
-        Some(Commands::SetDensity(args)) => {
-            commands::set_density::run(args, cli.format, cli.dry_run, cli.schema, cli.dpi)
-        }
+        Some(Commands::Info(args)) => commands::info::run(args, &ctx),
+        Some(Commands::Convert(args)) => commands::convert::run(args, &ctx),
+        Some(Commands::Resize(args)) => commands::resize::run(args, &ctx),
+        Some(Commands::Crop(args)) => commands::crop::run(args, &ctx),
+        Some(Commands::Rotate(args)) => commands::rotate::run(args, &ctx),
+        Some(Commands::Flip(args)) => commands::flip::run(args, &ctx),
+        Some(Commands::AutoOrient(args)) => commands::orient::run(args, &ctx),
+        Some(Commands::Grayscale(args)) => commands::grayscale::run(args, &ctx),
+        Some(Commands::Invert(args)) => commands::invert::run(args, &ctx),
+        Some(Commands::Brightness(args)) => commands::brightness::run(args, &ctx),
+        Some(Commands::Contrast(args)) => commands::contrast::run(args, &ctx),
+        Some(Commands::HueRotate(args)) => commands::hue_rotate::run(args, &ctx),
+        Some(Commands::Blur(args)) => commands::blur::run(args, &ctx),
+        Some(Commands::Sharpen(args)) => commands::sharpen::run(args, &ctx),
+        Some(Commands::EdgeDetect(args)) => commands::edge_detect::run(args, &ctx),
+        Some(Commands::Emboss(args)) => commands::emboss::run(args, &ctx),
+        Some(Commands::Draw(args)) => commands::draw::run(args, &ctx),
+        Some(Commands::Overlay(args)) => commands::overlay::run(args, &ctx),
+        Some(Commands::Trim(args)) => commands::trim::run(args, &ctx),
+        Some(Commands::Diff(args)) => commands::diff::run(args, &ctx),
+        Some(Commands::Pipeline(args)) => commands::pipeline::run(args, &ctx),
+        Some(Commands::Frames(args)) => commands::frames::run(args, &ctx),
+        Some(Commands::Animate(args)) => commands::animate::run(args, &ctx),
+        Some(Commands::GifSpeed(args)) => commands::gif_speed::run(args, &ctx),
+        Some(Commands::Saturate(args)) => commands::saturate::run(args, &ctx),
+        Some(Commands::Sepia(args)) => commands::sepia::run(args, &ctx),
+        Some(Commands::Tint(args)) => commands::tint::run(args, &ctx),
+        Some(Commands::Posterize(args)) => commands::posterize::run(args, &ctx),
+        Some(Commands::TiltShift(args)) => commands::tilt_shift::run(args, &ctx),
+        Some(Commands::SmartCrop(args)) => commands::smart_crop::run(args, &ctx),
+        Some(Commands::SetDensity(args)) => commands::set_density::run(args, &ctx),
         #[cfg(feature = "psd")]
-        Some(Commands::PsdInfo(args)) => commands::psd_info::run(args, cli.format, cli.schema),
+        Some(Commands::PsdInfo(args)) => commands::psd_info::run(args, &ctx),
         #[cfg(feature = "psd")]
-        Some(Commands::PsdLayers(args)) => {
-            commands::psd_layers::run(args, cli.format, cli.dry_run, cli.schema)
-        }
+        Some(Commands::PsdLayers(args)) => commands::psd_layers::run(args, &ctx),
         #[cfg(feature = "pdf")]
-        Some(Commands::PdfPages(args)) => {
-            commands::pdf_pages::run(args, cli.format, cli.dry_run, cli.schema, cli.dpi)
-        }
+        Some(Commands::PdfPages(args)) => commands::pdf_pages::run(args, &ctx),
         #[cfg(feature = "text")]
-        Some(Commands::Text(args)) => {
-            commands::text::run(args, cli.format, cli.dry_run, cli.schema)
-        }
+        Some(Commands::Text(args)) => commands::text::run(args, &ctx),
         #[cfg(feature = "tiny")]
-        Some(Commands::Tiny(args)) => {
-            commands::tiny::run(args, cli.format, cli.dry_run, cli.schema)
-        }
-        Some(Commands::Batch(args)) => commands::batch::run(args, cli.format, cli.dry_run),
+        Some(Commands::Tiny(args)) => commands::tiny::run(args, &ctx),
+        Some(Commands::Batch(args)) => commands::batch::run(args, &ctx),
         None => {
             // No subcommand: show help
             use clap::CommandFactory;

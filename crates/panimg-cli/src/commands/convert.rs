@@ -1,6 +1,6 @@
-use crate::app::{ConvertArgs, OutputFormat};
+use crate::app::{ConvertArgs, OutputFormat, RunContext};
 use crate::output;
-use panimg_core::codec::{CodecRegistry, DecodeOptions, EncodeOptions};
+use panimg_core::codec::{CodecRegistry, EncodeOptions};
 use panimg_core::error::PanimgError;
 use panimg_core::format::ImageFormat;
 use panimg_core::schema::{CommandSchema, ParamRange, ParamSchema, ParamType};
@@ -124,14 +124,8 @@ struct ConvertResult {
     page: Option<usize>,
 }
 
-pub fn run(
-    args: &ConvertArgs,
-    format: OutputFormat,
-    dry_run: bool,
-    show_schema: bool,
-    dpi: Option<f32>,
-) -> i32 {
-    if show_schema {
+pub fn run(args: &ConvertArgs, ctx: &RunContext) -> i32 {
+    if ctx.schema {
         let s = schema();
         output::print_json(&serde_json::to_value(&s).unwrap());
         return 0;
@@ -144,7 +138,7 @@ pub fn run(
                 message: "missing required argument: input".into(),
                 suggestion: "usage: panimg convert <input> -o <output>".into(),
             };
-            return output::print_error(format, &err);
+            return output::print_error(ctx.format, &err);
         }
     };
 
@@ -155,7 +149,7 @@ pub fn run(
                 message: "missing required argument: output (-o)".into(),
                 suggestion: "usage: panimg convert <input> -o <output>".into(),
             };
-            return output::print_error(format, &err);
+            return output::print_error(ctx.format, &err);
         }
     };
 
@@ -172,7 +166,7 @@ pub fn run(
                     suggestion: "use a supported format: jpg, png, webp, gif, bmp, tiff, qoi"
                         .into(),
                 };
-                return output::print_error(format, &err);
+                return output::print_error(ctx.format, &err);
             }
         }
     } else {
@@ -183,7 +177,7 @@ pub fn run(
                     path: output_path.to_path_buf(),
                     suggestion: "specify --to <format> or use a recognized output extension".into(),
                 };
-                return output::print_error(format, &err);
+                return output::print_error(ctx.format, &err);
             }
         }
     };
@@ -191,7 +185,7 @@ pub fn run(
     // Check output exists
     if output_path.exists() && !args.overwrite {
         if args.skip_existing {
-            match format {
+            match ctx.format {
                 OutputFormat::Human => println!("Skipped: output already exists"),
                 OutputFormat::Json => {
                     println!(r#"{{"status": "skipped", "reason": "output_exists"}}"#)
@@ -203,7 +197,7 @@ pub fn run(
             path: output_path.to_path_buf(),
             suggestion: "use --overwrite to replace or --skip-existing to skip".into(),
         };
-        return output::print_error(format, &err);
+        return output::print_error(ctx.format, &err);
     }
 
     // Validate --page early (before dry-run and decode)
@@ -212,7 +206,7 @@ pub fn run(
             message: "page numbers are 1-based, 0 is not valid".into(),
             suggestion: "use --page 1 for the first page".into(),
         };
-        return output::print_error(format, &err);
+        return output::print_error(ctx.format, &err);
     }
 
     // Detect input format
@@ -223,12 +217,12 @@ pub fn run(
                 path: input_path.to_path_buf(),
                 suggestion: "the input file format could not be detected".into(),
             };
-            return output::print_error(format, &err);
+            return output::print_error(ctx.format, &err);
         }
     };
 
     // Dry run
-    if dry_run {
+    if ctx.dry_run {
         let plan = ConvertPlan {
             input: input.clone(),
             output: output_path_str,
@@ -239,7 +233,7 @@ pub fn run(
             page: args.page,
         };
         output::print_output(
-            format,
+            ctx.format,
             &format!(
                 "Would convert {} ({}) → {} ({})",
                 input, input_format, plan.output, target_format
@@ -250,11 +244,11 @@ pub fn run(
     }
 
     // Decode
-    let mut decode_opts = DecodeOptions::with_dpi(dpi);
+    let mut decode_opts = ctx.decode_options();
     decode_opts.page = args.page.map(|p| p.saturating_sub(1));
     let mut img = match CodecRegistry::decode_with_options(input_path, &decode_opts) {
         Ok(i) => i,
-        Err(e) => return output::print_error(format, &e),
+        Err(e) => return output::print_error(ctx.format, &e),
     };
 
     let input_size = std::fs::metadata(input_path).map(|m| m.len()).unwrap_or(0);
@@ -270,7 +264,7 @@ pub fn run(
                         message: format!("unknown color space: '{target_cs}'"),
                         suggestion: "use one of: srgb, adobe-rgb, display-p3".into(),
                     };
-                    return output::print_error(format, &err);
+                    return output::print_error(ctx.format, &err);
                 }
             };
 
@@ -283,7 +277,7 @@ pub fn run(
             match panimg_core::icc::convert_to_color_space(&img, source_icc.as_deref(), color_space)
             {
                 Ok(converted) => img = converted,
-                Err(e) => return output::print_error(format, &e),
+                Err(e) => return output::print_error(ctx.format, &e),
             }
         }
     }
@@ -297,7 +291,7 @@ pub fn run(
     };
 
     if let Err(e) = CodecRegistry::encode(&img, output_path, &options) {
-        return output::print_error(format, &e);
+        return output::print_error(ctx.format, &e);
     }
 
     let output_size = std::fs::metadata(output_path).map(|m| m.len()).unwrap_or(0);
@@ -313,7 +307,7 @@ pub fn run(
     };
 
     output::print_output(
-        format,
+        ctx.format,
         &format!(
             "Converted {} → {} ({} → {})",
             result.input, result.output, result.from_format, result.to_format

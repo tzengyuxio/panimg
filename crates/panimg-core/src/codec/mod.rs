@@ -4,6 +4,9 @@ use crate::resolution::Resolution;
 use image::DynamicImage;
 use std::path::Path;
 
+/// Default DPI for rasterizing vector/document formats (PDF).
+pub const DEFAULT_DPI: f32 = 150.0;
+
 /// Options for decoding an image.
 #[derive(Debug, Clone)]
 pub struct DecodeOptions {
@@ -16,7 +19,7 @@ pub struct DecodeOptions {
 impl Default for DecodeOptions {
     fn default() -> Self {
         Self {
-            dpi: 150.0,
+            dpi: DEFAULT_DPI,
             page: None,
         }
     }

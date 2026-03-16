@@ -70,7 +70,7 @@ impl ImageInfo {
                 }
             })?;
             let page_count = Some(doc.page_count());
-            let img = doc.render_page(0, 150.0)?;
+            let img = doc.render_page(0, crate::codec::DEFAULT_DPI)?;
             (img, page_count)
         } else {
             let img = image::load_from_memory(&data).map_err(|e| PanimgError::DecodeError {

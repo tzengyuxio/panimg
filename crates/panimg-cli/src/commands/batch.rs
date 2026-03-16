@@ -1,4 +1,4 @@
-use crate::app::{BatchArgs, OutputFormat};
+use crate::app::{BatchArgs, OutputFormat, RunContext};
 use crate::output;
 use indicatif::{ProgressBar, ProgressStyle};
 use panimg_core::codec::{CodecRegistry, EncodeOptions};
@@ -334,6 +334,7 @@ fn process_single_file(
     options: &EncodeOptions,
     overwrite: bool,
     skip_existing: bool,
+    decode_options: &panimg_core::codec::DecodeOptions,
 ) -> FileResult {
     let input_str = input_path.to_string_lossy().to_string();
     let output_str = output_path.to_string_lossy().to_string();
@@ -349,7 +350,7 @@ fn process_single_file(
     }
 
     // Decode
-    let img = match CodecRegistry::decode(input_path) {
+    let img = match CodecRegistry::decode_with_options(input_path, decode_options) {
         Ok(i) => i,
         Err(e) => return FileResult::error(input_str, output_str, e.to_string()),
     };
@@ -400,7 +401,7 @@ fn process_single_file_tiny(
     }
 }
 
-pub fn run(args: &BatchArgs, format: OutputFormat, dry_run: bool) -> i32 {
+pub fn run(args: &BatchArgs, ctx: &RunContext) -> i32 {
     // Expand glob pattern
     let files: Vec<PathBuf> = match glob::glob(&args.pattern) {
         Ok(paths) => paths
@@ -412,7 +413,7 @@ pub fn run(args: &BatchArgs, format: OutputFormat, dry_run: bool) -> i32 {
                 message: format!("invalid glob pattern: {e}"),
                 suggestion: "use a valid glob pattern like '*.png' or 'photos/**/*.jpg'".into(),
             };
-            return output::print_error(format, &err);
+            return output::print_error(ctx.format, &err);
         }
     };
 
@@ -421,7 +422,7 @@ pub fn run(args: &BatchArgs, format: OutputFormat, dry_run: bool) -> i32 {
             message: format!("no files matched pattern: '{}'", args.pattern),
             suggestion: "check the glob pattern and ensure matching files exist".into(),
         };
-        return output::print_error(format, &err);
+        return output::print_error(ctx.format, &err);
     }
 
     // Determine target extension for output
@@ -432,12 +433,12 @@ pub fn run(args: &BatchArgs, format: OutputFormat, dry_run: bool) -> i32 {
     let dummy_path = Path::new("dummy.png");
     if args.operation != "auto-orient" {
         if let Err(e) = build_pipeline(args, dummy_path) {
-            return output::print_error(format, &e);
+            return output::print_error(ctx.format, &e);
         }
     }
 
     // Dry run
-    if dry_run {
+    if ctx.dry_run {
         let plan_files: Vec<serde_json::Value> = files
             .iter()
             .map(|f| {
@@ -461,7 +462,7 @@ pub fn run(args: &BatchArgs, format: OutputFormat, dry_run: bool) -> i32 {
         });
 
         output::print_output(
-            format,
+            ctx.format,
             &format!("Would {} {} files", args.operation, files.len()),
             &plan,
         );
@@ -469,7 +470,7 @@ pub fn run(args: &BatchArgs, format: OutputFormat, dry_run: bool) -> i32 {
     }
 
     // Setup progress bar (only for human output)
-    let pb = match format {
+    let pb = match ctx.format {
         OutputFormat::Human => {
             let pb = ProgressBar::new(files.len() as u64);
             pb.set_style(
@@ -503,6 +504,7 @@ pub fn run(args: &BatchArgs, format: OutputFormat, dry_run: bool) -> i32 {
     };
 
     // Process files in parallel
+    let decode_opts = ctx.decode_options();
     files.par_iter().for_each(|input_path| {
         let output_path = resolve_output_path(
             input_path,
@@ -562,6 +564,7 @@ pub fn run(args: &BatchArgs, format: OutputFormat, dry_run: bool) -> i32 {
                 &options,
                 args.overwrite,
                 args.skip_existing,
+                &decode_opts,
             )
         };
 
@@ -607,7 +610,7 @@ pub fn run(args: &BatchArgs, format: OutputFormat, dry_run: bool) -> i32 {
     };
 
     output::print_output(
-        format,
+        ctx.format,
         &format!(
             "Batch {}: {}/{} succeeded, {} failed",
             args.operation,
@@ -620,7 +623,7 @@ pub fn run(args: &BatchArgs, format: OutputFormat, dry_run: bool) -> i32 {
 
     if failed_count > 0 {
         // Print failed files in human mode
-        if matches!(format, OutputFormat::Human) {
+        if matches!(ctx.format, OutputFormat::Human) {
             for r in &batch_result.results {
                 if r.status == "error" {
                     eprintln!(

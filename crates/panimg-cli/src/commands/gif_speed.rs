@@ -1,4 +1,4 @@
-use crate::app::{GifSpeedArgs, OutputFormat};
+use crate::app::{GifSpeedArgs, RunContext};
 use crate::output;
 use panimg_core::error::PanimgError;
 use panimg_core::ops::animation;
@@ -14,7 +14,7 @@ struct GifSpeedResult {
     output_size: u64,
 }
 
-pub fn run(args: &GifSpeedArgs, format: OutputFormat, dry_run: bool) -> i32 {
+pub fn run(args: &GifSpeedArgs, ctx: &RunContext) -> i32 {
     let input = match &args.input {
         Some(i) => i,
         None => {
@@ -23,7 +23,7 @@ pub fn run(args: &GifSpeedArgs, format: OutputFormat, dry_run: bool) -> i32 {
                 suggestion: "usage: panimg gif-speed <input.gif> -o <output.gif> --speed 2.0"
                     .into(),
             };
-            return output::print_error(format, &err);
+            return output::print_error(ctx.format, &err);
         }
     };
 
@@ -35,7 +35,7 @@ pub fn run(args: &GifSpeedArgs, format: OutputFormat, dry_run: bool) -> i32 {
                 suggestion: "usage: panimg gif-speed <input.gif> -o <output.gif> --speed 2.0"
                     .into(),
             };
-            return output::print_error(format, &err);
+            return output::print_error(ctx.format, &err);
         }
     };
 
@@ -46,20 +46,20 @@ pub fn run(args: &GifSpeedArgs, format: OutputFormat, dry_run: bool) -> i32 {
                 message: "missing required argument: --speed".into(),
                 suggestion: "use --speed 2.0 for 2x faster, or --speed 0.5 for half speed".into(),
             };
-            return output::print_error(format, &err);
+            return output::print_error(ctx.format, &err);
         }
     };
 
     let input_path = Path::new(input);
 
-    if dry_run {
+    if ctx.dry_run {
         let plan = serde_json::json!({
             "operation": "gif-speed",
             "input": input,
             "speed": speed,
         });
         output::print_output(
-            format,
+            ctx.format,
             &format!("Would change speed of {input} by {speed}x"),
             &plan,
         );
@@ -68,17 +68,17 @@ pub fn run(args: &GifSpeedArgs, format: OutputFormat, dry_run: bool) -> i32 {
 
     let (frames, _) = match animation::extract_frames(input_path) {
         Ok(r) => r,
-        Err(e) => return output::print_error(format, &e),
+        Err(e) => return output::print_error(ctx.format, &e),
     };
 
     let new_frames = match animation::change_speed(&frames, speed) {
         Ok(f) => f,
-        Err(e) => return output::print_error(format, &e),
+        Err(e) => return output::print_error(ctx.format, &e),
     };
 
     let output_path = Path::new(&output_path_str);
     if let Err(e) = animation::write_gif(&new_frames, output_path, true) {
-        return output::print_error(format, &e);
+        return output::print_error(ctx.format, &e);
     }
 
     let output_size = std::fs::metadata(output_path).map(|m| m.len()).unwrap_or(0);
@@ -92,7 +92,7 @@ pub fn run(args: &GifSpeedArgs, format: OutputFormat, dry_run: bool) -> i32 {
     };
 
     output::print_output(
-        format,
+        ctx.format,
         &format!(
             "Changed speed {}x: {} → {} ({} frames)",
             speed, result.input, result.output, result.total_frames
