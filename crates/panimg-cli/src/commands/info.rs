@@ -35,6 +35,7 @@ pub fn schema() -> CommandSchema {
                         "bit_depth".into(),
                         "file_size".into(),
                         "has_alpha".into(),
+                        "page_count".into(),
                         "exif".into(),
                     ];
                     #[cfg(feature = "icc")]

@@ -52,8 +52,13 @@ panimg convert photo.png -o photo.webp --quality 80
 # Convert color space (requires icc feature)
 panimg convert photo.jpg --convert-profile display-p3 -o photo-p3.jpg
 
-# Convert PDF first page to PNG (requires pdf feature)
+# Convert PDF page to PNG (requires pdf feature)
 panimg convert document.pdf -o page1.png --dpi 300
+panimg convert document.pdf -o page3.png --page 3
+
+# Extract all pages from a PDF
+panimg pdf-pages document.pdf --output-dir ./pages
+panimg pdf-pages document.pdf --output-dir ./pages --pages 1-3,5
 
 # Convert HEIC to JPEG (requires heic feature, macOS only)
 panimg convert photo.heic -o photo.jpg
@@ -151,6 +156,13 @@ See [Command Reference](docs/commands.md) for full usage and examples.
 |---------|-------------|
 | `psd-info` | Show PSD layer metadata |
 | `psd-layers` | Extract individual layers from a PSD file |
+
+### PDF (requires `pdf` feature)
+
+| Command | Description |
+|---------|-------------|
+| `pdf-pages` | Extract individual pages from a PDF file |
+
 
 ### Compare & Animate
 

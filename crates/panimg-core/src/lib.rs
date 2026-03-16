@@ -7,6 +7,8 @@ pub mod format;
 pub mod icc;
 pub mod info;
 pub mod ops;
+#[cfg(feature = "pdf")]
+pub mod pdf;
 pub mod pipeline;
 #[cfg(feature = "psd")]
 pub mod psd;

@@ -9,11 +9,16 @@ use std::path::Path;
 pub struct DecodeOptions {
     /// DPI for rasterizing vector/document formats (PDF). Default: 150.
     pub dpi: f32,
+    /// 0-based page index for multi-page formats (PDF). Default: None (first page).
+    pub page: Option<usize>,
 }
 
 impl Default for DecodeOptions {
     fn default() -> Self {
-        Self { dpi: 150.0 }
+        Self {
+            dpi: 150.0,
+            page: None,
+        }
     }
 }
 
@@ -22,7 +27,7 @@ impl DecodeOptions {
     /// Falls back to the default (150) when `None` is given.
     pub fn with_dpi(dpi: Option<f32>) -> Self {
         match dpi {
-            Some(d) => Self { dpi: d },
+            Some(d) => Self { dpi: d, page: None },
             None => Self::default(),
         }
     }
@@ -429,21 +434,9 @@ fn decode_psd(data: &[u8], path: Option<&Path>) -> Result<DynamicImage> {
 
 #[cfg(feature = "pdf")]
 fn decode_pdf(data: &[u8], path: Option<&Path>, options: &DecodeOptions) -> Result<DynamicImage> {
-    use hayro::hayro_interpret::InterpreterSettings;
-    use hayro::hayro_syntax::Pdf;
-    use hayro::RenderSettings;
+    let doc = crate::pdf::PdfDocument::from_bytes(data).map_err(|e| attach_path(e, path))?;
 
-    let pdf_data: std::sync::Arc<dyn AsRef<[u8]> + Send + Sync> =
-        std::sync::Arc::new(data.to_vec());
-    let pdf = Pdf::new(pdf_data).map_err(|e| PanimgError::DecodeError {
-        // LoadPdfError does not implement Display, use Debug
-        message: format!("{e:?}"),
-        path: path.map(|p| p.to_path_buf()),
-        suggestion: "check that the PDF file is valid and not encrypted".into(),
-    })?;
-
-    let pages = pdf.pages();
-    if pages.is_empty() {
+    if doc.page_count() == 0 {
         return Err(PanimgError::DecodeError {
             message: "PDF has no pages".into(),
             path: path.map(|p| p.to_path_buf()),
@@ -451,29 +444,32 @@ fn decode_pdf(data: &[u8], path: Option<&Path>, options: &DecodeOptions) -> Resu
         });
     }
 
-    // Render the first page only. PDF default is 72 DPI, so scale = dpi / 72.
-    let scale = options.dpi / 72.0;
-    let interpreter_settings = InterpreterSettings::default();
-    let render_settings = RenderSettings {
-        x_scale: scale,
-        y_scale: scale,
-        bg_color: hayro::vello_cpu::color::palette::css::WHITE,
-        ..Default::default()
-    };
+    let page_index = options.page.unwrap_or(0);
+    doc.render_page(page_index, options.dpi)
+        .map_err(|e| attach_path(e, path))
+}
 
-    let pixmap = hayro::render(&pages[0], &interpreter_settings, &render_settings);
-    let width = pixmap.width() as u32;
-    let height = pixmap.height() as u32;
-    let unpremultiplied = pixmap.take_unpremultiplied();
-    let rgba_data: Vec<u8> = unpremultiplied
-        .into_iter()
-        .flat_map(|p| [p.r, p.g, p.b, p.a])
-        .collect();
-    image::RgbaImage::from_raw(width, height, rgba_data)
-        .map(DynamicImage::ImageRgba8)
-        .ok_or_else(|| PanimgError::DecodeError {
-            message: "failed to create image from PDF render".into(),
-            path: path.map(|p| p.to_path_buf()),
-            suggestion: "PDF page dimensions may be invalid".into(),
-        })
+/// Attach a file path to a PanimgError, converting it to a DecodeError if needed.
+fn attach_path(err: PanimgError, path: Option<&Path>) -> PanimgError {
+    let path_buf = path.map(|p| p.to_path_buf());
+    match err {
+        PanimgError::DecodeError {
+            message,
+            suggestion,
+            ..
+        } => PanimgError::DecodeError {
+            message,
+            path: path_buf,
+            suggestion,
+        },
+        PanimgError::InvalidArgument {
+            message,
+            suggestion,
+        } => PanimgError::DecodeError {
+            message,
+            path: path_buf,
+            suggestion,
+        },
+        other => other,
+    }
 }

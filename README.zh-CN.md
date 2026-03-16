@@ -52,8 +52,13 @@ panimg convert photo.png -o photo.webp --quality 80
 # 转换色彩空间（需启用 icc feature）
 panimg convert photo.jpg --convert-profile display-p3 -o photo-p3.jpg
 
-# 将 PDF 首页转换为 PNG（需启用 pdf feature）
+# 将 PDF 页面转换为 PNG（需启用 pdf feature）
 panimg convert document.pdf -o page1.png --dpi 300
+panimg convert document.pdf -o page3.png --page 3
+
+# 提取 PDF 所有页面
+panimg pdf-pages document.pdf --output-dir ./pages
+panimg pdf-pages document.pdf --output-dir ./pages --pages 1-3,5
 
 # 将 HEIC 转换为 JPEG（需启用 heic feature，仅 macOS）
 panimg convert photo.heic -o photo.jpg
@@ -151,6 +156,13 @@ panimg batch convert 'photos/*.png' --output-dir ./webp --to webp --quality 80
 |------|------|
 | `psd-info` | 显示 PSD 图层 metadata |
 | `psd-layers` | 从 PSD 文件提取个别图层 |
+
+### PDF（需启用 `pdf` feature）
+
+| 命令 | 说明 |
+|------|------|
+| `pdf-pages` | 从 PDF 文件提取单独页面 |
+
 
 ### 比较与动画
 

@@ -18,6 +18,8 @@ pub mod info;
 pub mod invert;
 pub mod orient;
 pub mod overlay;
+#[cfg(feature = "pdf")]
+pub mod pdf_pages;
 pub mod pipeline;
 pub mod posterize;
 #[cfg(feature = "psd")]

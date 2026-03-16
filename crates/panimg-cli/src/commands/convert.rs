@@ -84,6 +84,18 @@ pub fn schema() -> CommandSchema {
                 choices: None,
                 range: None,
             },
+            ParamSchema {
+                name: "page".into(),
+                param_type: ParamType::Integer,
+                required: false,
+                description: "PDF page to convert (1-based, default: 1)".into(),
+                default: Some(serde_json::json!(1)),
+                choices: None,
+                range: Some(ParamRange {
+                    min: 1.0,
+                    max: 10000.0,
+                }),
+            },
         ],
     }
 }
@@ -96,6 +108,8 @@ struct ConvertPlan {
     to_format: String,
     quality: Option<u8>,
     strip_metadata: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    page: Option<usize>,
 }
 
 #[derive(Serialize)]
@@ -106,6 +120,8 @@ struct ConvertResult {
     to_format: String,
     input_size: u64,
     output_size: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    page: Option<usize>,
 }
 
 pub fn run(
@@ -190,6 +206,15 @@ pub fn run(
         return output::print_error(format, &err);
     }
 
+    // Validate --page early (before dry-run and decode)
+    if let Some(0) = args.page {
+        let err = PanimgError::InvalidArgument {
+            message: "page numbers are 1-based, 0 is not valid".into(),
+            suggestion: "use --page 1 for the first page".into(),
+        };
+        return output::print_error(format, &err);
+    }
+
     // Detect input format
     let input_format = match ImageFormat::from_path(input_path) {
         Some(f) => f,
@@ -211,6 +236,7 @@ pub fn run(
             to_format: target_format.to_string(),
             quality: args.quality,
             strip_metadata: args.strip,
+            page: args.page,
         };
         output::print_output(
             format,
@@ -224,7 +250,8 @@ pub fn run(
     }
 
     // Decode
-    let decode_opts = DecodeOptions::with_dpi(dpi);
+    let mut decode_opts = DecodeOptions::with_dpi(dpi);
+    decode_opts.page = args.page.map(|p| p.saturating_sub(1));
     let mut img = match CodecRegistry::decode_with_options(input_path, &decode_opts) {
         Ok(i) => i,
         Err(e) => return output::print_error(format, &e),
@@ -282,6 +309,7 @@ pub fn run(
         to_format: target_format.to_string(),
         input_size,
         output_size,
+        page: args.page,
     };
 
     output::print_output(

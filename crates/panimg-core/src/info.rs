@@ -15,6 +15,8 @@ pub struct ImageInfo {
     pub bit_depth: u8,
     pub file_size: u64,
     pub has_alpha: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub page_count: Option<usize>,
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub exif: BTreeMap<String, String>,
     #[cfg(feature = "icc")]
@@ -56,12 +58,38 @@ impl ImageInfo {
                 suggestion: "specify the format explicitly or use a recognized extension".into(),
             })?;
 
-        // Decode image to get dimensions and color info
-        let img = image::load_from_memory(&data).map_err(|e| PanimgError::DecodeError {
-            message: e.to_string(),
-            path: Some(path.to_path_buf()),
-            suggestion: "the file may be corrupted or in an unsupported format".into(),
-        })?;
+        // For PDF, parse once to get both page count and first page image.
+        // image::load_from_memory doesn't support PDF, so we use our own codec.
+        #[cfg(feature = "pdf")]
+        let (img, page_count) = if format == ImageFormat::Pdf {
+            let doc = crate::pdf::PdfDocument::from_bytes(&data).map_err(|e| {
+                PanimgError::DecodeError {
+                    message: format!("{e}"),
+                    path: Some(path.to_path_buf()),
+                    suggestion: "check that the PDF file is valid".into(),
+                }
+            })?;
+            let page_count = Some(doc.page_count());
+            let img = doc.render_page(0, 150.0)?;
+            (img, page_count)
+        } else {
+            let img = image::load_from_memory(&data).map_err(|e| PanimgError::DecodeError {
+                message: e.to_string(),
+                path: Some(path.to_path_buf()),
+                suggestion: "the file may be corrupted or in an unsupported format".into(),
+            })?;
+            (img, None)
+        };
+
+        #[cfg(not(feature = "pdf"))]
+        let (img, page_count) = {
+            let img = image::load_from_memory(&data).map_err(|e| PanimgError::DecodeError {
+                message: e.to_string(),
+                path: Some(path.to_path_buf()),
+                suggestion: "the file may be corrupted or in an unsupported format".into(),
+            })?;
+            (img, None::<usize>)
+        };
 
         let (color_type_str, bit_depth, has_alpha) = describe_color_type(img.color());
 
@@ -82,6 +110,7 @@ impl ImageInfo {
             bit_depth,
             file_size,
             has_alpha,
+            page_count,
             exif,
             #[cfg(feature = "icc")]
             icc_profile,
@@ -105,7 +134,7 @@ impl ImageInfo {
 
     /// Format as human-readable text, optionally filtered to specific fields.
     pub fn to_human_string(&self, fields: &[String]) -> String {
-        let all_fields: Vec<(&str, String)> = vec![
+        let mut all_fields: Vec<(&str, String)> = vec![
             ("path", format!("File:       {}", self.path)),
             ("format", format!("Format:     {}", self.format)),
             (
@@ -127,6 +156,10 @@ impl ImageInfo {
                 format!("File Size:  {}", format_file_size(self.file_size)),
             ),
         ];
+
+        if let Some(pages) = self.page_count {
+            all_fields.push(("page_count", format!("Pages:      {pages}")));
+        }
 
         let mut lines: Vec<String> = if fields.is_empty() {
             all_fields.into_iter().map(|(_, v)| v).collect()
@@ -257,6 +290,7 @@ mod tests {
             bit_depth: 8,
             file_size: 1024,
             has_alpha: true,
+            page_count: None,
             exif: BTreeMap::new(),
             #[cfg(feature = "icc")]
             icc_profile: None,
@@ -277,6 +311,7 @@ mod tests {
             bit_depth: 8,
             file_size: 1024,
             has_alpha: true,
+            page_count: None,
             exif: BTreeMap::new(),
             #[cfg(feature = "icc")]
             icc_profile: None,

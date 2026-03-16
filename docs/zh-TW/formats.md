@@ -23,7 +23,7 @@
 | AVIF | 是 | 是 | `avif` | AVIF 編碼/解碼 |
 | JPEG XL | 是 | 否 | `jxl` | 僅支援解碼 |
 | SVG | 是 | 否 | `svg` | 僅支援柵格化 |
-| PDF | 是 | 否 | `pdf` | 首頁柵格化；`--dpi` 選項 |
+| PDF | 是 | 否 | `pdf` | 多頁支援；`--dpi`、`--page`、`pdf-pages` 指令 |
 | HEIC | 是 | 否 | `heic` | 僅 macOS；需要系統 libheif ≥ 1.21 |
 
 ### 建構選用編解碼器
