@@ -82,3 +82,18 @@ impl StructuredError for PanimgError {
 }
 
 pub type Result<T> = std::result::Result<T, PanimgError>;
+
+/// Read a file, mapping I/O errors to structured `PanimgError` variants.
+pub fn read_file(path: &std::path::Path) -> Result<Vec<u8>> {
+    std::fs::read(path).map_err(|e| match e.kind() {
+        std::io::ErrorKind::NotFound => PanimgError::FileNotFound {
+            path: path.to_path_buf(),
+            suggestion: "check that the file path is correct".into(),
+        },
+        _ => PanimgError::IoError {
+            message: e.to_string(),
+            path: Some(path.to_path_buf()),
+            suggestion: "check file permissions".into(),
+        },
+    })
+}
