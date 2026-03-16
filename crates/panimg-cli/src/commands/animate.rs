@@ -1,5 +1,4 @@
 use crate::app::{AnimateArgs, RunContext};
-use crate::output;
 use panimg_core::codec::CodecRegistry;
 use panimg_core::error::PanimgError;
 use panimg_core::ops::animation;
@@ -22,7 +21,7 @@ pub fn run(args: &AnimateArgs, ctx: &RunContext) -> i32 {
                 message: "missing required argument: pattern".into(),
                 suggestion: "usage: panimg animate <pattern> -o <output.gif> --delay 100".into(),
             };
-            return output::print_error(ctx.format, &err);
+            return ctx.print_error(&err);
         }
     };
 
@@ -33,7 +32,7 @@ pub fn run(args: &AnimateArgs, ctx: &RunContext) -> i32 {
                 message: "missing required argument: output (-o)".into(),
                 suggestion: "usage: panimg animate 'frames/*.png' -o output.gif --delay 100".into(),
             };
-            return output::print_error(ctx.format, &err);
+            return ctx.print_error(&err);
         }
     };
 
@@ -48,7 +47,7 @@ pub fn run(args: &AnimateArgs, ctx: &RunContext) -> i32 {
                 message: format!("invalid glob pattern: {e}"),
                 suggestion: "use a pattern like 'frames/*.png'".into(),
             };
-            return output::print_error(ctx.format, &err);
+            return ctx.print_error(&err);
         }
     };
     files.sort();
@@ -58,7 +57,7 @@ pub fn run(args: &AnimateArgs, ctx: &RunContext) -> i32 {
             message: format!("no files matched pattern: '{pattern}'"),
             suggestion: "check the glob pattern and ensure matching files exist".into(),
         };
-        return output::print_error(ctx.format, &err);
+        return ctx.print_error(&err);
     }
 
     let delay_ms = args.delay.unwrap_or(100);
@@ -72,8 +71,7 @@ pub fn run(args: &AnimateArgs, ctx: &RunContext) -> i32 {
             "delay_ms": delay_ms,
             "repeat": repeat,
         });
-        output::print_output(
-            ctx.format,
+        ctx.print_output(
             &format!(
                 "Would assemble {} frames into {} (delay={}ms)",
                 files.len(),
@@ -91,13 +89,13 @@ pub fn run(args: &AnimateArgs, ctx: &RunContext) -> i32 {
     for file in &files {
         match CodecRegistry::decode_with_options(file, &decode_opts) {
             Ok(img) => images.push(img),
-            Err(e) => return output::print_error(ctx.format, &e),
+            Err(e) => return ctx.print_error(&e),
         }
     }
 
     let output_path = Path::new(&output_path_str);
     if let Err(e) = animation::assemble_gif(&images, output_path, delay_ms, repeat) {
-        return output::print_error(ctx.format, &e);
+        return ctx.print_error(&e);
     }
 
     let output_size = std::fs::metadata(output_path).map(|m| m.len()).unwrap_or(0);
@@ -109,8 +107,7 @@ pub fn run(args: &AnimateArgs, ctx: &RunContext) -> i32 {
         output_size,
     };
 
-    output::print_output(
-        ctx.format,
+    ctx.print_output(
         &format!(
             "Assembled {} frames → {} (delay={}ms, {})",
             result.total_frames,

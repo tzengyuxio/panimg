@@ -57,6 +57,21 @@ impl RunContext {
     pub fn decode_options(&self) -> panimg_core::codec::DecodeOptions {
         panimg_core::codec::DecodeOptions::with_dpi(self.dpi)
     }
+
+    /// Print an error and return the corresponding exit code.
+    pub fn print_error<E: pan_common::error::StructuredError>(&self, err: &E) -> i32 {
+        pan_common::output::print_error(self.format, err)
+    }
+
+    /// Print a success result (human text or JSON).
+    pub fn print_output<T: serde::Serialize>(&self, human_text: &str, value: &T) {
+        pan_common::output::print_output(self.format, human_text, value)
+    }
+
+    /// Print a raw JSON value (used for schema output).
+    pub fn print_json(&self, value: &serde_json::Value) {
+        pan_common::output::print_json(value)
+    }
 }
 
 #[derive(Subcommand)]

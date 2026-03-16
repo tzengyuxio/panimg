@@ -1,5 +1,4 @@
 use crate::app::{DrawArgs, RunContext};
-use crate::output;
 use panimg_core::codec::{CodecRegistry, EncodeOptions};
 use panimg_core::color::parse_color;
 use panimg_core::error::PanimgError;
@@ -21,7 +20,7 @@ struct DrawResult {
 pub fn run(args: &DrawArgs, ctx: &RunContext) -> i32 {
     if ctx.schema {
         let s = DrawRectOp::schema();
-        output::print_json(&serde_json::to_value(&s).unwrap());
+        ctx.print_json(&serde_json::to_value(&s).unwrap());
         return 0;
     }
 
@@ -32,7 +31,7 @@ pub fn run(args: &DrawArgs, ctx: &RunContext) -> i32 {
                 message: "missing required argument: input".into(),
                 suggestion: "usage: panimg draw <input> -o <output> --shape rect --x 10 --y 10 --width 100 --height 50".into(),
             };
-            return output::print_error(ctx.format, &err);
+            return ctx.print_error(&err);
         }
     };
 
@@ -43,7 +42,7 @@ pub fn run(args: &DrawArgs, ctx: &RunContext) -> i32 {
                 message: "missing required argument: output (-o)".into(),
                 suggestion: "usage: panimg draw <input> -o <output> --shape rect ...".into(),
             };
-            return output::print_error(ctx.format, &err);
+            return ctx.print_error(&err);
         }
     };
 
@@ -54,14 +53,14 @@ pub fn run(args: &DrawArgs, ctx: &RunContext) -> i32 {
                 message: "missing required argument: --shape".into(),
                 suggestion: "use --shape rect, --shape circle, or --shape line".into(),
             };
-            return output::print_error(ctx.format, &err);
+            return ctx.print_error(&err);
         }
     };
 
     let color_str = args.color.as_deref().unwrap_or("red");
     let color = match parse_color(color_str) {
         Ok(c) => c,
-        Err(e) => return output::print_error(ctx.format, &e),
+        Err(e) => return ctx.print_error(&e),
     };
 
     let fill = args.fill;
@@ -79,7 +78,7 @@ pub fn run(args: &DrawArgs, ctx: &RunContext) -> i32 {
                         suggestion: "e.g. --shape rect --x 10 --y 10 --width 100 --height 50"
                             .into(),
                     };
-                    return output::print_error(ctx.format, &err);
+                    return ctx.print_error(&err);
                 }
             };
             let height = match args.height {
@@ -90,12 +89,12 @@ pub fn run(args: &DrawArgs, ctx: &RunContext) -> i32 {
                         suggestion: "e.g. --shape rect --x 10 --y 10 --width 100 --height 50"
                             .into(),
                     };
-                    return output::print_error(ctx.format, &err);
+                    return ctx.print_error(&err);
                 }
             };
             let op = match DrawRectOp::new(x, y, width, height, color, fill, thickness) {
                 Ok(op) => op,
-                Err(e) => return output::print_error(ctx.format, &e),
+                Err(e) => return ctx.print_error(&e),
             };
             Pipeline::new().push(op)
         }
@@ -109,12 +108,12 @@ pub fn run(args: &DrawArgs, ctx: &RunContext) -> i32 {
                         message: "circle requires --radius".into(),
                         suggestion: "e.g. --shape circle --cx 50 --cy 50 --radius 30".into(),
                     };
-                    return output::print_error(ctx.format, &err);
+                    return ctx.print_error(&err);
                 }
             };
             let op = match DrawCircleOp::new(cx, cy, radius, color, fill, thickness) {
                 Ok(op) => op,
-                Err(e) => return output::print_error(ctx.format, &e),
+                Err(e) => return ctx.print_error(&e),
             };
             Pipeline::new().push(op)
         }
@@ -128,7 +127,7 @@ pub fn run(args: &DrawArgs, ctx: &RunContext) -> i32 {
                         message: "line requires --x2".into(),
                         suggestion: "e.g. --shape line --x1 0 --y1 0 --x2 100 --y2 100".into(),
                     };
-                    return output::print_error(ctx.format, &err);
+                    return ctx.print_error(&err);
                 }
             };
             let y2 = match args.y2 {
@@ -138,7 +137,7 @@ pub fn run(args: &DrawArgs, ctx: &RunContext) -> i32 {
                         message: "line requires --y2".into(),
                         suggestion: "e.g. --shape line --x1 0 --y1 0 --x2 100 --y2 100".into(),
                     };
-                    return output::print_error(ctx.format, &err);
+                    return ctx.print_error(&err);
                 }
             };
             Pipeline::new().push(DrawLineOp::new(x1, y1, x2, y2, color, thickness))
@@ -148,7 +147,7 @@ pub fn run(args: &DrawArgs, ctx: &RunContext) -> i32 {
                 message: format!("unknown shape: '{shape}'"),
                 suggestion: "use --shape rect, --shape circle, or --shape line".into(),
             };
-            return output::print_error(ctx.format, &err);
+            return ctx.print_error(&err);
         }
     };
 
@@ -157,8 +156,7 @@ pub fn run(args: &DrawArgs, ctx: &RunContext) -> i32 {
 
     if ctx.dry_run {
         let plan = pipeline.describe();
-        output::print_output(
-            ctx.format,
+        ctx.print_output(
             &format!("Would draw {shape} on {} → {}", input, output_path_str),
             &plan,
         );
@@ -167,12 +165,12 @@ pub fn run(args: &DrawArgs, ctx: &RunContext) -> i32 {
 
     let img = match CodecRegistry::decode_with_options(input_path, &ctx.decode_options()) {
         Ok(i) => i,
-        Err(e) => return output::print_error(ctx.format, &e),
+        Err(e) => return ctx.print_error(&e),
     };
 
     let result_img = match pipeline.execute(img) {
         Ok(i) => i,
-        Err(e) => return output::print_error(ctx.format, &e),
+        Err(e) => return ctx.print_error(&e),
     };
 
     let out_format = ImageFormat::from_path_extension(output_path)
@@ -187,7 +185,7 @@ pub fn run(args: &DrawArgs, ctx: &RunContext) -> i32 {
     };
 
     if let Err(e) = CodecRegistry::encode(&result_img, output_path, &options) {
-        return output::print_error(ctx.format, &e);
+        return ctx.print_error(&e);
     }
 
     let output_size = std::fs::metadata(output_path).map(|m| m.len()).unwrap_or(0);
@@ -199,8 +197,7 @@ pub fn run(args: &DrawArgs, ctx: &RunContext) -> i32 {
         output_size,
     };
 
-    output::print_output(
-        ctx.format,
+    ctx.print_output(
         &format!("Drew {shape} on {} → {}", result.input, result.output),
         &result,
     );

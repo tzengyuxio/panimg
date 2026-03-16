@@ -1,5 +1,4 @@
 use crate::app::{PsdLayersArgs, RunContext};
-use crate::output;
 use panimg_core::codec::{CodecRegistry, EncodeOptions};
 use panimg_core::error::PanimgError;
 use panimg_core::format::ImageFormat;
@@ -48,7 +47,7 @@ pub fn run(args: &PsdLayersArgs, ctx: &RunContext) -> i32 {
                 "layer_name": { "type": "string", "description": "Filter layers by name substring" }
             }
         });
-        output::print_json(&schema);
+        ctx.print_json(&schema);
         return 0;
     }
 
@@ -59,7 +58,7 @@ pub fn run(args: &PsdLayersArgs, ctx: &RunContext) -> i32 {
                 message: "missing required argument: input".into(),
                 suggestion: "usage: panimg psd-layers <input.psd> --output-dir ./layers".into(),
             };
-            return output::print_error(ctx.format, &err);
+            return ctx.print_error(&err);
         }
     };
 
@@ -70,11 +69,7 @@ pub fn run(args: &PsdLayersArgs, ctx: &RunContext) -> i32 {
             "operation": "psd-layers",
             "input": input,
         });
-        output::print_output(
-            ctx.format,
-            &format!("Would extract layers from {input}"),
-            &plan,
-        );
+        ctx.print_output(&format!("Would extract layers from {input}"), &plan);
         return 0;
     }
 
@@ -86,7 +81,7 @@ pub fn run(args: &PsdLayersArgs, ctx: &RunContext) -> i32 {
                 path: Some(input_path.to_path_buf()),
                 suggestion: "check that the file exists and is readable".into(),
             };
-            return output::print_error(ctx.format, &err);
+            return ctx.print_error(&err);
         }
     };
 
@@ -98,7 +93,7 @@ pub fn run(args: &PsdLayersArgs, ctx: &RunContext) -> i32 {
             path: Some(out_dir.to_path_buf()),
             suggestion: "check the output directory path".into(),
         };
-        return output::print_error(ctx.format, &err);
+        return ctx.print_error(&err);
     }
 
     let ext = &args.layer_format;
@@ -109,7 +104,7 @@ pub fn run(args: &PsdLayersArgs, ctx: &RunContext) -> i32 {
                 message: format!("unsupported layer format: {ext}"),
                 suggestion: "use png, jpg, webp, etc.".into(),
             };
-            return output::print_error(ctx.format, &err);
+            return ctx.print_error(&err);
         }
     };
 
@@ -168,11 +163,11 @@ pub fn run(args: &PsdLayersArgs, ctx: &RunContext) -> i32 {
         Ok(true)
     }) {
         Ok(total) => total,
-        Err(e) => return output::print_error(ctx.format, &e),
+        Err(e) => return ctx.print_error(&e),
     };
 
     if let Some(e) = encode_error {
-        return output::print_error(ctx.format, &e);
+        return ctx.print_error(&e);
     }
 
     let result = LayersResult {
@@ -183,8 +178,7 @@ pub fn run(args: &PsdLayersArgs, ctx: &RunContext) -> i32 {
         layers: layer_outputs,
     };
 
-    output::print_output(
-        ctx.format,
+    ctx.print_output(
         &format!(
             "Extracted {}/{} layers from {} → {}",
             result.extracted, result.total_layers, result.input, result.output_dir

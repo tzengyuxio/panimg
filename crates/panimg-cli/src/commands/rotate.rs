@@ -1,5 +1,4 @@
 use crate::app::{RotateArgs, RunContext};
-use crate::output;
 use panimg_core::codec::{CodecRegistry, EncodeOptions};
 use panimg_core::color::parse_color;
 use panimg_core::error::PanimgError;
@@ -33,7 +32,7 @@ fn default_background_str(format: &ImageFormat) -> &'static str {
 pub fn run(args: &RotateArgs, ctx: &RunContext) -> i32 {
     if ctx.schema {
         let s = RotateOp::schema();
-        output::print_json(&serde_json::to_value(&s).unwrap());
+        ctx.print_json(&serde_json::to_value(&s).unwrap());
         return 0;
     }
 
@@ -44,7 +43,7 @@ pub fn run(args: &RotateArgs, ctx: &RunContext) -> i32 {
                 message: "missing required argument: input".into(),
                 suggestion: "usage: panimg rotate <input> -o <output> --angle 90".into(),
             };
-            return output::print_error(ctx.format, &err);
+            return ctx.print_error(&err);
         }
     };
 
@@ -55,7 +54,7 @@ pub fn run(args: &RotateArgs, ctx: &RunContext) -> i32 {
                 message: "missing required argument: output (-o)".into(),
                 suggestion: "usage: panimg rotate <input> -o <output> --angle 90".into(),
             };
-            return output::print_error(ctx.format, &err);
+            return ctx.print_error(&err);
         }
     };
 
@@ -66,13 +65,13 @@ pub fn run(args: &RotateArgs, ctx: &RunContext) -> i32 {
                 message: "missing required argument: --angle".into(),
                 suggestion: "usage: panimg rotate <input> -o <output> --angle 90".into(),
             };
-            return output::print_error(ctx.format, &err);
+            return ctx.print_error(&err);
         }
     };
 
     let angle = match RotateAngle::parse(angle_str) {
         Ok(a) => a,
-        Err(e) => return output::print_error(ctx.format, &e),
+        Err(e) => return ctx.print_error(&e),
     };
 
     let input_path = Path::new(input);
@@ -90,7 +89,7 @@ pub fn run(args: &RotateArgs, ctx: &RunContext) -> i32 {
         .unwrap_or_else(|| default_background_str(&out_format));
     let background = match parse_color(bg_str) {
         Ok(c) => c,
-        Err(e) => return output::print_error(ctx.format, &e),
+        Err(e) => return ctx.print_error(&e),
     };
 
     let rotate_op = RotateOp::new(angle).with_background(background);
@@ -98,8 +97,7 @@ pub fn run(args: &RotateArgs, ctx: &RunContext) -> i32 {
 
     if ctx.dry_run {
         let plan = pipeline.describe();
-        output::print_output(
-            ctx.format,
+        ctx.print_output(
             &format!("Would rotate {} → {}", input, output_path_str),
             &plan,
         );
@@ -108,12 +106,12 @@ pub fn run(args: &RotateArgs, ctx: &RunContext) -> i32 {
 
     let img = match CodecRegistry::decode_with_options(input_path, &ctx.decode_options()) {
         Ok(i) => i,
-        Err(e) => return output::print_error(ctx.format, &e),
+        Err(e) => return ctx.print_error(&e),
     };
 
     let result_img = match pipeline.execute(img) {
         Ok(i) => i,
-        Err(e) => return output::print_error(ctx.format, &e),
+        Err(e) => return ctx.print_error(&e),
     };
 
     let options = EncodeOptions {
@@ -124,7 +122,7 @@ pub fn run(args: &RotateArgs, ctx: &RunContext) -> i32 {
     };
 
     if let Err(e) = CodecRegistry::encode(&result_img, output_path, &options) {
-        return output::print_error(ctx.format, &e);
+        return ctx.print_error(&e);
     }
 
     let output_size = std::fs::metadata(output_path).map(|m| m.len()).unwrap_or(0);
@@ -138,8 +136,7 @@ pub fn run(args: &RotateArgs, ctx: &RunContext) -> i32 {
         output_size,
     };
 
-    output::print_output(
-        ctx.format,
+    ctx.print_output(
         &format!(
             "Rotated {} → {} ({}°, {}x{})",
             result.input, result.output, result.angle, result.new_width, result.new_height

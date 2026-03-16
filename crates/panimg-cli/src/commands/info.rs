@@ -1,5 +1,4 @@
 use crate::app::{InfoArgs, OutputFormat, RunContext};
-use crate::output;
 use panimg_core::error::PanimgError;
 use panimg_core::info::ImageInfo;
 use panimg_core::schema::{CommandSchema, ParamSchema, ParamType};
@@ -51,7 +50,7 @@ pub fn schema() -> CommandSchema {
 pub fn run(args: &InfoArgs, ctx: &RunContext) -> i32 {
     if ctx.schema {
         let s = schema();
-        output::print_json(&serde_json::to_value(&s).unwrap());
+        ctx.print_json(&serde_json::to_value(&s).unwrap());
         return 0;
     }
 
@@ -62,14 +61,14 @@ pub fn run(args: &InfoArgs, ctx: &RunContext) -> i32 {
                 message: "missing required argument: input".into(),
                 suggestion: "usage: panimg info <file>".into(),
             };
-            return output::print_error(ctx.format, &err);
+            return ctx.print_error(&err);
         }
     };
 
     let path = Path::new(input);
     let info = match ImageInfo::from_path(path) {
         Ok(i) => i,
-        Err(e) => return output::print_error(ctx.format, &e),
+        Err(e) => return ctx.print_error(&e),
     };
 
     let fields: Vec<String> = args
@@ -84,7 +83,7 @@ pub fn run(args: &InfoArgs, ctx: &RunContext) -> i32 {
         }
         OutputFormat::Json => {
             let json = info.to_filtered_json(&fields);
-            output::print_json(&json);
+            ctx.print_json(&json);
         }
     }
 

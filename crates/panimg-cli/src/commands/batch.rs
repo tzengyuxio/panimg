@@ -1,5 +1,4 @@
 use crate::app::{BatchArgs, OutputFormat, RunContext};
-use crate::output;
 use indicatif::{ProgressBar, ProgressStyle};
 use panimg_core::codec::{CodecRegistry, EncodeOptions};
 #[cfg(feature = "tiny")]
@@ -413,7 +412,7 @@ pub fn run(args: &BatchArgs, ctx: &RunContext) -> i32 {
                 message: format!("invalid glob pattern: {e}"),
                 suggestion: "use a valid glob pattern like '*.png' or 'photos/**/*.jpg'".into(),
             };
-            return output::print_error(ctx.format, &err);
+            return ctx.print_error(&err);
         }
     };
 
@@ -422,7 +421,7 @@ pub fn run(args: &BatchArgs, ctx: &RunContext) -> i32 {
             message: format!("no files matched pattern: '{}'", args.pattern),
             suggestion: "check the glob pattern and ensure matching files exist".into(),
         };
-        return output::print_error(ctx.format, &err);
+        return ctx.print_error(&err);
     }
 
     // Determine target extension for output
@@ -433,7 +432,7 @@ pub fn run(args: &BatchArgs, ctx: &RunContext) -> i32 {
     let dummy_path = Path::new("dummy.png");
     if args.operation != "auto-orient" {
         if let Err(e) = build_pipeline(args, dummy_path) {
-            return output::print_error(ctx.format, &e);
+            return ctx.print_error(&e);
         }
     }
 
@@ -461,8 +460,7 @@ pub fn run(args: &BatchArgs, ctx: &RunContext) -> i32 {
             "files": plan_files,
         });
 
-        output::print_output(
-            ctx.format,
+        ctx.print_output(
             &format!("Would {} {} files", args.operation, files.len()),
             &plan,
         );
@@ -609,8 +607,7 @@ pub fn run(args: &BatchArgs, ctx: &RunContext) -> i32 {
         results: file_results,
     };
 
-    output::print_output(
-        ctx.format,
+    ctx.print_output(
         &format!(
             "Batch {}: {}/{} succeeded, {} failed",
             args.operation,

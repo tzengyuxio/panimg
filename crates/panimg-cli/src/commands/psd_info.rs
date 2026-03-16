@@ -1,5 +1,4 @@
 use crate::app::{PsdInfoArgs, RunContext};
-use crate::output;
 use panimg_core::error::PanimgError;
 use std::path::Path;
 
@@ -11,7 +10,7 @@ pub fn run(args: &PsdInfoArgs, ctx: &RunContext) -> i32 {
                 "input": { "type": "string", "required": true, "description": "Input PSD file" }
             }
         });
-        output::print_json(&schema);
+        ctx.print_json(&schema);
         return 0;
     }
 
@@ -22,7 +21,7 @@ pub fn run(args: &PsdInfoArgs, ctx: &RunContext) -> i32 {
                 message: "missing required argument: input".into(),
                 suggestion: "usage: panimg psd-info <input.psd>".into(),
             };
-            return output::print_error(ctx.format, &err);
+            return ctx.print_error(&err);
         }
     };
 
@@ -35,13 +34,13 @@ pub fn run(args: &PsdInfoArgs, ctx: &RunContext) -> i32 {
                 path: Some(path.to_path_buf()),
                 suggestion: "check that the file exists and is readable".into(),
             };
-            return output::print_error(ctx.format, &err);
+            return ctx.print_error(&err);
         }
     };
 
     let info = match panimg_core::psd::get_psd_info(&data) {
         Ok(i) => i,
-        Err(e) => return output::print_error(ctx.format, &e),
+        Err(e) => return ctx.print_error(&e),
     };
 
     let human = format!(
@@ -56,6 +55,6 @@ pub fn run(args: &PsdInfoArgs, ctx: &RunContext) -> i32 {
             .join("\n")
     );
 
-    output::print_output(ctx.format, &human, &info);
+    ctx.print_output(&human, &info);
     0
 }

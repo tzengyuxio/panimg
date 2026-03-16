@@ -1,5 +1,4 @@
 use crate::app::{ConvertArgs, OutputFormat, RunContext};
-use crate::output;
 use panimg_core::codec::{CodecRegistry, EncodeOptions};
 use panimg_core::error::PanimgError;
 use panimg_core::format::ImageFormat;
@@ -127,7 +126,7 @@ struct ConvertResult {
 pub fn run(args: &ConvertArgs, ctx: &RunContext) -> i32 {
     if ctx.schema {
         let s = schema();
-        output::print_json(&serde_json::to_value(&s).unwrap());
+        ctx.print_json(&serde_json::to_value(&s).unwrap());
         return 0;
     }
 
@@ -138,7 +137,7 @@ pub fn run(args: &ConvertArgs, ctx: &RunContext) -> i32 {
                 message: "missing required argument: input".into(),
                 suggestion: "usage: panimg convert <input> -o <output>".into(),
             };
-            return output::print_error(ctx.format, &err);
+            return ctx.print_error(&err);
         }
     };
 
@@ -149,7 +148,7 @@ pub fn run(args: &ConvertArgs, ctx: &RunContext) -> i32 {
                 message: "missing required argument: output (-o)".into(),
                 suggestion: "usage: panimg convert <input> -o <output>".into(),
             };
-            return output::print_error(ctx.format, &err);
+            return ctx.print_error(&err);
         }
     };
 
@@ -166,7 +165,7 @@ pub fn run(args: &ConvertArgs, ctx: &RunContext) -> i32 {
                     suggestion: "use a supported format: jpg, png, webp, gif, bmp, tiff, qoi"
                         .into(),
                 };
-                return output::print_error(ctx.format, &err);
+                return ctx.print_error(&err);
             }
         }
     } else {
@@ -177,7 +176,7 @@ pub fn run(args: &ConvertArgs, ctx: &RunContext) -> i32 {
                     path: output_path.to_path_buf(),
                     suggestion: "specify --to <format> or use a recognized output extension".into(),
                 };
-                return output::print_error(ctx.format, &err);
+                return ctx.print_error(&err);
             }
         }
     };
@@ -197,7 +196,7 @@ pub fn run(args: &ConvertArgs, ctx: &RunContext) -> i32 {
             path: output_path.to_path_buf(),
             suggestion: "use --overwrite to replace or --skip-existing to skip".into(),
         };
-        return output::print_error(ctx.format, &err);
+        return ctx.print_error(&err);
     }
 
     // Validate --page early (before dry-run and decode)
@@ -206,7 +205,7 @@ pub fn run(args: &ConvertArgs, ctx: &RunContext) -> i32 {
             message: "page numbers are 1-based, 0 is not valid".into(),
             suggestion: "use --page 1 for the first page".into(),
         };
-        return output::print_error(ctx.format, &err);
+        return ctx.print_error(&err);
     }
 
     // Detect input format
@@ -217,7 +216,7 @@ pub fn run(args: &ConvertArgs, ctx: &RunContext) -> i32 {
                 path: input_path.to_path_buf(),
                 suggestion: "the input file format could not be detected".into(),
             };
-            return output::print_error(ctx.format, &err);
+            return ctx.print_error(&err);
         }
     };
 
@@ -232,8 +231,7 @@ pub fn run(args: &ConvertArgs, ctx: &RunContext) -> i32 {
             strip_metadata: args.strip,
             page: args.page,
         };
-        output::print_output(
-            ctx.format,
+        ctx.print_output(
             &format!(
                 "Would convert {} ({}) → {} ({})",
                 input, input_format, plan.output, target_format
@@ -248,7 +246,7 @@ pub fn run(args: &ConvertArgs, ctx: &RunContext) -> i32 {
     decode_opts.page = args.page.map(|p| p.saturating_sub(1));
     let mut img = match CodecRegistry::decode_with_options(input_path, &decode_opts) {
         Ok(i) => i,
-        Err(e) => return output::print_error(ctx.format, &e),
+        Err(e) => return ctx.print_error(&e),
     };
 
     let input_size = std::fs::metadata(input_path).map(|m| m.len()).unwrap_or(0);
@@ -264,7 +262,7 @@ pub fn run(args: &ConvertArgs, ctx: &RunContext) -> i32 {
                         message: format!("unknown color space: '{target_cs}'"),
                         suggestion: "use one of: srgb, adobe-rgb, display-p3".into(),
                     };
-                    return output::print_error(ctx.format, &err);
+                    return ctx.print_error(&err);
                 }
             };
 
@@ -277,7 +275,7 @@ pub fn run(args: &ConvertArgs, ctx: &RunContext) -> i32 {
             match panimg_core::icc::convert_to_color_space(&img, source_icc.as_deref(), color_space)
             {
                 Ok(converted) => img = converted,
-                Err(e) => return output::print_error(ctx.format, &e),
+                Err(e) => return ctx.print_error(&e),
             }
         }
     }
@@ -291,7 +289,7 @@ pub fn run(args: &ConvertArgs, ctx: &RunContext) -> i32 {
     };
 
     if let Err(e) = CodecRegistry::encode(&img, output_path, &options) {
-        return output::print_error(ctx.format, &e);
+        return ctx.print_error(&e);
     }
 
     let output_size = std::fs::metadata(output_path).map(|m| m.len()).unwrap_or(0);
@@ -306,8 +304,7 @@ pub fn run(args: &ConvertArgs, ctx: &RunContext) -> i32 {
         page: args.page,
     };
 
-    output::print_output(
-        ctx.format,
+    ctx.print_output(
         &format!(
             "Converted {} → {} ({} → {})",
             result.input, result.output, result.from_format, result.to_format
