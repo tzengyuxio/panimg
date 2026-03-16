@@ -138,6 +138,10 @@ pub enum Commands {
     #[cfg(feature = "psd")]
     PsdLayers(PsdLayersArgs),
 
+    /// Extract individual pages from a PDF file
+    #[cfg(feature = "pdf")]
+    PdfPages(PdfPagesArgs),
+
     /// Draw text on an image (watermark, annotation)
     #[cfg(feature = "text")]
     Text(TextArgs),
@@ -183,6 +187,10 @@ pub struct ConvertArgs {
     /// Strip metadata from output
     #[arg(long)]
     pub strip: bool,
+
+    /// PDF page to convert (1-based, default: 1)
+    #[arg(long)]
+    pub page: Option<usize>,
 
     /// Convert to a target color space (srgb, adobe-rgb, display-p3)
     #[cfg(feature = "icc")]
@@ -1173,6 +1181,33 @@ pub struct PsdLayersArgs {
     /// Extract only layers matching this name (substring)
     #[arg(long)]
     pub layer_name: Option<String>,
+}
+
+#[cfg(feature = "pdf")]
+#[derive(Parser)]
+pub struct PdfPagesArgs {
+    /// Input PDF file
+    pub input: Option<String>,
+
+    /// Output directory for extracted pages
+    #[arg(long)]
+    pub output_dir: Option<String>,
+
+    /// Output format for pages (e.g. png, jpg)
+    #[arg(long, default_value = "png")]
+    pub page_format: String,
+
+    /// Page range to extract (e.g. "1-3,5", default: all)
+    #[arg(long)]
+    pub pages: Option<String>,
+
+    /// Filename prefix for pages (default: "page")
+    #[arg(long)]
+    pub prefix: Option<String>,
+
+    /// Output quality (1-100, for lossy formats)
+    #[arg(long)]
+    pub quality: Option<u8>,
 }
 
 #[derive(Parser)]

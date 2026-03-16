@@ -170,6 +170,10 @@ fn capabilities() -> Capabilities {
                 description: "Extract individual layers from a PSD file".into(),
             },
             CommandCap {
+                name: "pdf-pages".into(),
+                description: "Extract individual pages from a PDF file".into(),
+            },
+            CommandCap {
                 name: "text".into(),
                 description: "Draw text on an image (watermark, annotation)".into(),
             },
@@ -330,6 +334,10 @@ fn main() {
         #[cfg(feature = "psd")]
         Some(Commands::PsdLayers(args)) => {
             commands::psd_layers::run(args, cli.format, cli.dry_run, cli.schema)
+        }
+        #[cfg(feature = "pdf")]
+        Some(Commands::PdfPages(args)) => {
+            commands::pdf_pages::run(args, cli.format, cli.dry_run, cli.schema, cli.dpi)
         }
         #[cfg(feature = "text")]
         Some(Commands::Text(args)) => {

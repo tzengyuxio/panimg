@@ -23,7 +23,7 @@ Additional formats can be enabled at build time using Cargo feature flags:
 | AVIF | Yes | Yes | `avif` | AVIF encode/decode |
 | JPEG XL | Yes | No | `jxl` | Decode only |
 | SVG | Yes | No | `svg` | Rasterization only |
-| PDF | Yes | No | `pdf` | First page rasterization; `--dpi` option |
+| PDF | Yes | No | `pdf` | Multi-page support; `--dpi`, `--page`, `pdf-pages` command |
 | HEIC | Yes | No | `heic` | macOS only; requires system libheif ≥ 1.21 |
 | PSD | Yes | No | `psd` | Photoshop format; merged composite + layer extraction |
 

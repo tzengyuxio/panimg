@@ -52,8 +52,13 @@ panimg convert photo.png -o photo.webp --quality 80
 # カラースペース変換（icc feature 必要）
 panimg convert photo.jpg --convert-profile display-p3 -o photo-p3.jpg
 
-# PDF 最初のページを PNG に変換（pdf feature 必要）
+# PDF ページを PNG に変換（pdf feature 必要）
 panimg convert document.pdf -o page1.png --dpi 300
+panimg convert document.pdf -o page3.png --page 3
+
+# PDF の全ページを抽出
+panimg pdf-pages document.pdf --output-dir ./pages
+panimg pdf-pages document.pdf --output-dir ./pages --pages 1-3,5
 
 # HEIC を JPEG に変換（heic feature 必要、macOS のみ）
 panimg convert photo.heic -o photo.jpg
@@ -151,6 +156,13 @@ panimg batch convert 'photos/*.png' --output-dir ./webp --to webp --quality 80
 |----------|------|
 | `psd-info` | PSD レイヤーのメタデータを表示 |
 | `psd-layers` | PSD ファイルから個別レイヤーを抽出 |
+
+### PDF（`pdf` feature 必要）
+
+| コマンド | 説明 |
+|----------|------|
+| `pdf-pages` | PDF ファイルから個別ページを抽出 |
+
 
 ### 比較とアニメーション
 

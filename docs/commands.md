@@ -48,6 +48,7 @@ panimg convert photo.png -o photo.webp
 panimg convert photo.png -o photo.webp --quality 80
 panimg convert photo.jpg --convert-profile display-p3 -o photo-p3.jpg
 panimg convert document.pdf -o page1.png --dpi 300
+panimg convert document.pdf -o page3.png --page 3
 panimg convert photo.heic -o photo.jpg
 ```
 
@@ -56,6 +57,7 @@ panimg convert photo.heic -o photo.jpg
 | `-o`, `--output` | Output file path (required) |
 | `--quality` | Quality level 1-100 (for JPEG, WebP, AVIF) |
 | `--dpi` | DPI for rasterizing PDF input (default: 150) |
+| `--page` | PDF page to convert, 1-based (default: 1) |
 | `--convert-profile` | Convert to a target color space: `srgb`, `adobe-rgb`, `display-p3` (requires `icc` feature) |
 | `--strip` | Strip metadata from output |
 
@@ -417,6 +419,31 @@ panimg psd-layers design.psd --output-dir ./layers --layer-name "Background"
 Output filenames follow the pattern `{stem}_layer_{index:03}_{name}.{ext}`.
 
 ---
+
+## PDF (requires `pdf` feature)
+
+### `pdf-pages`
+
+Extract individual pages from a PDF file as separate images.
+
+```bash
+panimg pdf-pages document.pdf --output-dir ./pages
+panimg pdf-pages document.pdf --output-dir ./pages --pages 1-3,5
+panimg pdf-pages document.pdf --output-dir ./pages --page-format jpg --quality 85
+panimg pdf-pages document.pdf --output-dir ./pages --prefix doc --dpi 300
+```
+
+| Option | Description |
+|--------|-------------|
+| `--output-dir` | Directory to save extracted pages (default: `.`) |
+| `--page-format` | Output format for pages: `png` (default), `jpg`, `webp`, etc. |
+| `--pages` | Page range to extract: `1`, `1-3`, `1,3,5`, `1-3,7` (default: all) |
+| `--prefix` | Filename prefix (default: `page`) |
+| `--quality` | Output quality 1-100 (for lossy formats) |
+| `--dpi` | Rendering DPI (default: 150) |
+
+---
+
 
 ## Animation
 

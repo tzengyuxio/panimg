@@ -48,6 +48,7 @@ panimg convert photo.png -o photo.webp
 panimg convert photo.png -o photo.webp --quality 80
 panimg convert photo.jpg --convert-profile display-p3 -o photo-p3.jpg
 panimg convert document.pdf -o page1.png --dpi 300
+panimg convert document.pdf -o page3.png --page 3
 panimg convert photo.heic -o photo.jpg
 ```
 
@@ -56,6 +57,7 @@ panimg convert photo.heic -o photo.jpg
 | `-o`, `--output` | 出力ファイルパス（必須） |
 | `--quality` | 品質レベル 1-100（JPEG、WebP、AVIF 用） |
 | `--dpi` | PDF 入力のラスタライズ DPI（デフォルト：150） |
+| `--page` | 変換する PDF ページ、1 始まり（デフォルト：1） |
 | `--convert-profile` | ターゲットカラースペースへ変換：`srgb`、`adobe-rgb`、`display-p3`（`icc` feature 必要） |
 | `--strip` | 出力からメタデータを除去 |
 
@@ -363,6 +365,30 @@ panimg trim photo.jpg -o trimmed.jpg
 ```bash
 panimg diff before.png after.png -o diff.png
 ```
+
+---
+
+## PDF（`pdf` feature 必要）
+
+### `pdf-pages`
+
+PDF ファイルから個別のページを画像として抽出します。
+
+```bash
+panimg pdf-pages document.pdf --output-dir ./pages
+panimg pdf-pages document.pdf --output-dir ./pages --pages 1-3,5
+panimg pdf-pages document.pdf --output-dir ./pages --page-format jpg --quality 85
+panimg pdf-pages document.pdf --output-dir ./pages --prefix doc --dpi 300
+```
+
+| オプション | 説明 |
+|------------|------|
+| `--output-dir` | 抽出ページの保存先ディレクトリ（デフォルト：`.`） |
+| `--page-format` | ページの出力フォーマット：`png`（デフォルト）、`jpg`、`webp` など |
+| `--pages` | 抽出するページ範囲：`1`、`1-3`、`1,3,5`、`1-3,7`（デフォルト：全ページ） |
+| `--prefix` | ファイル名のプレフィックス（デフォルト：`page`） |
+| `--quality` | 出力品質 1-100（非可逆フォーマット用） |
+| `--dpi` | レンダリング DPI（デフォルト：150） |
 
 ---
 

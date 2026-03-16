@@ -48,6 +48,7 @@ panimg convert photo.png -o photo.webp
 panimg convert photo.png -o photo.webp --quality 80
 panimg convert photo.jpg --convert-profile display-p3 -o photo-p3.jpg
 panimg convert document.pdf -o page1.png --dpi 300
+panimg convert document.pdf -o page3.png --page 3
 panimg convert photo.heic -o photo.jpg
 ```
 
@@ -56,6 +57,7 @@ panimg convert photo.heic -o photo.jpg
 | `-o`, `--output` | 输出文件路径（必填） |
 | `--quality` | 质量等级 1-100（适用于 JPEG、WebP、AVIF） |
 | `--dpi` | PDF 输入的光栅化 DPI（默认：150） |
+| `--page` | 要转换的 PDF 页码，从 1 开始（默认：1） |
 | `--convert-profile` | 转换到目标色彩空间：`srgb`、`adobe-rgb`、`display-p3`（需启用 `icc` feature） |
 | `--strip` | 移除输出文件的 metadata |
 
@@ -363,6 +365,30 @@ panimg trim photo.jpg -o trimmed.jpg
 ```bash
 panimg diff before.png after.png -o diff.png
 ```
+
+---
+
+## PDF（需要 `pdf` feature）
+
+### `pdf-pages`
+
+从 PDF 文件中提取各页面为单独的图片。
+
+```bash
+panimg pdf-pages document.pdf --output-dir ./pages
+panimg pdf-pages document.pdf --output-dir ./pages --pages 1-3,5
+panimg pdf-pages document.pdf --output-dir ./pages --page-format jpg --quality 85
+panimg pdf-pages document.pdf --output-dir ./pages --prefix doc --dpi 300
+```
+
+| 选项 | 说明 |
+|------|------|
+| `--output-dir` | 保存提取页面的目录（默认：`.`） |
+| `--page-format` | 页面输出格式：`png`（默认）、`jpg`、`webp` 等 |
+| `--pages` | 提取的页码范围：`1`、`1-3`、`1,3,5`、`1-3,7`（默认：全部） |
+| `--prefix` | 文件名前缀（默认：`page`） |
+| `--quality` | 输出质量 1-100（适用于有损格式） |
+| `--dpi` | 渲染 DPI（默认：150） |
 
 ---
 
