@@ -1,4 +1,4 @@
-use crate::error::{PanimgError, Result};
+use crate::error::{read_file, PanimgError, Result};
 use crate::format::ImageFormat;
 use crate::resolution::Resolution;
 use image::DynamicImage;
@@ -67,18 +67,7 @@ impl CodecRegistry {
 
     /// Decode an image from a file path with custom options.
     pub fn decode_with_options(path: &Path, options: &DecodeOptions) -> Result<DynamicImage> {
-        if !path.exists() {
-            return Err(PanimgError::FileNotFound {
-                path: path.to_path_buf(),
-                suggestion: "check that the file path is correct".into(),
-            });
-        }
-
-        let data = std::fs::read(path).map_err(|e| PanimgError::IoError {
-            message: e.to_string(),
-            path: Some(path.to_path_buf()),
-            suggestion: "check file permissions".into(),
-        })?;
+        let data = read_file(path)?;
 
         let format = ImageFormat::from_bytes(&data)
             .or_else(|| ImageFormat::from_path_extension(path))
@@ -87,12 +76,12 @@ impl CodecRegistry {
                 suggestion: "specify the format explicitly or use a recognized extension".into(),
             })?;
 
-        Self::decode_bytes(&data, format, Some(path), options)
+        Self::decode_bytes(data, format, Some(path), options)
     }
 
     /// Decode an image from bytes with a known format.
     fn decode_bytes(
-        data: &[u8],
+        data: Vec<u8>,
         format: ImageFormat,
         path: Option<&Path>,
         _options: &DecodeOptions,
@@ -107,7 +96,7 @@ impl CodecRegistry {
             | ImageFormat::Qoi
             | ImageFormat::Avif => {
                 let img_fmt = format.to_image_format().unwrap();
-                image::load_from_memory_with_format(data, img_fmt).map_err(|e| {
+                image::load_from_memory_with_format(&data, img_fmt).map_err(|e| {
                     PanimgError::DecodeError {
                         message: e.to_string(),
                         path: path.map(|p| p.to_path_buf()),
@@ -116,15 +105,15 @@ impl CodecRegistry {
                 })
             }
             #[cfg(feature = "svg")]
-            ImageFormat::Svg => decode_svg(data, path),
+            ImageFormat::Svg => decode_svg(&data, path),
             #[cfg(feature = "jxl")]
-            ImageFormat::Jxl => decode_jxl(data, path),
+            ImageFormat::Jxl => decode_jxl(&data, path),
             #[cfg(feature = "pdf")]
             ImageFormat::Pdf => decode_pdf(data, path, _options),
             #[cfg(all(feature = "heic", target_vendor = "apple"))]
-            ImageFormat::Heic => decode_heic(data, path),
+            ImageFormat::Heic => decode_heic(&data, path),
             #[cfg(feature = "psd")]
-            ImageFormat::Psd => decode_psd(data, path),
+            ImageFormat::Psd => decode_psd(&data, path),
             #[allow(unreachable_patterns)]
             _ => Err(PanimgError::UnsupportedFormat {
                 format: format.to_string(),
@@ -436,8 +425,8 @@ fn decode_psd(data: &[u8], path: Option<&Path>) -> Result<DynamicImage> {
 }
 
 #[cfg(feature = "pdf")]
-fn decode_pdf(data: &[u8], path: Option<&Path>, options: &DecodeOptions) -> Result<DynamicImage> {
-    let doc = crate::pdf::PdfDocument::from_bytes(data).map_err(|e| attach_path(e, path))?;
+fn decode_pdf(data: Vec<u8>, path: Option<&Path>, options: &DecodeOptions) -> Result<DynamicImage> {
+    let doc = crate::pdf::PdfDocument::from_vec(data).map_err(|e| attach_path(e, path))?;
 
     if doc.page_count() == 0 {
         return Err(PanimgError::DecodeError {

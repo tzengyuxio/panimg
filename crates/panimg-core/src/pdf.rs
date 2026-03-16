@@ -124,8 +124,12 @@ pub struct PdfDocument(hayro::hayro_syntax::Pdf);
 impl PdfDocument {
     /// Parse PDF data from a byte slice. The data is copied internally.
     pub fn from_bytes(data: &[u8]) -> Result<Self> {
-        let pdf_data: std::sync::Arc<dyn AsRef<[u8]> + Send + Sync> =
-            std::sync::Arc::new(data.to_vec());
+        Self::from_vec(data.to_vec())
+    }
+
+    /// Parse PDF data from an owned buffer, avoiding an extra copy.
+    pub fn from_vec(data: Vec<u8>) -> Result<Self> {
+        let pdf_data: std::sync::Arc<dyn AsRef<[u8]> + Send + Sync> = std::sync::Arc::new(data);
         let pdf =
             hayro::hayro_syntax::Pdf::new(pdf_data).map_err(|e| PanimgError::DecodeError {
                 message: format!("{e:?}"),

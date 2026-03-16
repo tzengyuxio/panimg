@@ -1,4 +1,4 @@
-use crate::error::{PanimgError, Result};
+use crate::error::{read_file, PanimgError, Result};
 use crate::format::ImageFormat;
 use serde::Serialize;
 use std::collections::BTreeMap;
@@ -27,25 +27,8 @@ pub struct ImageInfo {
 impl ImageInfo {
     /// Extract metadata from an image file.
     pub fn from_path(path: &Path) -> Result<Self> {
-        if !path.exists() {
-            return Err(PanimgError::FileNotFound {
-                path: path.to_path_buf(),
-                suggestion: "check that the file path is correct".into(),
-            });
-        }
-
-        let metadata = std::fs::metadata(path).map_err(|e| PanimgError::IoError {
-            message: e.to_string(),
-            path: Some(path.to_path_buf()),
-            suggestion: "check file permissions".into(),
-        })?;
-        let file_size = metadata.len();
-
-        let data = std::fs::read(path).map_err(|e| PanimgError::IoError {
-            message: e.to_string(),
-            path: Some(path.to_path_buf()),
-            suggestion: "check file permissions".into(),
-        })?;
+        let data = read_file(path)?;
+        let file_size = data.len() as u64;
 
         let format = ImageFormat::from_bytes(&data)
             .or_else(|| {
@@ -94,7 +77,7 @@ impl ImageInfo {
         let (color_type_str, bit_depth, has_alpha) = describe_color_type(img.color());
 
         // Extract EXIF data
-        let exif = extract_exif(path);
+        let exif = extract_exif(&data);
 
         // Extract ICC profile info
         #[cfg(feature = "icc")]
@@ -218,13 +201,10 @@ fn describe_color_type(color: image::ColorType) -> (String, u8, bool) {
     }
 }
 
-fn extract_exif(path: &Path) -> BTreeMap<String, String> {
+fn extract_exif(data: &[u8]) -> BTreeMap<String, String> {
     let mut map = BTreeMap::new();
-    let file = match std::fs::File::open(path) {
-        Ok(f) => f,
-        Err(_) => return map,
-    };
-    let mut bufreader = std::io::BufReader::new(file);
+    let cursor = std::io::Cursor::new(data);
+    let mut bufreader = std::io::BufReader::new(cursor);
     let exif = match exif::Reader::new().read_from_container(&mut bufreader) {
         Ok(e) => e,
         Err(_) => return map,
