@@ -1,3 +1,5 @@
+use super::common::require_input;
+use super::CommandResult;
 use crate::app::{PdfPagesArgs, RunContext};
 use panimg_core::codec::EncodeOptions;
 use panimg_core::error::PanimgError;
@@ -90,23 +92,11 @@ pub fn schema() -> CommandSchema {
     }
 }
 
-pub fn run(args: &PdfPagesArgs, ctx: &RunContext) -> i32 {
-    if ctx.schema {
-        let s = schema();
-        ctx.print_json(&serde_json::to_value(&s).unwrap());
-        return 0;
-    }
-
-    let input = match &args.input {
-        Some(i) => i,
-        None => {
-            let err = PanimgError::InvalidArgument {
-                message: "missing required argument: input".into(),
-                suggestion: "usage: panimg pdf-pages <input.pdf> --output-dir ./pages".into(),
-            };
-            return ctx.print_error(&err);
-        }
-    };
+pub fn run(args: &PdfPagesArgs, ctx: &RunContext) -> CommandResult {
+    let input = require_input(
+        &args.input,
+        "panimg pdf-pages <input.pdf> --output-dir ./pages",
+    )?;
 
     let input_path = Path::new(input);
 
@@ -116,57 +106,37 @@ pub fn run(args: &PdfPagesArgs, ctx: &RunContext) -> i32 {
             "input": input,
         });
         ctx.print_output(&format!("Would extract pages from {input}"), &plan);
-        return 0;
+        return Ok(0);
     }
 
-    let data = match std::fs::read(input_path) {
-        Ok(d) => d,
-        Err(e) => {
-            let err = PanimgError::IoError {
-                message: e.to_string(),
-                path: Some(input_path.to_path_buf()),
-                suggestion: "check that the file exists and is readable".into(),
-            };
-            return ctx.print_error(&err);
-        }
-    };
+    let data = std::fs::read(input_path).map_err(|e| PanimgError::IoError {
+        message: e.to_string(),
+        path: Some(input_path.to_path_buf()),
+        suggestion: "check that the file exists and is readable".into(),
+    })?;
 
     // Parse the PDF once — used for both page count and rendering
-    let doc = match PdfDocument::from_bytes(&data) {
-        Ok(d) => d,
-        Err(e) => return ctx.print_error(&e),
-    };
+    let doc = PdfDocument::from_bytes(&data)?;
 
     let range = match &args.pages {
-        Some(spec) => match PageRange::parse(spec) {
-            Ok(r) => r,
-            Err(e) => return ctx.print_error(&e),
-        },
+        Some(spec) => PageRange::parse(spec)?,
         None => PageRange::all(doc.page_count()),
     };
 
     let output_dir = args.output_dir.as_deref().unwrap_or(".");
     let out_dir = Path::new(output_dir);
-    if let Err(e) = std::fs::create_dir_all(out_dir) {
-        let err = PanimgError::IoError {
-            message: e.to_string(),
-            path: Some(out_dir.to_path_buf()),
-            suggestion: "check the output directory path".into(),
-        };
-        return ctx.print_error(&err);
-    }
+    std::fs::create_dir_all(out_dir).map_err(|e| PanimgError::IoError {
+        message: e.to_string(),
+        path: Some(out_dir.to_path_buf()),
+        suggestion: "check the output directory path".into(),
+    })?;
 
     let ext = &args.page_format;
-    let out_format = match ImageFormat::from_extension(ext) {
-        Some(f) => f,
-        None => {
-            let err = PanimgError::InvalidArgument {
-                message: format!("unsupported page format: {ext}"),
-                suggestion: "use png, jpg, webp, etc.".into(),
-            };
-            return ctx.print_error(&err);
-        }
-    };
+    let out_format =
+        ImageFormat::from_extension(ext).ok_or_else(|| PanimgError::InvalidArgument {
+            message: format!("unsupported page format: {ext}"),
+            suggestion: "use png, jpg, webp, etc.".into(),
+        })?;
 
     let prefix = args.prefix.as_deref().unwrap_or("page");
     let render_dpi = ctx.dpi.unwrap_or(panimg_core::codec::DEFAULT_DPI);
@@ -201,15 +171,15 @@ pub fn run(args: &PdfPagesArgs, ctx: &RunContext) -> i32 {
         Ok(true)
     }) {
         Ok(total) => total,
-        Err(e) => return ctx.print_error(&e),
+        Err(e) => return Err(e),
     };
 
     if let Some(e) = encode_error {
-        return ctx.print_error(&e);
+        return Err(e);
     }
 
     let result = PdfPagesResult {
-        input: input.clone(),
+        input: input.to_string(),
         total_pages,
         extracted: page_outputs.len(),
         output_dir: output_dir.to_string(),
@@ -224,5 +194,5 @@ pub fn run(args: &PdfPagesArgs, ctx: &RunContext) -> i32 {
         &result,
     );
 
-    0
+    Ok(0)
 }

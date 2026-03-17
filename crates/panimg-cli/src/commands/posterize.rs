@@ -1,7 +1,6 @@
+use super::common::{require_input, require_output, run_pipeline, PipelineInput};
+use super::CommandResult;
 use crate::app::{PosterizeArgs, RunContext};
-use panimg_core::codec::{CodecRegistry, EncodeOptions};
-use panimg_core::error::PanimgError;
-use panimg_core::format::ImageFormat;
 use panimg_core::ops::color::PosterizeOp;
 use panimg_core::ops::Operation;
 use panimg_core::pipeline::Pipeline;
@@ -17,41 +16,23 @@ struct PosterizeResult {
     height: u32,
 }
 
-pub fn run(args: &PosterizeArgs, ctx: &RunContext) -> i32 {
-    if ctx.schema {
-        let s = PosterizeOp::schema();
-        ctx.print_json(&serde_json::to_value(&s).unwrap());
-        return 0;
-    }
+pub fn schema() -> pan_common::schema::CommandSchema {
+    PosterizeOp::schema()
+}
 
-    let input = match &args.input {
-        Some(i) => i,
-        None => {
-            let err = PanimgError::InvalidArgument {
-                message: "missing required argument: input".into(),
-                suggestion: "usage: panimg posterize <input> -o <output> --levels 4".into(),
-            };
-            return ctx.print_error(&err);
-        }
-    };
-
-    let output_path_str = match args.output.as_ref().or(args.output_pos.as_ref()) {
-        Some(o) => o.clone(),
-        None => {
-            let err = PanimgError::InvalidArgument {
-                message: "missing required argument: output (-o)".into(),
-                suggestion: "usage: panimg posterize <input> -o <output> --levels 4".into(),
-            };
-            return ctx.print_error(&err);
-        }
-    };
+pub fn run(args: &PosterizeArgs, ctx: &RunContext) -> CommandResult {
+    let input = require_input(
+        &args.input,
+        "panimg posterize <input> -o <output> --levels 4",
+    )?;
+    let output = require_output(
+        &args.output,
+        &args.output_pos,
+        "panimg posterize <input> -o <output> --levels 4",
+    )?;
 
     let levels = args.levels.unwrap_or(4);
-
-    let op = match PosterizeOp::new(levels) {
-        Ok(o) => o,
-        Err(e) => return ctx.print_error(&e),
-    };
+    let op = PosterizeOp::new(levels)?;
 
     if ctx.dry_run {
         let desc = op.describe();
@@ -59,53 +40,30 @@ pub fn run(args: &PosterizeArgs, ctx: &RunContext) -> i32 {
             &format!("Would posterize {input} to {levels} levels"),
             &desc,
         );
-        return 0;
+        return Ok(0);
     }
-
-    let input_path = Path::new(input);
-    let output_path = Path::new(&output_path_str);
-
-    let img = match CodecRegistry::decode_with_options(input_path, &ctx.decode_options()) {
-        Ok(i) => i,
-        Err(e) => return ctx.print_error(&e),
-    };
 
     let pipeline = Pipeline::new().push(op);
-    let result_img = match pipeline.execute(img) {
-        Ok(i) => i,
-        Err(e) => return ctx.print_error(&e),
-    };
-
-    let out_format = ImageFormat::from_path_extension(output_path)
-        .or_else(|| ImageFormat::from_path(input_path))
-        .unwrap_or(ImageFormat::Png);
-
-    let options = EncodeOptions {
-        format: out_format,
+    let pi = PipelineInput {
+        input_path: Path::new(input),
+        output_path: Path::new(&output),
         quality: args.quality,
         strip_metadata: args.strip,
-        resolution: None,
     };
 
-    if let Err(e) = CodecRegistry::encode(&result_img, output_path, &options) {
-        return ctx.print_error(&e);
-    }
-
-    let result = PosterizeResult {
-        input: input.clone(),
-        output: output_path_str,
-        levels,
-        width: result_img.width(),
-        height: result_img.height(),
+    let Some(out) = run_pipeline(&pipeline, &pi, ctx)? else {
+        return Ok(0);
     };
 
     ctx.print_output(
-        &format!(
-            "Posterized to {} levels: {} → {}",
-            result.levels, result.input, result.output
-        ),
-        &result,
+        &format!("Posterized to {} levels: {} → {}", levels, input, output),
+        &PosterizeResult {
+            input: input.to_string(),
+            output,
+            levels,
+            width: out.new_width,
+            height: out.new_height,
+        },
     );
-
-    0
+    Ok(0)
 }

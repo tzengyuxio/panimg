@@ -1,3 +1,4 @@
+use super::CommandResult;
 use crate::app::{BatchArgs, OutputFormat, RunContext};
 use indicatif::{ProgressBar, ProgressStyle};
 use panimg_core::codec::{CodecRegistry, EncodeOptions};
@@ -400,7 +401,7 @@ fn process_single_file_tiny(
     }
 }
 
-pub fn run(args: &BatchArgs, ctx: &RunContext) -> i32 {
+pub fn run(args: &BatchArgs, ctx: &RunContext) -> CommandResult {
     // Expand glob pattern
     let files: Vec<PathBuf> = match glob::glob(&args.pattern) {
         Ok(paths) => paths
@@ -408,20 +409,18 @@ pub fn run(args: &BatchArgs, ctx: &RunContext) -> i32 {
             .filter(|p| p.is_file())
             .collect(),
         Err(e) => {
-            let err = PanimgError::InvalidArgument {
+            return Err(PanimgError::InvalidArgument {
                 message: format!("invalid glob pattern: {e}"),
                 suggestion: "use a valid glob pattern like '*.png' or 'photos/**/*.jpg'".into(),
-            };
-            return ctx.print_error(&err);
+            });
         }
     };
 
     if files.is_empty() {
-        let err = PanimgError::InvalidArgument {
+        return Err(PanimgError::InvalidArgument {
             message: format!("no files matched pattern: '{}'", args.pattern),
             suggestion: "check the glob pattern and ensure matching files exist".into(),
-        };
-        return ctx.print_error(&err);
+        });
     }
 
     // Determine target extension for output
@@ -431,9 +430,7 @@ pub fn run(args: &BatchArgs, ctx: &RunContext) -> i32 {
     // Use a dummy path for operations that don't depend on input path
     let dummy_path = Path::new("dummy.png");
     if args.operation != "auto-orient" {
-        if let Err(e) = build_pipeline(args, dummy_path) {
-            return ctx.print_error(&e);
-        }
+        build_pipeline(args, dummy_path)?;
     }
 
     // Dry run
@@ -464,7 +461,7 @@ pub fn run(args: &BatchArgs, ctx: &RunContext) -> i32 {
             &format!("Would {} {} files", args.operation, files.len()),
             &plan,
         );
-        return 0;
+        return Ok(0);
     }
 
     // Setup progress bar (only for human output)
@@ -631,8 +628,8 @@ pub fn run(args: &BatchArgs, ctx: &RunContext) -> i32 {
                 }
             }
         }
-        1
+        Ok(1)
     } else {
-        0
+        Ok(0)
     }
 }

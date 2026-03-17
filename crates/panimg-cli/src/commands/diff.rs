@@ -1,35 +1,22 @@
+use super::common::require_input;
+use super::CommandResult;
 use crate::app::{DiffArgs, RunContext};
 use panimg_core::codec::{CodecRegistry, EncodeOptions};
-use panimg_core::error::PanimgError;
 use panimg_core::format::ImageFormat;
 use panimg_core::ops::diff;
 use std::path::Path;
 
-pub fn run(args: &DiffArgs, ctx: &RunContext) -> i32 {
-    let input_a = match &args.input_a {
-        Some(i) => i,
-        None => {
-            let err = PanimgError::InvalidArgument {
-                message: "missing required argument: first input image".into(),
-                suggestion: "usage: panimg diff <image_a> <image_b> [-o diff.png]".into(),
-            };
-            return ctx.print_error(&err);
-        }
-    };
-
-    let input_b = match &args.input_b {
-        Some(i) => i,
-        None => {
-            let err = PanimgError::InvalidArgument {
-                message: "missing required argument: second input image".into(),
-                suggestion: "usage: panimg diff <image_a> <image_b> [-o diff.png]".into(),
-            };
-            return ctx.print_error(&err);
-        }
-    };
+pub fn run(args: &DiffArgs, ctx: &RunContext) -> CommandResult {
+    let input_a = require_input(
+        &args.input_a,
+        "panimg diff <image_a> <image_b> [-o diff.png]",
+    )?;
+    let input_b = require_input(
+        &args.input_b,
+        "panimg diff <image_a> <image_b> [-o diff.png]",
+    )?;
 
     let threshold = args.threshold.unwrap_or(0);
-
     let path_a = Path::new(input_a);
     let path_b = Path::new(input_b);
 
@@ -41,27 +28,15 @@ pub fn run(args: &DiffArgs, ctx: &RunContext) -> i32 {
             "threshold": threshold,
         });
         ctx.print_output(&format!("Would compare {} vs {}", input_a, input_b), &plan);
-        return 0;
+        return Ok(0);
     }
 
-    let img_a = match CodecRegistry::decode_with_options(path_a, &ctx.decode_options()) {
-        Ok(i) => i,
-        Err(e) => return ctx.print_error(&e),
-    };
+    let img_a = CodecRegistry::decode_with_options(path_a, &ctx.decode_options())?;
+    let img_b = CodecRegistry::decode_with_options(path_b, &ctx.decode_options())?;
 
-    let img_b = match CodecRegistry::decode_with_options(path_b, &ctx.decode_options()) {
-        Ok(i) => i,
-        Err(e) => return ctx.print_error(&e),
-    };
+    diff::validate_inputs(&img_a, &img_b)?;
 
-    if let Err(e) = diff::validate_inputs(&img_a, &img_b) {
-        return ctx.print_error(&e);
-    }
-
-    let (result, diff_img) = match diff::compare(&img_a, &img_b, threshold) {
-        Ok(r) => r,
-        Err(e) => return ctx.print_error(&e),
-    };
+    let (result, diff_img) = diff::compare(&img_a, &img_b, threshold)?;
 
     // Save diff image if output path provided
     if let Some(output_path_str) = args.output.as_ref() {
@@ -75,9 +50,7 @@ pub fn run(args: &DiffArgs, ctx: &RunContext) -> i32 {
             resolution: None,
         };
 
-        if let Err(e) = CodecRegistry::encode(&diff_img, output_path, &options) {
-            return ctx.print_error(&e);
-        }
+        CodecRegistry::encode(&diff_img, output_path, &options)?;
     }
 
     ctx.print_output(
@@ -98,8 +71,8 @@ pub fn run(args: &DiffArgs, ctx: &RunContext) -> i32 {
     );
 
     if result.identical {
-        0
+        Ok(0)
     } else {
-        1
+        Ok(1)
     }
 }

@@ -1,3 +1,5 @@
+use super::common::{require_input, require_output};
+use super::CommandResult;
 use crate::app::{OverlayArgs, RunContext};
 use panimg_core::codec::{CodecRegistry, EncodeOptions};
 use panimg_core::error::PanimgError;
@@ -20,45 +22,28 @@ struct OverlayResult {
     output_size: u64,
 }
 
-pub fn run(args: &OverlayArgs, ctx: &RunContext) -> i32 {
-    if ctx.schema {
-        let s = OverlayOp::schema();
-        ctx.print_json(&serde_json::to_value(&s).unwrap());
-        return 0;
-    }
+pub fn schema() -> pan_common::schema::CommandSchema {
+    OverlayOp::schema()
+}
 
-    let input = match &args.input {
-        Some(i) => i,
-        None => {
-            let err = PanimgError::InvalidArgument {
-                message: "missing required argument: input".into(),
-                suggestion: "usage: panimg overlay <base> --layer <overlay> -o <output>".into(),
-            };
-            return ctx.print_error(&err);
-        }
-    };
+pub fn run(args: &OverlayArgs, ctx: &RunContext) -> CommandResult {
+    let input = require_input(
+        &args.input,
+        "panimg overlay <base> --layer <overlay> -o <output>",
+    )?;
+    let output_path_str = require_output(
+        &args.output,
+        &args.output_pos,
+        "panimg overlay <base> --layer <overlay> -o <output>",
+    )?;
 
-    let layer_path_str = match &args.layer {
-        Some(l) => l,
-        None => {
-            let err = PanimgError::InvalidArgument {
-                message: "missing required argument: --layer".into(),
-                suggestion: "usage: panimg overlay <base> --layer <overlay> -o <output>".into(),
-            };
-            return ctx.print_error(&err);
-        }
-    };
-
-    let output_path_str = match args.output.as_ref().or(args.output_pos.as_ref()) {
-        Some(o) => o.clone(),
-        None => {
-            let err = PanimgError::InvalidArgument {
-                message: "missing required argument: output (-o)".into(),
-                suggestion: "usage: panimg overlay <base> --layer <overlay> -o <output>".into(),
-            };
-            return ctx.print_error(&err);
-        }
-    };
+    let layer_path_str = args
+        .layer
+        .as_deref()
+        .ok_or_else(|| PanimgError::InvalidArgument {
+            message: "missing required argument: --layer".into(),
+            suggestion: "usage: panimg overlay <base> --layer <overlay> -o <output>".into(),
+        })?;
 
     let opacity = args.opacity.unwrap_or(1.0);
     let margin = args.margin.unwrap_or(10);
@@ -68,16 +53,10 @@ pub fn run(args: &OverlayArgs, ctx: &RunContext) -> i32 {
     let output_path = Path::new(&output_path_str);
 
     // Decode layer image first (needed for position calculation and tiling)
-    let layer_img = match CodecRegistry::decode_with_options(layer_path, &ctx.decode_options()) {
-        Ok(i) => i,
-        Err(e) => return ctx.print_error(&e),
-    };
+    let layer_img = CodecRegistry::decode_with_options(layer_path, &ctx.decode_options())?;
 
     // We need base dimensions for position calculation; decode base for that
-    let base_img = match CodecRegistry::decode_with_options(input_path, &ctx.decode_options()) {
-        Ok(i) => i,
-        Err(e) => return ctx.print_error(&e),
-    };
+    let base_img = CodecRegistry::decode_with_options(input_path, &ctx.decode_options())?;
 
     let base_w = base_img.width();
     let base_h = base_img.height();
@@ -86,10 +65,7 @@ pub fn run(args: &OverlayArgs, ctx: &RunContext) -> i32 {
 
     // Resolve position
     let (x, y) = if let Some(pos_str) = &args.position {
-        let pos: Position = match pos_str.parse() {
-            Ok(p) => p,
-            Err(e) => return ctx.print_error(&e),
-        };
+        let pos: Position = pos_str.parse()?;
         resolve_position(pos, base_w, base_h, layer_w, layer_h, margin)
     } else {
         (args.x.unwrap_or(0), args.y.unwrap_or(0))
@@ -98,10 +74,7 @@ pub fn run(args: &OverlayArgs, ctx: &RunContext) -> i32 {
     // Handle tiling
     let final_layer = if args.tile {
         let spacing = args.spacing.unwrap_or(0);
-        match create_tiled_overlay(&layer_img, base_w, base_h, opacity, spacing) {
-            Ok(tiled) => tiled,
-            Err(e) => return ctx.print_error(&e),
-        }
+        create_tiled_overlay(&layer_img, base_w, base_h, opacity, spacing)?
     } else {
         layer_img
     };
@@ -123,20 +96,12 @@ pub fn run(args: &OverlayArgs, ctx: &RunContext) -> i32 {
             ),
             &plan,
         );
-        return 0;
+        return Ok(0);
     }
 
-    let overlay_op = match OverlayOp::new(final_layer, final_x, final_y, opacity) {
-        Ok(op) => op,
-        Err(e) => return ctx.print_error(&e),
-    };
-
+    let overlay_op = OverlayOp::new(final_layer, final_x, final_y, opacity)?;
     let pipeline = Pipeline::new().push(overlay_op);
-
-    let result_img = match pipeline.execute(base_img) {
-        Ok(i) => i,
-        Err(e) => return ctx.print_error(&e),
-    };
+    let result_img = pipeline.execute(base_img)?;
 
     let out_format = ImageFormat::from_path_extension(output_path)
         .or_else(|| ImageFormat::from_path(input_path))
@@ -149,29 +114,25 @@ pub fn run(args: &OverlayArgs, ctx: &RunContext) -> i32 {
         resolution: None,
     };
 
-    if let Err(e) = CodecRegistry::encode(&result_img, output_path, &options) {
-        return ctx.print_error(&e);
-    }
+    CodecRegistry::encode(&result_img, output_path, &options)?;
 
     let output_size = std::fs::metadata(output_path).map(|m| m.len()).unwrap_or(0);
-
-    let result = OverlayResult {
-        input: input.clone(),
-        layer: layer_path_str.clone(),
-        output: output_path_str,
-        x: final_x,
-        y: final_y,
-        opacity,
-        output_size,
-    };
 
     ctx.print_output(
         &format!(
             "Overlay {} + {} → {} (x={}, y={}, opacity={})",
-            result.input, result.layer, result.output, result.x, result.y, result.opacity
+            input, layer_path_str, output_path_str, final_x, final_y, opacity
         ),
-        &result,
+        &OverlayResult {
+            input: input.to_string(),
+            layer: layer_path_str.to_string(),
+            output: output_path_str,
+            x: final_x,
+            y: final_y,
+            opacity,
+            output_size,
+        },
     );
 
-    0
+    Ok(0)
 }

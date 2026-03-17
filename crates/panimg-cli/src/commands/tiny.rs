@@ -1,3 +1,5 @@
+use super::common::require_input;
+use super::CommandResult;
 use crate::app::{OutputFormat, RunContext, TinyArgs};
 use panimg_core::compress::{compress, CompressOptions};
 use panimg_core::error::PanimgError;
@@ -96,23 +98,8 @@ struct TinyResult {
     savings_percent: f64,
 }
 
-pub fn run(args: &TinyArgs, ctx: &RunContext) -> i32 {
-    if ctx.schema {
-        let s = schema();
-        ctx.print_json(&serde_json::to_value(&s).unwrap());
-        return 0;
-    }
-
-    let input = match &args.input {
-        Some(i) => i,
-        None => {
-            let err = PanimgError::InvalidArgument {
-                message: "missing required argument: input".into(),
-                suggestion: "usage: panimg tiny <input> [-o <output>]".into(),
-            };
-            return ctx.print_error(&err);
-        }
-    };
+pub fn run(args: &TinyArgs, ctx: &RunContext) -> CommandResult {
+    let input = require_input(&args.input, "panimg tiny <input> [-o <output>]")?;
 
     let input_path = Path::new(input);
 
@@ -139,13 +126,12 @@ pub fn run(args: &TinyArgs, ctx: &RunContext) -> i32 {
                     println!(r#"{{"status": "skipped", "reason": "output_exists"}}"#)
                 }
             }
-            return 0;
+            return Ok(0);
         }
-        let err = PanimgError::OutputExists {
+        return Err(PanimgError::OutputExists {
             path: output_path.to_path_buf(),
             suggestion: "use --overwrite to replace or --skip-existing to skip".into(),
-        };
-        return ctx.print_error(&err);
+        });
     }
 
     // Dry run — need format detection here only for display
@@ -154,7 +140,7 @@ pub fn run(args: &TinyArgs, ctx: &RunContext) -> i32 {
             .map(|f| f.to_string())
             .unwrap_or_else(|| "unknown".into());
         let plan = TinyPlan {
-            input: input.clone(),
+            input: input.to_string(),
             output: output_path_str,
             format: img_format.clone(),
             quality: args.quality,
@@ -163,20 +149,17 @@ pub fn run(args: &TinyArgs, ctx: &RunContext) -> i32 {
             strip_metadata: args.strip,
         };
         ctx.print_output(&format!("Would compress {} ({})", input, img_format), &plan);
-        return 0;
+        return Ok(0);
     }
 
     // Ensure output directory exists
     if let Some(parent) = output_path.parent() {
         if !parent.as_os_str().is_empty() {
-            if let Err(e) = std::fs::create_dir_all(parent) {
-                let err = PanimgError::IoError {
-                    message: e.to_string(),
-                    path: Some(parent.to_path_buf()),
-                    suggestion: "check output directory permissions".into(),
-                };
-                return ctx.print_error(&err);
-            }
+            std::fs::create_dir_all(parent).map_err(|e| PanimgError::IoError {
+                message: e.to_string(),
+                path: Some(parent.to_path_buf()),
+                suggestion: "check output directory permissions".into(),
+            })?;
         }
     }
 
@@ -187,42 +170,39 @@ pub fn run(args: &TinyArgs, ctx: &RunContext) -> i32 {
         strip_metadata: args.strip,
     };
 
-    match compress(input_path, output_path, &options) {
-        Ok(result) => {
-            let tiny_result = TinyResult {
-                input: input.clone(),
-                output: output_path_str,
-                format: result.format.clone(),
-                input_size: result.input_size,
-                output_size: result.output_size,
-                savings_percent: result.savings_percent,
-            };
+    let result = compress(input_path, output_path, &options)?;
 
-            let human_msg = if result.savings_percent > 0.0 {
-                format!(
-                    "Compressed {} → {} ({} → {}, {:.1}% smaller)",
-                    tiny_result.input,
-                    tiny_result.output,
-                    format_size(result.input_size),
-                    format_size(result.output_size),
-                    result.savings_percent,
-                )
-            } else {
-                format!(
-                    "Compressed {} → {} ({} → {}, {:.1}% larger — already optimized?)",
-                    tiny_result.input,
-                    tiny_result.output,
-                    format_size(result.input_size),
-                    format_size(result.output_size),
-                    -result.savings_percent,
-                )
-            };
+    let tiny_result = TinyResult {
+        input: input.to_string(),
+        output: output_path_str,
+        format: result.format.clone(),
+        input_size: result.input_size,
+        output_size: result.output_size,
+        savings_percent: result.savings_percent,
+    };
 
-            ctx.print_output(&human_msg, &tiny_result);
-            0
-        }
-        Err(e) => ctx.print_error(&e),
-    }
+    let human_msg = if result.savings_percent > 0.0 {
+        format!(
+            "Compressed {} → {} ({} → {}, {:.1}% smaller)",
+            tiny_result.input,
+            tiny_result.output,
+            format_size(result.input_size),
+            format_size(result.output_size),
+            result.savings_percent,
+        )
+    } else {
+        format!(
+            "Compressed {} → {} ({} → {}, {:.1}% larger — already optimized?)",
+            tiny_result.input,
+            tiny_result.output,
+            format_size(result.input_size),
+            format_size(result.output_size),
+            -result.savings_percent,
+        )
+    };
+
+    ctx.print_output(&human_msg, &tiny_result);
+    Ok(0)
 }
 
 fn format_size(bytes: u64) -> String {

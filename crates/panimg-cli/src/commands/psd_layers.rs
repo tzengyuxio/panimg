@@ -1,7 +1,10 @@
+use super::common::require_input;
+use super::CommandResult;
 use crate::app::{PsdLayersArgs, RunContext};
 use panimg_core::codec::{CodecRegistry, EncodeOptions};
 use panimg_core::error::PanimgError;
 use panimg_core::format::ImageFormat;
+use panimg_core::schema::{CommandSchema, ParamSchema, ParamType};
 use serde::Serialize;
 use std::path::Path;
 
@@ -35,32 +38,65 @@ fn sanitize_name(name: &str) -> String {
         .collect()
 }
 
-pub fn run(args: &PsdLayersArgs, ctx: &RunContext) -> i32 {
-    if ctx.schema {
-        let schema = serde_json::json!({
-            "command": "psd-layers",
-            "params": {
-                "input": { "type": "string", "required": true, "description": "Input PSD file" },
-                "output_dir": { "type": "string", "description": "Output directory" },
-                "layer_format": { "type": "string", "default": "png", "description": "Output format" },
-                "layer_index": { "type": "integer", "description": "Extract specific layer by index" },
-                "layer_name": { "type": "string", "description": "Filter layers by name substring" }
-            }
-        });
-        ctx.print_json(&schema);
-        return 0;
+pub fn schema() -> CommandSchema {
+    CommandSchema {
+        command: "psd-layers".into(),
+        description: "Extract individual layers from a PSD file".into(),
+        params: vec![
+            ParamSchema {
+                name: "input".into(),
+                param_type: ParamType::Path,
+                required: true,
+                description: "Input PSD file".into(),
+                default: None,
+                choices: None,
+                range: None,
+            },
+            ParamSchema {
+                name: "output_dir".into(),
+                param_type: ParamType::Path,
+                required: false,
+                description: "Output directory".into(),
+                default: Some(serde_json::json!(".")),
+                choices: None,
+                range: None,
+            },
+            ParamSchema {
+                name: "layer_format".into(),
+                param_type: ParamType::String,
+                required: false,
+                description: "Output format".into(),
+                default: Some(serde_json::json!("png")),
+                choices: None,
+                range: None,
+            },
+            ParamSchema {
+                name: "layer_index".into(),
+                param_type: ParamType::Integer,
+                required: false,
+                description: "Extract specific layer by index".into(),
+                default: None,
+                choices: None,
+                range: None,
+            },
+            ParamSchema {
+                name: "layer_name".into(),
+                param_type: ParamType::String,
+                required: false,
+                description: "Filter layers by name substring".into(),
+                default: None,
+                choices: None,
+                range: None,
+            },
+        ],
     }
+}
 
-    let input = match &args.input {
-        Some(i) => i,
-        None => {
-            let err = PanimgError::InvalidArgument {
-                message: "missing required argument: input".into(),
-                suggestion: "usage: panimg psd-layers <input.psd> --output-dir ./layers".into(),
-            };
-            return ctx.print_error(&err);
-        }
-    };
+pub fn run(args: &PsdLayersArgs, ctx: &RunContext) -> CommandResult {
+    let input = require_input(
+        &args.input,
+        "panimg psd-layers <input.psd> --output-dir ./layers",
+    )?;
 
     let input_path = Path::new(input);
 
@@ -70,43 +106,29 @@ pub fn run(args: &PsdLayersArgs, ctx: &RunContext) -> i32 {
             "input": input,
         });
         ctx.print_output(&format!("Would extract layers from {input}"), &plan);
-        return 0;
+        return Ok(0);
     }
 
-    let data = match std::fs::read(input_path) {
-        Ok(d) => d,
-        Err(e) => {
-            let err = PanimgError::IoError {
-                message: e.to_string(),
-                path: Some(input_path.to_path_buf()),
-                suggestion: "check that the file exists and is readable".into(),
-            };
-            return ctx.print_error(&err);
-        }
-    };
+    let data = std::fs::read(input_path).map_err(|e| PanimgError::IoError {
+        message: e.to_string(),
+        path: Some(input_path.to_path_buf()),
+        suggestion: "check that the file exists and is readable".into(),
+    })?;
 
     let output_dir = args.output_dir.as_deref().unwrap_or(".");
     let out_dir = Path::new(output_dir);
-    if let Err(e) = std::fs::create_dir_all(out_dir) {
-        let err = PanimgError::IoError {
-            message: e.to_string(),
-            path: Some(out_dir.to_path_buf()),
-            suggestion: "check the output directory path".into(),
-        };
-        return ctx.print_error(&err);
-    }
+    std::fs::create_dir_all(out_dir).map_err(|e| PanimgError::IoError {
+        message: e.to_string(),
+        path: Some(out_dir.to_path_buf()),
+        suggestion: "check the output directory path".into(),
+    })?;
 
     let ext = &args.layer_format;
-    let out_format = match ImageFormat::from_extension(ext) {
-        Some(f) => f,
-        None => {
-            let err = PanimgError::InvalidArgument {
-                message: format!("unsupported layer format: {ext}"),
-                suggestion: "use png, jpg, webp, etc.".into(),
-            };
-            return ctx.print_error(&err);
-        }
-    };
+    let out_format =
+        ImageFormat::from_extension(ext).ok_or_else(|| PanimgError::InvalidArgument {
+            message: format!("unsupported layer format: {ext}"),
+            suggestion: "use png, jpg, webp, etc.".into(),
+        })?;
 
     let stem = input_path
         .file_stem()
@@ -163,15 +185,15 @@ pub fn run(args: &PsdLayersArgs, ctx: &RunContext) -> i32 {
         Ok(true)
     }) {
         Ok(total) => total,
-        Err(e) => return ctx.print_error(&e),
+        Err(e) => return Err(e),
     };
 
     if let Some(e) = encode_error {
-        return ctx.print_error(&e);
+        return Err(e);
     }
 
     let result = LayersResult {
-        input: input.clone(),
+        input: input.to_string(),
         total_layers,
         extracted: layer_outputs.len(),
         output_dir: output_dir.to_string(),
@@ -186,5 +208,5 @@ pub fn run(args: &PsdLayersArgs, ctx: &RunContext) -> i32 {
         &result,
     );
 
-    0
+    Ok(0)
 }
