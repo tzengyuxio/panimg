@@ -1,6 +1,6 @@
+use super::common::{require_input, require_output, run_pipeline, PipelineInput};
+use super::CommandResult;
 use crate::app::{ResizeArgs, RunContext};
-use panimg_core::codec::{CodecRegistry, EncodeOptions};
-use panimg_core::error::PanimgError;
 use panimg_core::format::ImageFormat;
 use panimg_core::ops::resize::{FitMode, ResizeFilter, ResizeOp};
 use panimg_core::ops::Operation;
@@ -28,54 +28,27 @@ struct ResizeResult {
     output_size: u64,
 }
 
-pub fn run(args: &ResizeArgs, ctx: &RunContext) -> i32 {
-    if ctx.schema {
-        let s = ResizeOp::schema();
-        ctx.print_json(&serde_json::to_value(&s).unwrap());
-        return 0;
-    }
+pub fn schema() -> pan_common::schema::CommandSchema {
+    ResizeOp::schema()
+}
 
-    let input = match &args.input {
-        Some(i) => i,
-        None => {
-            let err = PanimgError::InvalidArgument {
-                message: "missing required argument: input".into(),
-                suggestion: "usage: panimg resize <input> -o <output> --width <px>".into(),
-            };
-            return ctx.print_error(&err);
-        }
-    };
-
-    let output_path_str = match args.output.as_ref().or(args.output_pos.as_ref()) {
-        Some(o) => o.clone(),
-        None => {
-            let err = PanimgError::InvalidArgument {
-                message: "missing required argument: output (-o)".into(),
-                suggestion: "usage: panimg resize <input> -o <output> --width <px>".into(),
-            };
-            return ctx.print_error(&err);
-        }
-    };
+pub fn run(args: &ResizeArgs, ctx: &RunContext) -> CommandResult {
+    let input = require_input(
+        &args.input,
+        "panimg resize <input> -o <output> --width <px>",
+    )?;
+    let output = require_output(
+        &args.output,
+        &args.output_pos,
+        "panimg resize <input> -o <output> --width <px>",
+    )?;
 
     let input_path = Path::new(input);
-    let output_path = Path::new(&output_path_str);
+    let output_path = Path::new(&output);
 
-    // Parse fit and filter
-    let fit = match FitMode::parse(&args.fit) {
-        Ok(f) => f,
-        Err(e) => return ctx.print_error(&e),
-    };
-    let filter = match ResizeFilter::parse(&args.filter) {
-        Ok(f) => f,
-        Err(e) => return ctx.print_error(&e),
-    };
-
-    // Build resize operation
-    let resize_op = match ResizeOp::new(args.width, args.height, fit, filter) {
-        Ok(op) => op,
-        Err(e) => return ctx.print_error(&e),
-    };
-
+    let fit = FitMode::parse(&args.fit)?;
+    let filter = ResizeFilter::parse(&args.filter)?;
+    let resize_op = ResizeOp::new(args.width, args.height, fit, filter)?;
     let pipeline = Pipeline::new().push(resize_op);
 
     // Determine output format
@@ -83,69 +56,44 @@ pub fn run(args: &ResizeArgs, ctx: &RunContext) -> i32 {
         .or_else(|| ImageFormat::from_path(input_path))
         .unwrap_or(ImageFormat::Png);
 
-    // Dry run
+    // Custom dry-run with ResizePlan
     if ctx.dry_run {
         let plan = ResizePlan {
-            input: input.clone(),
-            output: output_path_str,
+            input: input.to_string(),
+            output: output.clone(),
             steps: pipeline.describe().steps,
             output_format: out_format.to_string(),
             quality: args.quality,
         };
         ctx.print_output(&format!("Would resize {} → {}", input, plan.output), &plan);
-        return 0;
+        return Ok(0);
     }
 
-    // Decode input
-    let decode_opts = ctx.decode_options();
-    let img = match CodecRegistry::decode_with_options(input_path, &decode_opts) {
-        Ok(i) => i,
-        Err(e) => return ctx.print_error(&e),
-    };
-
-    let original_width = img.width();
-    let original_height = img.height();
-
-    // Execute pipeline
-    let result_img = match pipeline.execute(img) {
-        Ok(i) => i,
-        Err(e) => return ctx.print_error(&e),
-    };
-
-    let new_width = result_img.width();
-    let new_height = result_img.height();
-
-    // Encode output
-    let options = EncodeOptions {
-        format: out_format,
+    let pi = PipelineInput {
+        input_path,
+        output_path,
         quality: args.quality,
         strip_metadata: args.strip,
-        resolution: None,
     };
 
-    if let Err(e) = CodecRegistry::encode(&result_img, output_path, &options) {
-        return ctx.print_error(&e);
-    }
-
-    let output_size = std::fs::metadata(output_path).map(|m| m.len()).unwrap_or(0);
-
-    let result = ResizeResult {
-        input: input.clone(),
-        output: output_path_str,
-        original_width,
-        original_height,
-        new_width,
-        new_height,
-        output_size,
+    let Some(out) = run_pipeline(&pipeline, &pi, ctx)? else {
+        return Ok(0);
     };
 
     ctx.print_output(
         &format!(
             "Resized {} ({}x{}) → {} ({}x{})",
-            result.input, original_width, original_height, result.output, new_width, new_height
+            input, out.original_width, out.original_height, output, out.new_width, out.new_height
         ),
-        &result,
+        &ResizeResult {
+            input: input.to_string(),
+            output,
+            original_width: out.original_width,
+            original_height: out.original_height,
+            new_width: out.new_width,
+            new_height: out.new_height,
+            output_size: out.output_size,
+        },
     );
-
-    0
+    Ok(0)
 }

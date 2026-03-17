@@ -1,3 +1,5 @@
+use super::common::{require_input, require_output};
+use super::CommandResult;
 use crate::app::{RunContext, SetDensityArgs};
 use panimg_core::codec::{CodecRegistry, EncodeOptions};
 use panimg_core::error::PanimgError;
@@ -150,45 +152,22 @@ struct SetDensityResult {
     output_dimensions: Option<String>,
 }
 
-pub fn run(args: &SetDensityArgs, ctx: &RunContext) -> i32 {
-    if ctx.schema {
-        let s = schema();
-        ctx.print_json(&serde_json::to_value(&s).unwrap());
-        return 0;
-    }
-
-    let input = match &args.input {
-        Some(i) => i,
-        None => {
-            let err = PanimgError::InvalidArgument {
-                message: "missing required argument: input".into(),
-                suggestion: "usage: panimg set-density <input> -o <output> --density <value>"
-                    .into(),
-            };
-            return ctx.print_error(&err);
-        }
-    };
-
-    let output_path_str = match args.output.as_ref().or(args.output_pos.as_ref()) {
-        Some(o) => o.clone(),
-        None => {
-            let err = PanimgError::InvalidArgument {
-                message: "missing required argument: output (-o)".into(),
-                suggestion: "usage: panimg set-density <input> -o <output> --density <value>"
-                    .into(),
-            };
-            return ctx.print_error(&err);
-        }
-    };
+pub fn run(args: &SetDensityArgs, ctx: &RunContext) -> CommandResult {
+    let input = require_input(
+        &args.input,
+        "panimg set-density <input> -o <output> --density <value>",
+    )?;
+    let output_path_str = require_output(
+        &args.output,
+        &args.output_pos,
+        "panimg set-density <input> -o <output> --density <value>",
+    )?;
 
     let input_path = Path::new(input);
     let output_path = Path::new(&output_path_str);
 
     // Parse target unit and resolution
-    let target_unit = match ResolutionUnit::parse(&args.unit) {
-        Ok(u) => u,
-        Err(e) => return ctx.print_error(&e),
-    };
+    let target_unit = ResolutionUnit::parse(&args.unit)?;
     let target_res = Resolution::from_density(args.density, target_unit);
 
     // Determine output format
@@ -198,7 +177,7 @@ pub fn run(args: &SetDensityArgs, ctx: &RunContext) -> i32 {
     // Dry run
     if ctx.dry_run {
         let plan = SetDensityPlan {
-            input: input.clone(),
+            input: input.to_string(),
             output: output_path_str,
             density: args.density,
             unit: args.unit.clone(),
@@ -219,15 +198,12 @@ pub fn run(args: &SetDensityArgs, ctx: &RunContext) -> i32 {
             ),
             &plan,
         );
-        return 0;
+        return Ok(0);
     }
 
     // Decode
     let decode_opts = ctx.decode_options();
-    let mut img = match CodecRegistry::decode_with_options(input_path, &decode_opts) {
-        Ok(i) => i,
-        Err(e) => return ctx.print_error(&e),
-    };
+    let mut img = CodecRegistry::decode_with_options(input_path, &decode_opts)?;
 
     let input_size = std::fs::metadata(input_path).map(|m| m.len()).unwrap_or(0);
     let orig_w = img.width();
@@ -235,36 +211,23 @@ pub fn run(args: &SetDensityArgs, ctx: &RunContext) -> i32 {
 
     // Resample if requested
     if args.resample {
-        let source_unit = match ResolutionUnit::parse(&args.source_unit) {
-            Ok(u) => u,
-            Err(e) => return ctx.print_error(&e),
-        };
-        let filter = match ResizeFilter::parse(&args.filter) {
-            Ok(f) => f,
-            Err(e) => return ctx.print_error(&e),
-        };
+        let source_unit = ResolutionUnit::parse(&args.source_unit)?;
+        let filter = ResizeFilter::parse(&args.filter)?;
 
         // Determine source resolution
         let source_res = if let Some(src_density) = args.source_density {
             if src_density <= 0.0 {
-                let err = PanimgError::InvalidArgument {
+                return Err(PanimgError::InvalidArgument {
                     message: format!("--source-density must be positive, got {src_density}"),
                     suggestion: "specify a positive density value".into(),
-                };
-                return ctx.print_error(&err);
+                });
             }
             Resolution::from_density(src_density, source_unit)
         } else {
-            match read_resolution(input_path) {
-                Some(r) => r,
-                None => {
-                    let err = PanimgError::InvalidArgument {
-                        message: "cannot resample: no resolution metadata found in input".into(),
-                        suggestion: "specify --source-density and --source-unit manually".into(),
-                    };
-                    return ctx.print_error(&err);
-                }
-            }
+            read_resolution(input_path).ok_or_else(|| PanimgError::InvalidArgument {
+                message: "cannot resample: no resolution metadata found in input".into(),
+                suggestion: "specify --source-density and --source-unit manually".into(),
+            })?
         };
 
         // Calculate scale factor: target_dpi / source_dpi
@@ -275,23 +238,15 @@ pub fn run(args: &SetDensityArgs, ctx: &RunContext) -> i32 {
         let new_h = (orig_h as f64 * scale_y).round() as u32;
 
         if new_w == 0 || new_h == 0 {
-            let err = PanimgError::InvalidArgument {
+            return Err(PanimgError::InvalidArgument {
                 message: format!("resampled dimensions would be zero: {new_w}x{new_h}"),
                 suggestion: "check that density values produce reasonable scaling".into(),
-            };
-            return ctx.print_error(&err);
+            });
         }
 
         if new_w != orig_w || new_h != orig_h {
-            let resize_op = match ResizeOp::new(Some(new_w), Some(new_h), FitMode::Fill, filter) {
-                Ok(op) => op,
-                Err(e) => return ctx.print_error(&e),
-            };
-
-            img = match resize_op.apply(img) {
-                Ok(i) => i,
-                Err(e) => return ctx.print_error(&e),
-            };
+            let resize_op = ResizeOp::new(Some(new_w), Some(new_h), FitMode::Fill, filter)?;
+            img = resize_op.apply(img)?;
         }
     }
 
@@ -306,14 +261,12 @@ pub fn run(args: &SetDensityArgs, ctx: &RunContext) -> i32 {
         resolution: Some(target_res),
     };
 
-    if let Err(e) = CodecRegistry::encode(&img, output_path, &options) {
-        return ctx.print_error(&e);
-    }
+    CodecRegistry::encode(&img, output_path, &options)?;
 
     let output_size = std::fs::metadata(output_path).map(|m| m.len()).unwrap_or(0);
 
     let result = SetDensityResult {
-        input: input.clone(),
+        input: input.to_string(),
         output: output_path_str,
         density: args.density,
         unit: args.unit.clone(),
@@ -345,5 +298,5 @@ pub fn run(args: &SetDensityArgs, ctx: &RunContext) -> i32 {
     };
 
     ctx.print_output(&human_msg, &result);
-    0
+    Ok(0)
 }

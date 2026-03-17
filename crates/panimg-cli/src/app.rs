@@ -39,7 +39,6 @@ pub use pan_common::output::OutputFormat;
 pub struct RunContext {
     pub format: OutputFormat,
     pub dry_run: bool,
-    pub schema: bool,
     pub dpi: Option<f32>,
 }
 
@@ -48,7 +47,6 @@ impl RunContext {
         Self {
             format: cli.format,
             dry_run: cli.dry_run,
-            schema: cli.schema,
             dpi: cli.dpi,
         }
     }

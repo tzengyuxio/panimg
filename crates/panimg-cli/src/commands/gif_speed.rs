@@ -1,3 +1,5 @@
+use super::common::{require_input, require_output};
+use super::CommandResult;
 use crate::app::{GifSpeedArgs, RunContext};
 use panimg_core::error::PanimgError;
 use panimg_core::ops::animation;
@@ -13,41 +15,21 @@ struct GifSpeedResult {
     output_size: u64,
 }
 
-pub fn run(args: &GifSpeedArgs, ctx: &RunContext) -> i32 {
-    let input = match &args.input {
-        Some(i) => i,
-        None => {
-            let err = PanimgError::InvalidArgument {
-                message: "missing required argument: input".into(),
-                suggestion: "usage: panimg gif-speed <input.gif> -o <output.gif> --speed 2.0"
-                    .into(),
-            };
-            return ctx.print_error(&err);
-        }
-    };
+pub fn run(args: &GifSpeedArgs, ctx: &RunContext) -> CommandResult {
+    let input = require_input(
+        &args.input,
+        "panimg gif-speed <input.gif> -o <output.gif> --speed 2.0",
+    )?;
+    let output_path_str = require_output(
+        &args.output,
+        &args.output_pos,
+        "panimg gif-speed <input.gif> -o <output.gif> --speed 2.0",
+    )?;
 
-    let output_path_str = match args.output.as_ref().or(args.output_pos.as_ref()) {
-        Some(o) => o.clone(),
-        None => {
-            let err = PanimgError::InvalidArgument {
-                message: "missing required argument: output (-o)".into(),
-                suggestion: "usage: panimg gif-speed <input.gif> -o <output.gif> --speed 2.0"
-                    .into(),
-            };
-            return ctx.print_error(&err);
-        }
-    };
-
-    let speed = match args.speed {
-        Some(s) => s,
-        None => {
-            let err = PanimgError::InvalidArgument {
-                message: "missing required argument: --speed".into(),
-                suggestion: "use --speed 2.0 for 2x faster, or --speed 0.5 for half speed".into(),
-            };
-            return ctx.print_error(&err);
-        }
-    };
+    let speed = args.speed.ok_or_else(|| PanimgError::InvalidArgument {
+        message: "missing required argument: --speed".into(),
+        suggestion: "use --speed 2.0 for 2x faster, or --speed 0.5 for half speed".into(),
+    })?;
 
     let input_path = Path::new(input);
 
@@ -58,28 +40,19 @@ pub fn run(args: &GifSpeedArgs, ctx: &RunContext) -> i32 {
             "speed": speed,
         });
         ctx.print_output(&format!("Would change speed of {input} by {speed}x"), &plan);
-        return 0;
+        return Ok(0);
     }
 
-    let (frames, _) = match animation::extract_frames(input_path) {
-        Ok(r) => r,
-        Err(e) => return ctx.print_error(&e),
-    };
-
-    let new_frames = match animation::change_speed(&frames, speed) {
-        Ok(f) => f,
-        Err(e) => return ctx.print_error(&e),
-    };
+    let (frames, _) = animation::extract_frames(input_path)?;
+    let new_frames = animation::change_speed(&frames, speed)?;
 
     let output_path = Path::new(&output_path_str);
-    if let Err(e) = animation::write_gif(&new_frames, output_path, true) {
-        return ctx.print_error(&e);
-    }
+    animation::write_gif(&new_frames, output_path, true)?;
 
     let output_size = std::fs::metadata(output_path).map(|m| m.len()).unwrap_or(0);
 
     let result = GifSpeedResult {
-        input: input.clone(),
+        input: input.to_string(),
         output: output_path_str,
         speed_factor: speed,
         total_frames: new_frames.len(),
@@ -94,5 +67,5 @@ pub fn run(args: &GifSpeedArgs, ctx: &RunContext) -> i32 {
         &result,
     );
 
-    0
+    Ok(0)
 }

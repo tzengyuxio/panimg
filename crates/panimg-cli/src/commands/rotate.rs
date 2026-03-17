@@ -1,5 +1,6 @@
+use super::common::{require_input, require_output, run_pipeline, PipelineInput};
+use super::CommandResult;
 use crate::app::{RotateArgs, RunContext};
-use panimg_core::codec::{CodecRegistry, EncodeOptions};
 use panimg_core::color::parse_color;
 use panimg_core::error::PanimgError;
 use panimg_core::format::ImageFormat;
@@ -29,53 +30,29 @@ fn default_background_str(format: &ImageFormat) -> &'static str {
     }
 }
 
-pub fn run(args: &RotateArgs, ctx: &RunContext) -> i32 {
-    if ctx.schema {
-        let s = RotateOp::schema();
-        ctx.print_json(&serde_json::to_value(&s).unwrap());
-        return 0;
-    }
+pub fn schema() -> pan_common::schema::CommandSchema {
+    RotateOp::schema()
+}
 
-    let input = match &args.input {
-        Some(i) => i,
-        None => {
-            let err = PanimgError::InvalidArgument {
-                message: "missing required argument: input".into(),
-                suggestion: "usage: panimg rotate <input> -o <output> --angle 90".into(),
-            };
-            return ctx.print_error(&err);
-        }
-    };
+pub fn run(args: &RotateArgs, ctx: &RunContext) -> CommandResult {
+    let input = require_input(&args.input, "panimg rotate <input> -o <output> --angle 90")?;
+    let output = require_output(
+        &args.output,
+        &args.output_pos,
+        "panimg rotate <input> -o <output> --angle 90",
+    )?;
 
-    let output_path_str = match args.output.as_ref().or(args.output_pos.as_ref()) {
-        Some(o) => o.clone(),
-        None => {
-            let err = PanimgError::InvalidArgument {
-                message: "missing required argument: output (-o)".into(),
-                suggestion: "usage: panimg rotate <input> -o <output> --angle 90".into(),
-            };
-            return ctx.print_error(&err);
-        }
-    };
-
-    let angle_str = match &args.angle {
-        Some(a) => a,
-        None => {
-            let err = PanimgError::InvalidArgument {
-                message: "missing required argument: --angle".into(),
-                suggestion: "usage: panimg rotate <input> -o <output> --angle 90".into(),
-            };
-            return ctx.print_error(&err);
-        }
-    };
-
-    let angle = match RotateAngle::parse(angle_str) {
-        Ok(a) => a,
-        Err(e) => return ctx.print_error(&e),
-    };
+    let angle_str = args
+        .angle
+        .as_deref()
+        .ok_or_else(|| PanimgError::InvalidArgument {
+            message: "missing required argument: --angle".into(),
+            suggestion: "usage: panimg rotate <input> -o <output> --angle 90".into(),
+        })?;
+    let angle = RotateAngle::parse(angle_str)?;
 
     let input_path = Path::new(input);
-    let output_path = Path::new(&output_path_str);
+    let output_path = Path::new(&output);
 
     // Determine output format for default background color
     let out_format = ImageFormat::from_path_extension(output_path)
@@ -87,62 +64,38 @@ pub fn run(args: &RotateArgs, ctx: &RunContext) -> i32 {
         .background
         .as_deref()
         .unwrap_or_else(|| default_background_str(&out_format));
-    let background = match parse_color(bg_str) {
-        Ok(c) => c,
-        Err(e) => return ctx.print_error(&e),
-    };
+    let background = parse_color(bg_str)?;
 
     let rotate_op = RotateOp::new(angle).with_background(background);
     let pipeline = Pipeline::new().push(rotate_op);
-
-    if ctx.dry_run {
-        let plan = pipeline.describe();
-        ctx.print_output(
-            &format!("Would rotate {} → {}", input, output_path_str),
-            &plan,
-        );
-        return 0;
-    }
-
-    let img = match CodecRegistry::decode_with_options(input_path, &ctx.decode_options()) {
-        Ok(i) => i,
-        Err(e) => return ctx.print_error(&e),
-    };
-
-    let result_img = match pipeline.execute(img) {
-        Ok(i) => i,
-        Err(e) => return ctx.print_error(&e),
-    };
-
-    let options = EncodeOptions {
-        format: out_format,
+    let pi = PipelineInput {
+        input_path,
+        output_path,
         quality: args.quality,
         strip_metadata: args.strip,
-        resolution: None,
     };
 
-    if let Err(e) = CodecRegistry::encode(&result_img, output_path, &options) {
-        return ctx.print_error(&e);
-    }
-
-    let output_size = std::fs::metadata(output_path).map(|m| m.len()).unwrap_or(0);
-
-    let result = RotateResult {
-        input: input.clone(),
-        output: output_path_str,
-        angle: angle.degrees_f64(),
-        new_width: result_img.width(),
-        new_height: result_img.height(),
-        output_size,
+    let Some(out) = run_pipeline(&pipeline, &pi, ctx)? else {
+        return Ok(0);
     };
 
     ctx.print_output(
         &format!(
             "Rotated {} → {} ({}°, {}x{})",
-            result.input, result.output, result.angle, result.new_width, result.new_height
+            input,
+            output,
+            angle.degrees_f64(),
+            out.new_width,
+            out.new_height
         ),
-        &result,
+        &RotateResult {
+            input: input.to_string(),
+            output,
+            angle: angle.degrees_f64(),
+            new_width: out.new_width,
+            new_height: out.new_height,
+            output_size: out.output_size,
+        },
     );
-
-    0
+    Ok(0)
 }

@@ -1,3 +1,5 @@
+use super::common::{require_input, require_output};
+use super::CommandResult;
 use crate::app::{ConvertArgs, OutputFormat, RunContext};
 use panimg_core::codec::{CodecRegistry, EncodeOptions};
 use panimg_core::error::PanimgError;
@@ -123,62 +125,28 @@ struct ConvertResult {
     page: Option<usize>,
 }
 
-pub fn run(args: &ConvertArgs, ctx: &RunContext) -> i32 {
-    if ctx.schema {
-        let s = schema();
-        ctx.print_json(&serde_json::to_value(&s).unwrap());
-        return 0;
-    }
-
-    let input = match &args.input {
-        Some(i) => i,
-        None => {
-            let err = PanimgError::InvalidArgument {
-                message: "missing required argument: input".into(),
-                suggestion: "usage: panimg convert <input> -o <output>".into(),
-            };
-            return ctx.print_error(&err);
-        }
-    };
-
-    let output_path_str = match args.output.as_ref().or(args.output_pos.as_ref()) {
-        Some(o) => o.clone(),
-        None => {
-            let err = PanimgError::InvalidArgument {
-                message: "missing required argument: output (-o)".into(),
-                suggestion: "usage: panimg convert <input> -o <output>".into(),
-            };
-            return ctx.print_error(&err);
-        }
-    };
+pub fn run(args: &ConvertArgs, ctx: &RunContext) -> CommandResult {
+    let input = require_input(&args.input, "panimg convert <input> -o <output>")?;
+    let output_path_str = require_output(
+        &args.output,
+        &args.output_pos,
+        "panimg convert <input> -o <output>",
+    )?;
 
     let input_path = Path::new(input);
     let output_path = Path::new(&output_path_str);
 
     // Determine target format
     let target_format = if let Some(to) = &args.to {
-        match ImageFormat::from_extension(to) {
-            Some(f) => f,
-            None => {
-                let err = PanimgError::UnsupportedFormat {
-                    format: to.clone(),
-                    suggestion: "use a supported format: jpg, png, webp, gif, bmp, tiff, qoi"
-                        .into(),
-                };
-                return ctx.print_error(&err);
-            }
-        }
+        ImageFormat::from_extension(to).ok_or_else(|| PanimgError::UnsupportedFormat {
+            format: to.clone(),
+            suggestion: "use a supported format: jpg, png, webp, gif, bmp, tiff, qoi".into(),
+        })?
     } else {
-        match ImageFormat::from_path_extension(output_path) {
-            Some(f) => f,
-            None => {
-                let err = PanimgError::UnknownFormat {
-                    path: output_path.to_path_buf(),
-                    suggestion: "specify --to <format> or use a recognized output extension".into(),
-                };
-                return ctx.print_error(&err);
-            }
-        }
+        ImageFormat::from_path_extension(output_path).ok_or_else(|| PanimgError::UnknownFormat {
+            path: output_path.to_path_buf(),
+            suggestion: "specify --to <format> or use a recognized output extension".into(),
+        })?
     };
 
     // Check output exists
@@ -190,40 +158,33 @@ pub fn run(args: &ConvertArgs, ctx: &RunContext) -> i32 {
                     println!(r#"{{"status": "skipped", "reason": "output_exists"}}"#)
                 }
             }
-            return 0;
+            return Ok(0);
         }
-        let err = PanimgError::OutputExists {
+        return Err(PanimgError::OutputExists {
             path: output_path.to_path_buf(),
             suggestion: "use --overwrite to replace or --skip-existing to skip".into(),
-        };
-        return ctx.print_error(&err);
+        });
     }
 
     // Validate --page early (before dry-run and decode)
     if let Some(0) = args.page {
-        let err = PanimgError::InvalidArgument {
+        return Err(PanimgError::InvalidArgument {
             message: "page numbers are 1-based, 0 is not valid".into(),
             suggestion: "use --page 1 for the first page".into(),
-        };
-        return ctx.print_error(&err);
+        });
     }
 
     // Detect input format
-    let input_format = match ImageFormat::from_path(input_path) {
-        Some(f) => f,
-        None => {
-            let err = PanimgError::UnknownFormat {
-                path: input_path.to_path_buf(),
-                suggestion: "the input file format could not be detected".into(),
-            };
-            return ctx.print_error(&err);
-        }
-    };
+    let input_format =
+        ImageFormat::from_path(input_path).ok_or_else(|| PanimgError::UnknownFormat {
+            path: input_path.to_path_buf(),
+            suggestion: "the input file format could not be detected".into(),
+        })?;
 
     // Dry run
     if ctx.dry_run {
         let plan = ConvertPlan {
-            input: input.clone(),
+            input: input.to_string(),
             output: output_path_str,
             from_format: input_format.to_string(),
             to_format: target_format.to_string(),
@@ -238,16 +199,13 @@ pub fn run(args: &ConvertArgs, ctx: &RunContext) -> i32 {
             ),
             &plan,
         );
-        return 0;
+        return Ok(0);
     }
 
     // Decode
     let mut decode_opts = ctx.decode_options();
     decode_opts.page = args.page.map(|p| p.saturating_sub(1));
-    let mut img = match CodecRegistry::decode_with_options(input_path, &decode_opts) {
-        Ok(i) => i,
-        Err(e) => return ctx.print_error(&e),
-    };
+    let mut img = CodecRegistry::decode_with_options(input_path, &decode_opts)?;
 
     let input_size = std::fs::metadata(input_path).map(|m| m.len()).unwrap_or(0);
 
@@ -255,16 +213,12 @@ pub fn run(args: &ConvertArgs, ctx: &RunContext) -> i32 {
     #[cfg(feature = "icc")]
     {
         if let Some(ref target_cs) = args.convert_profile {
-            let color_space = match target_cs.parse::<panimg_core::icc::ColorSpace>() {
-                Ok(cs) => cs,
-                Err(_) => {
-                    let err = PanimgError::InvalidArgument {
-                        message: format!("unknown color space: '{target_cs}'"),
-                        suggestion: "use one of: srgb, adobe-rgb, display-p3".into(),
-                    };
-                    return ctx.print_error(&err);
-                }
-            };
+            let color_space = target_cs
+                .parse::<panimg_core::icc::ColorSpace>()
+                .map_err(|_| PanimgError::InvalidArgument {
+                    message: format!("unknown color space: '{target_cs}'"),
+                    suggestion: "use one of: srgb, adobe-rgb, display-p3".into(),
+                })?;
 
             // Try to extract source ICC profile from the input file
             let input_data = std::fs::read(input_path).ok();
@@ -272,11 +226,8 @@ pub fn run(args: &ConvertArgs, ctx: &RunContext) -> i32 {
                 .as_deref()
                 .and_then(panimg_core::icc::extract_icc_from_image);
 
-            match panimg_core::icc::convert_to_color_space(&img, source_icc.as_deref(), color_space)
-            {
-                Ok(converted) => img = converted,
-                Err(e) => return ctx.print_error(&e),
-            }
+            img =
+                panimg_core::icc::convert_to_color_space(&img, source_icc.as_deref(), color_space)?;
         }
     }
 
@@ -288,14 +239,12 @@ pub fn run(args: &ConvertArgs, ctx: &RunContext) -> i32 {
         resolution: None,
     };
 
-    if let Err(e) = CodecRegistry::encode(&img, output_path, &options) {
-        return ctx.print_error(&e);
-    }
+    CodecRegistry::encode(&img, output_path, &options)?;
 
     let output_size = std::fs::metadata(output_path).map(|m| m.len()).unwrap_or(0);
 
     let result = ConvertResult {
-        input: input.clone(),
+        input: input.to_string(),
         output: output_path_str,
         from_format: input_format.to_string(),
         to_format: target_format.to_string(),
@@ -312,5 +261,5 @@ pub fn run(args: &ConvertArgs, ctx: &RunContext) -> i32 {
         &result,
     );
 
-    0
+    Ok(0)
 }

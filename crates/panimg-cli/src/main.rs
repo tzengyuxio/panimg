@@ -3,6 +3,7 @@ mod commands;
 
 use app::{Cli, Commands, OutputFormat};
 use clap::Parser;
+use commands::CommandResult;
 use panimg_core::format::ImageFormat;
 use serde::Serialize;
 
@@ -206,6 +207,120 @@ fn capabilities() -> Capabilities {
     }
 }
 
+fn dispatch_schema(cli: &Cli, ctx: &app::RunContext) -> i32 {
+    let schema = match &cli.command {
+        Some(Commands::Info(_)) => Some(commands::info::schema()),
+        Some(Commands::Convert(_)) => Some(commands::convert::schema()),
+        Some(Commands::Resize(_)) => Some(commands::resize::schema()),
+        Some(Commands::Crop(_)) => Some(commands::crop::schema()),
+        Some(Commands::Rotate(_)) => Some(commands::rotate::schema()),
+        Some(Commands::Flip(_)) => Some(commands::flip::schema()),
+        Some(Commands::AutoOrient(_)) => Some(commands::orient::schema()),
+        Some(Commands::Grayscale(_)) => Some(commands::grayscale::schema()),
+        Some(Commands::Invert(_)) => Some(commands::invert::schema()),
+        Some(Commands::Brightness(_)) => Some(commands::brightness::schema()),
+        Some(Commands::Contrast(_)) => Some(commands::contrast::schema()),
+        Some(Commands::HueRotate(_)) => Some(commands::hue_rotate::schema()),
+        Some(Commands::Blur(_)) => Some(commands::blur::schema()),
+        Some(Commands::Sharpen(_)) => Some(commands::sharpen::schema()),
+        Some(Commands::EdgeDetect(_)) => Some(commands::edge_detect::schema()),
+        Some(Commands::Emboss(_)) => Some(commands::emboss::schema()),
+        Some(Commands::Draw(_)) => Some(commands::draw::schema()),
+        Some(Commands::Overlay(_)) => Some(commands::overlay::schema()),
+        Some(Commands::Trim(_)) => Some(commands::trim::schema()),
+        Some(Commands::Diff(_)) => None,
+        Some(Commands::Pipeline(_)) => None,
+        Some(Commands::Frames(_)) => None,
+        Some(Commands::Animate(_)) => None,
+        Some(Commands::GifSpeed(_)) => None,
+        Some(Commands::Saturate(_)) => Some(commands::saturate::schema()),
+        Some(Commands::Sepia(_)) => Some(commands::sepia::schema()),
+        Some(Commands::Tint(_)) => Some(commands::tint::schema()),
+        Some(Commands::Posterize(_)) => Some(commands::posterize::schema()),
+        Some(Commands::TiltShift(_)) => Some(commands::tilt_shift::schema()),
+        Some(Commands::SmartCrop(_)) => Some(commands::smart_crop::schema()),
+        Some(Commands::SetDensity(_)) => Some(commands::set_density::schema()),
+        #[cfg(feature = "psd")]
+        Some(Commands::PsdInfo(_)) => Some(commands::psd_info::schema()),
+        #[cfg(feature = "psd")]
+        Some(Commands::PsdLayers(_)) => Some(commands::psd_layers::schema()),
+        #[cfg(feature = "pdf")]
+        Some(Commands::PdfPages(_)) => Some(commands::pdf_pages::schema()),
+        #[cfg(feature = "text")]
+        Some(Commands::Text(_)) => Some(commands::text::schema()),
+        #[cfg(feature = "tiny")]
+        Some(Commands::Tiny(_)) => Some(commands::tiny::schema()),
+        Some(Commands::Batch(_)) => None,
+        None => None,
+    };
+    match schema {
+        Some(s) => {
+            ctx.print_json(&serde_json::to_value(&s).unwrap());
+            0
+        }
+        None => {
+            let err = panimg_core::error::PanimgError::InvalidArgument {
+                message: "this command does not support --schema".into(),
+                suggestion: "remove the --schema flag".into(),
+            };
+            ctx.print_error(&err)
+        }
+    }
+}
+
+fn dispatch_command(cli: &Cli, ctx: &app::RunContext) -> CommandResult {
+    match &cli.command {
+        Some(Commands::Info(args)) => commands::info::run(args, ctx),
+        Some(Commands::Convert(args)) => commands::convert::run(args, ctx),
+        Some(Commands::Resize(args)) => commands::resize::run(args, ctx),
+        Some(Commands::Crop(args)) => commands::crop::run(args, ctx),
+        Some(Commands::Rotate(args)) => commands::rotate::run(args, ctx),
+        Some(Commands::Flip(args)) => commands::flip::run(args, ctx),
+        Some(Commands::AutoOrient(args)) => commands::orient::run(args, ctx),
+        Some(Commands::Grayscale(args)) => commands::grayscale::run(args, ctx),
+        Some(Commands::Invert(args)) => commands::invert::run(args, ctx),
+        Some(Commands::Brightness(args)) => commands::brightness::run(args, ctx),
+        Some(Commands::Contrast(args)) => commands::contrast::run(args, ctx),
+        Some(Commands::HueRotate(args)) => commands::hue_rotate::run(args, ctx),
+        Some(Commands::Blur(args)) => commands::blur::run(args, ctx),
+        Some(Commands::Sharpen(args)) => commands::sharpen::run(args, ctx),
+        Some(Commands::EdgeDetect(args)) => commands::edge_detect::run(args, ctx),
+        Some(Commands::Emboss(args)) => commands::emboss::run(args, ctx),
+        Some(Commands::Draw(args)) => commands::draw::run(args, ctx),
+        Some(Commands::Overlay(args)) => commands::overlay::run(args, ctx),
+        Some(Commands::Trim(args)) => commands::trim::run(args, ctx),
+        Some(Commands::Diff(args)) => commands::diff::run(args, ctx),
+        Some(Commands::Pipeline(args)) => commands::pipeline::run(args, ctx),
+        Some(Commands::Frames(args)) => commands::frames::run(args, ctx),
+        Some(Commands::Animate(args)) => commands::animate::run(args, ctx),
+        Some(Commands::GifSpeed(args)) => commands::gif_speed::run(args, ctx),
+        Some(Commands::Saturate(args)) => commands::saturate::run(args, ctx),
+        Some(Commands::Sepia(args)) => commands::sepia::run(args, ctx),
+        Some(Commands::Tint(args)) => commands::tint::run(args, ctx),
+        Some(Commands::Posterize(args)) => commands::posterize::run(args, ctx),
+        Some(Commands::TiltShift(args)) => commands::tilt_shift::run(args, ctx),
+        Some(Commands::SmartCrop(args)) => commands::smart_crop::run(args, ctx),
+        Some(Commands::SetDensity(args)) => commands::set_density::run(args, ctx),
+        #[cfg(feature = "psd")]
+        Some(Commands::PsdInfo(args)) => commands::psd_info::run(args, ctx),
+        #[cfg(feature = "psd")]
+        Some(Commands::PsdLayers(args)) => commands::psd_layers::run(args, ctx),
+        #[cfg(feature = "pdf")]
+        Some(Commands::PdfPages(args)) => commands::pdf_pages::run(args, ctx),
+        #[cfg(feature = "text")]
+        Some(Commands::Text(args)) => commands::text::run(args, ctx),
+        #[cfg(feature = "tiny")]
+        Some(Commands::Tiny(args)) => commands::tiny::run(args, ctx),
+        Some(Commands::Batch(args)) => commands::batch::run(args, ctx),
+        None => {
+            use clap::CommandFactory;
+            Cli::command().print_help().ok();
+            println!();
+            Ok(0)
+        }
+    }
+}
+
 fn main() {
     let cli = Cli::parse();
 
@@ -248,55 +363,12 @@ fn main() {
 
     let ctx = app::RunContext::from_cli(&cli);
 
-    let exit_code = match &cli.command {
-        Some(Commands::Info(args)) => commands::info::run(args, &ctx),
-        Some(Commands::Convert(args)) => commands::convert::run(args, &ctx),
-        Some(Commands::Resize(args)) => commands::resize::run(args, &ctx),
-        Some(Commands::Crop(args)) => commands::crop::run(args, &ctx),
-        Some(Commands::Rotate(args)) => commands::rotate::run(args, &ctx),
-        Some(Commands::Flip(args)) => commands::flip::run(args, &ctx),
-        Some(Commands::AutoOrient(args)) => commands::orient::run(args, &ctx),
-        Some(Commands::Grayscale(args)) => commands::grayscale::run(args, &ctx),
-        Some(Commands::Invert(args)) => commands::invert::run(args, &ctx),
-        Some(Commands::Brightness(args)) => commands::brightness::run(args, &ctx),
-        Some(Commands::Contrast(args)) => commands::contrast::run(args, &ctx),
-        Some(Commands::HueRotate(args)) => commands::hue_rotate::run(args, &ctx),
-        Some(Commands::Blur(args)) => commands::blur::run(args, &ctx),
-        Some(Commands::Sharpen(args)) => commands::sharpen::run(args, &ctx),
-        Some(Commands::EdgeDetect(args)) => commands::edge_detect::run(args, &ctx),
-        Some(Commands::Emboss(args)) => commands::emboss::run(args, &ctx),
-        Some(Commands::Draw(args)) => commands::draw::run(args, &ctx),
-        Some(Commands::Overlay(args)) => commands::overlay::run(args, &ctx),
-        Some(Commands::Trim(args)) => commands::trim::run(args, &ctx),
-        Some(Commands::Diff(args)) => commands::diff::run(args, &ctx),
-        Some(Commands::Pipeline(args)) => commands::pipeline::run(args, &ctx),
-        Some(Commands::Frames(args)) => commands::frames::run(args, &ctx),
-        Some(Commands::Animate(args)) => commands::animate::run(args, &ctx),
-        Some(Commands::GifSpeed(args)) => commands::gif_speed::run(args, &ctx),
-        Some(Commands::Saturate(args)) => commands::saturate::run(args, &ctx),
-        Some(Commands::Sepia(args)) => commands::sepia::run(args, &ctx),
-        Some(Commands::Tint(args)) => commands::tint::run(args, &ctx),
-        Some(Commands::Posterize(args)) => commands::posterize::run(args, &ctx),
-        Some(Commands::TiltShift(args)) => commands::tilt_shift::run(args, &ctx),
-        Some(Commands::SmartCrop(args)) => commands::smart_crop::run(args, &ctx),
-        Some(Commands::SetDensity(args)) => commands::set_density::run(args, &ctx),
-        #[cfg(feature = "psd")]
-        Some(Commands::PsdInfo(args)) => commands::psd_info::run(args, &ctx),
-        #[cfg(feature = "psd")]
-        Some(Commands::PsdLayers(args)) => commands::psd_layers::run(args, &ctx),
-        #[cfg(feature = "pdf")]
-        Some(Commands::PdfPages(args)) => commands::pdf_pages::run(args, &ctx),
-        #[cfg(feature = "text")]
-        Some(Commands::Text(args)) => commands::text::run(args, &ctx),
-        #[cfg(feature = "tiny")]
-        Some(Commands::Tiny(args)) => commands::tiny::run(args, &ctx),
-        Some(Commands::Batch(args)) => commands::batch::run(args, &ctx),
-        None => {
-            // No subcommand: show help
-            use clap::CommandFactory;
-            Cli::command().print_help().ok();
-            println!();
-            0
+    let exit_code = if cli.schema {
+        dispatch_schema(&cli, &ctx)
+    } else {
+        match dispatch_command(&cli, &ctx) {
+            Ok(code) => code,
+            Err(e) => ctx.print_error(&e),
         }
     };
 

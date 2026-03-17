@@ -1,3 +1,5 @@
+use super::common::{require_input, require_output};
+use super::CommandResult;
 use crate::app::{RunContext, SmartCropArgs};
 use panimg_core::codec::{CodecRegistry, EncodeOptions};
 use panimg_core::error::PanimgError;
@@ -21,72 +23,33 @@ struct SmartCropResult {
     output_size: u64,
 }
 
-pub fn run(args: &SmartCropArgs, ctx: &RunContext) -> i32 {
-    if ctx.schema {
-        let s = SmartCropOp::schema();
-        ctx.print_json(&serde_json::to_value(&s).unwrap());
-        return 0;
-    }
+pub fn schema() -> pan_common::schema::CommandSchema {
+    SmartCropOp::schema()
+}
 
-    let input = match &args.input {
-        Some(i) => i,
-        None => {
-            let err = PanimgError::InvalidArgument {
-                message: "missing required argument: input".into(),
-                suggestion: "usage: panimg smart-crop <input> -o <output> --width W --height H"
-                    .into(),
-            };
-            return ctx.print_error(&err);
-        }
-    };
+pub fn run(args: &SmartCropArgs, ctx: &RunContext) -> CommandResult {
+    let input = require_input(
+        &args.input,
+        "panimg smart-crop <input> -o <output> --width W --height H",
+    )?;
+    let output_path_str = require_output(
+        &args.output,
+        &args.output_pos,
+        "panimg smart-crop <input> -o <output> --width W --height H",
+    )?;
 
-    let output_path_str = match args.output.as_ref().or(args.output_pos.as_ref()) {
-        Some(o) => o.clone(),
-        None => {
-            let err = PanimgError::InvalidArgument {
-                message: "missing required argument: output (-o)".into(),
-                suggestion: "usage: panimg smart-crop <input> -o <output> --width W --height H"
-                    .into(),
-            };
-            return ctx.print_error(&err);
-        }
-    };
+    let width = args.width.ok_or_else(|| PanimgError::InvalidArgument {
+        message: "missing required argument: --width".into(),
+        suggestion: "usage: panimg smart-crop <input> -o <output> --width W --height H".into(),
+    })?;
+    let height = args.height.ok_or_else(|| PanimgError::InvalidArgument {
+        message: "missing required argument: --height".into(),
+        suggestion: "usage: panimg smart-crop <input> -o <output> --width W --height H".into(),
+    })?;
 
-    let width = match args.width {
-        Some(w) => w,
-        None => {
-            let err = PanimgError::InvalidArgument {
-                message: "missing required argument: --width".into(),
-                suggestion: "usage: panimg smart-crop <input> -o <output> --width W --height H"
-                    .into(),
-            };
-            return ctx.print_error(&err);
-        }
-    };
-
-    let height = match args.height {
-        Some(h) => h,
-        None => {
-            let err = PanimgError::InvalidArgument {
-                message: "missing required argument: --height".into(),
-                suggestion: "usage: panimg smart-crop <input> -o <output> --width W --height H"
-                    .into(),
-            };
-            return ctx.print_error(&err);
-        }
-    };
-
-    let strategy = match SmartCropStrategy::parse(args.strategy.as_deref().unwrap_or("entropy")) {
-        Ok(s) => s,
-        Err(e) => return ctx.print_error(&e),
-    };
-
+    let strategy = SmartCropStrategy::parse(args.strategy.as_deref().unwrap_or("entropy"))?;
     let step = args.step;
-
-    let op = match SmartCropOp::new(width, height, strategy, step) {
-        Ok(op) => op,
-        Err(e) => return ctx.print_error(&e),
-    };
+    let op = SmartCropOp::new(width, height, strategy, step)?;
 
     let input_path = Path::new(input);
     let output_path = Path::new(&output_path_str);
@@ -101,30 +64,17 @@ pub fn run(args: &SmartCropArgs, ctx: &RunContext) -> i32 {
             ),
             &plan,
         );
-        return 0;
+        return Ok(0);
     }
 
-    let img = match CodecRegistry::decode_with_options(input_path, &ctx.decode_options()) {
-        Ok(i) => i,
-        Err(e) => return ctx.print_error(&e),
-    };
+    let img = CodecRegistry::decode_with_options(input_path, &ctx.decode_options())?;
 
     // Find best crop position once, then crop directly (avoid double search).
-    let (crop_x, crop_y) = match op.find_best_crop(&img) {
-        Ok(pos) => pos,
-        Err(e) => return ctx.print_error(&e),
-    };
+    let (crop_x, crop_y) = op.find_best_crop(&img)?;
 
-    let crop_op = match CropOp::new(crop_x, crop_y, width, height) {
-        Ok(op) => op,
-        Err(e) => return ctx.print_error(&e),
-    };
-
+    let crop_op = CropOp::new(crop_x, crop_y, width, height)?;
     let pipeline = Pipeline::new().push(crop_op);
-    let result_img = match pipeline.execute(img) {
-        Ok(i) => i,
-        Err(e) => return ctx.print_error(&e),
-    };
+    let result_img = pipeline.execute(img)?;
 
     let out_format = ImageFormat::from_path_extension(output_path)
         .or_else(|| ImageFormat::from_path(input_path))
@@ -137,30 +87,26 @@ pub fn run(args: &SmartCropArgs, ctx: &RunContext) -> i32 {
         resolution: None,
     };
 
-    if let Err(e) = CodecRegistry::encode(&result_img, output_path, &options) {
-        return ctx.print_error(&e);
-    }
+    CodecRegistry::encode(&result_img, output_path, &options)?;
 
     let output_size = std::fs::metadata(output_path).map(|m| m.len()).unwrap_or(0);
-
-    let result = SmartCropResult {
-        input: input.clone(),
-        output: output_path_str,
-        crop_x,
-        crop_y,
-        crop_width: width,
-        crop_height: height,
-        strategy: strategy.to_string(),
-        output_size,
-    };
 
     ctx.print_output(
         &format!(
             "Smart-crop {} → {} ({}x{} at ({},{}), strategy={})",
-            result.input, result.output, width, height, crop_x, crop_y, strategy
+            input, output_path_str, width, height, crop_x, crop_y, strategy
         ),
-        &result,
+        &SmartCropResult {
+            input: input.to_string(),
+            output: output_path_str,
+            crop_x,
+            crop_y,
+            crop_width: width,
+            crop_height: height,
+            strategy: strategy.to_string(),
+            output_size,
+        },
     );
 
-    0
+    Ok(0)
 }

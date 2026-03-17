@@ -1,3 +1,5 @@
+use super::common::require_output;
+use super::CommandResult;
 use crate::app::{AnimateArgs, RunContext};
 use panimg_core::codec::CodecRegistry;
 use panimg_core::error::PanimgError;
@@ -13,28 +15,20 @@ struct AnimateResult {
     output_size: u64,
 }
 
-pub fn run(args: &AnimateArgs, ctx: &RunContext) -> i32 {
-    let pattern = match &args.pattern {
-        Some(p) => p,
-        None => {
-            let err = PanimgError::InvalidArgument {
-                message: "missing required argument: pattern".into(),
-                suggestion: "usage: panimg animate <pattern> -o <output.gif> --delay 100".into(),
-            };
-            return ctx.print_error(&err);
-        }
-    };
+pub fn run(args: &AnimateArgs, ctx: &RunContext) -> CommandResult {
+    let pattern = args
+        .pattern
+        .as_deref()
+        .ok_or_else(|| PanimgError::InvalidArgument {
+            message: "missing required argument: pattern".into(),
+            suggestion: "usage: panimg animate <pattern> -o <output.gif> --delay 100".into(),
+        })?;
 
-    let output_path_str = match args.output.as_ref().or(args.output_pos.as_ref()) {
-        Some(o) => o.clone(),
-        None => {
-            let err = PanimgError::InvalidArgument {
-                message: "missing required argument: output (-o)".into(),
-                suggestion: "usage: panimg animate 'frames/*.png' -o output.gif --delay 100".into(),
-            };
-            return ctx.print_error(&err);
-        }
-    };
+    let output_path_str = require_output(
+        &args.output,
+        &args.output_pos,
+        "panimg animate 'frames/*.png' -o output.gif --delay 100",
+    )?;
 
     // Expand glob pattern and sort
     let mut files: Vec<std::path::PathBuf> = match glob::glob(pattern) {
@@ -43,21 +37,19 @@ pub fn run(args: &AnimateArgs, ctx: &RunContext) -> i32 {
             .filter(|p| p.is_file())
             .collect(),
         Err(e) => {
-            let err = PanimgError::InvalidArgument {
+            return Err(PanimgError::InvalidArgument {
                 message: format!("invalid glob pattern: {e}"),
                 suggestion: "use a pattern like 'frames/*.png'".into(),
-            };
-            return ctx.print_error(&err);
+            });
         }
     };
     files.sort();
 
     if files.is_empty() {
-        let err = PanimgError::InvalidArgument {
+        return Err(PanimgError::InvalidArgument {
             message: format!("no files matched pattern: '{pattern}'"),
             suggestion: "check the glob pattern and ensure matching files exist".into(),
-        };
-        return ctx.print_error(&err);
+        });
     }
 
     let delay_ms = args.delay.unwrap_or(100);
@@ -80,23 +72,19 @@ pub fn run(args: &AnimateArgs, ctx: &RunContext) -> i32 {
             ),
             &plan,
         );
-        return 0;
+        return Ok(0);
     }
 
     // Load all images
     let decode_opts = ctx.decode_options();
     let mut images = Vec::with_capacity(files.len());
     for file in &files {
-        match CodecRegistry::decode_with_options(file, &decode_opts) {
-            Ok(img) => images.push(img),
-            Err(e) => return ctx.print_error(&e),
-        }
+        let img = CodecRegistry::decode_with_options(file, &decode_opts)?;
+        images.push(img);
     }
 
     let output_path = Path::new(&output_path_str);
-    if let Err(e) = animation::assemble_gif(&images, output_path, delay_ms, repeat) {
-        return ctx.print_error(&e);
-    }
+    animation::assemble_gif(&images, output_path, delay_ms, repeat)?;
 
     let output_size = std::fs::metadata(output_path).map(|m| m.len()).unwrap_or(0);
 
@@ -118,5 +106,5 @@ pub fn run(args: &AnimateArgs, ctx: &RunContext) -> i32 {
         &result,
     );
 
-    0
+    Ok(0)
 }

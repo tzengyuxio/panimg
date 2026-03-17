@@ -1,8 +1,10 @@
+use super::CommandResult;
 use crate::app::{InfoArgs, OutputFormat, RunContext};
-use panimg_core::error::PanimgError;
 use panimg_core::info::ImageInfo;
 use panimg_core::schema::{CommandSchema, ParamSchema, ParamType};
 use std::path::Path;
+
+use super::common::require_input;
 
 pub fn schema() -> CommandSchema {
     CommandSchema {
@@ -47,29 +49,11 @@ pub fn schema() -> CommandSchema {
     }
 }
 
-pub fn run(args: &InfoArgs, ctx: &RunContext) -> i32 {
-    if ctx.schema {
-        let s = schema();
-        ctx.print_json(&serde_json::to_value(&s).unwrap());
-        return 0;
-    }
-
-    let input = match &args.input {
-        Some(i) => i,
-        None => {
-            let err = PanimgError::InvalidArgument {
-                message: "missing required argument: input".into(),
-                suggestion: "usage: panimg info <file>".into(),
-            };
-            return ctx.print_error(&err);
-        }
-    };
+pub fn run(args: &InfoArgs, ctx: &RunContext) -> CommandResult {
+    let input = require_input(&args.input, "panimg info <file>")?;
 
     let path = Path::new(input);
-    let info = match ImageInfo::from_path(path) {
-        Ok(i) => i,
-        Err(e) => return ctx.print_error(&e),
-    };
+    let info = ImageInfo::from_path(path)?;
 
     let fields: Vec<String> = args
         .fields
@@ -87,5 +71,5 @@ pub fn run(args: &InfoArgs, ctx: &RunContext) -> i32 {
         }
     }
 
-    0
+    Ok(0)
 }

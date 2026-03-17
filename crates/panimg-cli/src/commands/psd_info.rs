@@ -1,47 +1,37 @@
+use super::common::require_input;
+use super::CommandResult;
 use crate::app::{PsdInfoArgs, RunContext};
 use panimg_core::error::PanimgError;
+use panimg_core::schema::{CommandSchema, ParamSchema, ParamType};
 use std::path::Path;
 
-pub fn run(args: &PsdInfoArgs, ctx: &RunContext) -> i32 {
-    if ctx.schema {
-        let schema = serde_json::json!({
-            "command": "psd-info",
-            "params": {
-                "input": { "type": "string", "required": true, "description": "Input PSD file" }
-            }
-        });
-        ctx.print_json(&schema);
-        return 0;
+pub fn schema() -> CommandSchema {
+    CommandSchema {
+        command: "psd-info".into(),
+        description: "Show PSD layer metadata".into(),
+        params: vec![ParamSchema {
+            name: "input".into(),
+            param_type: ParamType::Path,
+            required: true,
+            description: "Input PSD file".into(),
+            default: None,
+            choices: None,
+            range: None,
+        }],
     }
+}
 
-    let input = match &args.input {
-        Some(i) => i,
-        None => {
-            let err = PanimgError::InvalidArgument {
-                message: "missing required argument: input".into(),
-                suggestion: "usage: panimg psd-info <input.psd>".into(),
-            };
-            return ctx.print_error(&err);
-        }
-    };
+pub fn run(args: &PsdInfoArgs, ctx: &RunContext) -> CommandResult {
+    let input = require_input(&args.input, "panimg psd-info <input.psd>")?;
 
     let path = Path::new(input);
-    let data = match std::fs::read(path) {
-        Ok(d) => d,
-        Err(e) => {
-            let err = PanimgError::IoError {
-                message: e.to_string(),
-                path: Some(path.to_path_buf()),
-                suggestion: "check that the file exists and is readable".into(),
-            };
-            return ctx.print_error(&err);
-        }
-    };
+    let data = std::fs::read(path).map_err(|e| PanimgError::IoError {
+        message: e.to_string(),
+        path: Some(path.to_path_buf()),
+        suggestion: "check that the file exists and is readable".into(),
+    })?;
 
-    let info = match panimg_core::psd::get_psd_info(&data) {
-        Ok(i) => i,
-        Err(e) => return ctx.print_error(&e),
-    };
+    let info = panimg_core::psd::get_psd_info(&data)?;
 
     let human = format!(
         "PSD: {}x{}, {} layer(s)\n{}",
@@ -56,5 +46,5 @@ pub fn run(args: &PsdInfoArgs, ctx: &RunContext) -> i32 {
     );
 
     ctx.print_output(&human, &info);
-    0
+    Ok(0)
 }

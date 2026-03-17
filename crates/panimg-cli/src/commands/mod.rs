@@ -1,3 +1,5 @@
+pub mod common;
+
 pub mod animate;
 pub mod batch;
 pub mod blur;
@@ -40,3 +42,5 @@ pub mod tint;
 #[cfg(feature = "tiny")]
 pub mod tiny;
 pub mod trim;
+
+pub type CommandResult = std::result::Result<i32, panimg_core::error::PanimgError>;

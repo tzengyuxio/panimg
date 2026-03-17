@@ -1,8 +1,8 @@
+use super::common::{require_input, require_output, run_pipeline, PipelineInput};
+use super::CommandResult;
 use crate::app::{RunContext, TintArgs};
-use panimg_core::codec::{CodecRegistry, EncodeOptions};
 use panimg_core::color::parse_color;
 use panimg_core::error::PanimgError;
-use panimg_core::format::ImageFormat;
 use panimg_core::ops::color::TintOp;
 use panimg_core::ops::Operation;
 use panimg_core::pipeline::Pipeline;
@@ -19,58 +19,32 @@ struct TintResult {
     height: u32,
 }
 
-pub fn run(args: &TintArgs, ctx: &RunContext) -> i32 {
-    if ctx.schema {
-        let s = TintOp::schema();
-        ctx.print_json(&serde_json::to_value(&s).unwrap());
-        return 0;
-    }
+pub fn schema() -> pan_common::schema::CommandSchema {
+    TintOp::schema()
+}
 
-    let input = match &args.input {
-        Some(i) => i,
-        None => {
-            let err = PanimgError::InvalidArgument {
-                message: "missing required argument: input".into(),
-                suggestion: "usage: panimg tint <input> -o <output> --color red --strength 0.5"
-                    .into(),
-            };
-            return ctx.print_error(&err);
-        }
-    };
+pub fn run(args: &TintArgs, ctx: &RunContext) -> CommandResult {
+    let input = require_input(
+        &args.input,
+        "panimg tint <input> -o <output> --color red --strength 0.5",
+    )?;
+    let output = require_output(
+        &args.output,
+        &args.output_pos,
+        "panimg tint <input> -o <output> --color red",
+    )?;
 
-    let output_path_str = match args.output.as_ref().or(args.output_pos.as_ref()) {
-        Some(o) => o.clone(),
-        None => {
-            let err = PanimgError::InvalidArgument {
-                message: "missing required argument: output (-o)".into(),
-                suggestion: "usage: panimg tint <input> -o <output> --color red".into(),
-            };
-            return ctx.print_error(&err);
-        }
-    };
-
-    let color_str = match &args.color {
-        Some(c) => c.clone(),
-        None => {
-            let err = PanimgError::InvalidArgument {
-                message: "missing required argument: --color".into(),
-                suggestion: "use --color red, --color '#FF0000', or --color '255,0,0'".into(),
-            };
-            return ctx.print_error(&err);
-        }
-    };
-
-    let rgba = match parse_color(&color_str) {
-        Ok(c) => c,
-        Err(e) => return ctx.print_error(&e),
-    };
-
+    let color_str = args
+        .color
+        .as_deref()
+        .ok_or_else(|| PanimgError::InvalidArgument {
+            message: "missing required argument: --color".into(),
+            suggestion: "use --color red, --color '#FF0000', or --color '255,0,0'".into(),
+        })?;
+    let rgba = parse_color(color_str)?;
     let strength = args.strength.unwrap_or(0.5);
 
-    let op = match TintOp::new(rgba[0], rgba[1], rgba[2], strength) {
-        Ok(o) => o,
-        Err(e) => return ctx.print_error(&e),
-    };
+    let op = TintOp::new(rgba[0], rgba[1], rgba[2], strength)?;
 
     if ctx.dry_run {
         let desc = op.describe();
@@ -78,54 +52,34 @@ pub fn run(args: &TintArgs, ctx: &RunContext) -> i32 {
             &format!("Would tint {input} with {color_str} at strength {strength}"),
             &desc,
         );
-        return 0;
+        return Ok(0);
     }
-
-    let input_path = Path::new(input);
-    let output_path = Path::new(&output_path_str);
-
-    let img = match CodecRegistry::decode_with_options(input_path, &ctx.decode_options()) {
-        Ok(i) => i,
-        Err(e) => return ctx.print_error(&e),
-    };
 
     let pipeline = Pipeline::new().push(op);
-    let result_img = match pipeline.execute(img) {
-        Ok(i) => i,
-        Err(e) => return ctx.print_error(&e),
-    };
-
-    let out_format = ImageFormat::from_path_extension(output_path)
-        .or_else(|| ImageFormat::from_path(input_path))
-        .unwrap_or(ImageFormat::Png);
-
-    let options = EncodeOptions {
-        format: out_format,
+    let pi = PipelineInput {
+        input_path: Path::new(input),
+        output_path: Path::new(&output),
         quality: args.quality,
         strip_metadata: args.strip,
-        resolution: None,
     };
 
-    if let Err(e) = CodecRegistry::encode(&result_img, output_path, &options) {
-        return ctx.print_error(&e);
-    }
-
-    let result = TintResult {
-        input: input.clone(),
-        output: output_path_str,
-        color: color_str,
-        strength,
-        width: result_img.width(),
-        height: result_img.height(),
+    let Some(out) = run_pipeline(&pipeline, &pi, ctx)? else {
+        return Ok(0);
     };
 
     ctx.print_output(
         &format!(
             "Tinted with {} at {}: {} → {}",
-            result.color, result.strength, result.input, result.output
+            color_str, strength, input, output
         ),
-        &result,
+        &TintResult {
+            input: input.to_string(),
+            output,
+            color: color_str.to_string(),
+            strength,
+            width: out.new_width,
+            height: out.new_height,
+        },
     );
-
-    0
+    Ok(0)
 }
