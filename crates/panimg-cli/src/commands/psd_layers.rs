@@ -183,10 +183,7 @@ pub fn run(args: &PsdLayersArgs, ctx: &RunContext) -> CommandResult {
             return Ok(false);
         }
         Ok(true)
-    }) {
-        Ok(total) => total,
-        Err(e) => return Err(e),
-    };
+    })?;
 
     if let Some(e) = encode_error {
         return Err(e);

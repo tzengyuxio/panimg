@@ -151,7 +151,7 @@ pub fn run(args: &PdfPagesArgs, ctx: &RunContext) -> CommandResult {
     let mut page_outputs = Vec::new();
     let mut encode_error: Option<PanimgError> = None;
 
-    let total_pages = match doc.for_each_page(&range, render_dpi, |info, img| {
+    let total_pages = doc.for_each_page(&range, render_dpi, |info, img| {
         let page_1based = info.index + 1;
         let filename = format!("{prefix}_{page_1based:04}.{ext}");
         let page_path = out_dir.join(&filename);
@@ -169,10 +169,7 @@ pub fn run(args: &PdfPagesArgs, ctx: &RunContext) -> CommandResult {
         });
 
         Ok(true)
-    }) {
-        Ok(total) => total,
-        Err(e) => return Err(e),
-    };
+    })?;
 
     if let Some(e) = encode_error {
         return Err(e);
