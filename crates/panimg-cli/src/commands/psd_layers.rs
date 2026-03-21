@@ -147,7 +147,7 @@ pub fn run(args: &PsdLayersArgs, ctx: &RunContext) -> CommandResult {
     let mut layer_outputs = Vec::new();
     let mut encode_error: Option<PanimgError> = None;
 
-    let total_layers = match panimg_core::psd::for_each_layer(&data, |info, img| {
+    let total_layers = panimg_core::psd::for_each_layer(&data, |info, img| {
         // Filter by index
         if let Some(idx) = filter_index {
             if info.index != idx {
